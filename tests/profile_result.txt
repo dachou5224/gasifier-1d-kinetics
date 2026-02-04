@@ -1,0 +1,136 @@
+
+================================================================================
+FULL REPORT: Paper_Case_6
+================================================================================
+[System] Consistent Hf_coal: -3.37 MJ/kg (Basis: LHV_d=28.74 MJ/kg)
+[System] Starting Solver (Instant Pyrolysis Mode) with 50 cells.
+  [Warn] Cell 0 convergence poor. Cost: 1.14e-01, Success: True, T: 366.1K
+  [Warn] Cell 2 convergence poor. Cost: 1.74e-04, Success: True, T: 361.8K
+  [Warn] Cell 9 convergence poor. Cost: 9.68e-06, Success: False, T: 362.1K
+  [Warn] Cell 10 convergence poor. Cost: 9.60e-06, Success: False, T: 362.1K
+  [Warn] Cell 12 convergence poor. Cost: 9.47e-06, Success: False, T: 362.1K
+  [Warn] Cell 13 convergence poor. Cost: 9.42e-06, Success: False, T: 362.1K
+  [Warn] Cell 14 convergence poor. Cost: 9.37e-06, Success: False, T: 362.2K
+  [Warn] Cell 15 convergence poor. Cost: 9.32e-06, Success: False, T: 362.2K
+  [Warn] Cell 16 convergence poor. Cost: 9.27e-06, Success: False, T: 362.2K
+  [Warn] Cell 19 convergence poor. Cost: 9.15e-06, Success: False, T: 362.2K
+  [Warn] Cell 20 convergence poor. Cost: 2.15e-05, Success: False, T: 352.4K
+  [Warn] Cell 22 convergence poor. Cost: 3.54e-06, Success: False, T: 352.4K
+  [Warn] Cell 24 convergence poor. Cost: 3.50e-06, Success: False, T: 352.5K
+  [Warn] Cell 25 convergence poor. Cost: 3.48e-06, Success: False, T: 352.5K
+[System] Solved.
+Z(m)  T(K)  Xc(%) O2(%) CO(%) H2(%) CO2(%) H2O(%) CH4(%)
+0.03 366.1  78.4% 20.02  20.9  20.3   20.3    4.8  13.23
+0.03 366.1  78.4% 20.02  20.9  20.3   20.3    4.8  13.23
+0.80 362.0  99.9% 13.58  23.4  16.3   28.2    0.0  18.07
+0.80 362.0  99.9% 13.58  23.4  16.3   28.2    0.0  18.07
+1.30 362.1 100.0% 13.32  22.8  16.4   28.8    0.0  18.21
+1.30 362.1 100.0% 13.32  22.8  16.4   28.8    0.0  18.21
+1.80 362.2 100.0% 13.06  22.1  16.6   29.4    0.0  18.35
+1.80 362.2 100.0% 13.06  22.1  16.6   29.4    0.0  18.35
+2.35 352.4 100.0% 12.81  21.5  16.7   30.0    0.0  18.50
+2.35 352.4 100.0% 12.81  21.5  16.7   30.0    0.0  18.50
+3.30 352.5 100.0% 12.52  20.8  16.8   30.7    0.0  18.62
+3.30 352.5 100.0% 12.52  20.8  16.8   30.7    0.0  18.62
+4.26 352.7 100.0% 12.23  20.1  17.0   31.5    0.0  18.74
+4.26 352.7 100.0% 12.23  20.1  17.0   31.5    0.0  18.74
+5.22 352.9 100.0% 11.94  19.5  17.1   32.2    0.0  18.85
+5.22 352.9 100.0% 11.94  19.5  17.1   32.2    0.0  18.85
+6.18 353.1 100.0% 11.64  18.8  17.2   32.9    0.0  18.98
+6.18 353.1 100.0% 11.64  18.8  17.2   32.9    0.0  18.98
+7.14 353.4 100.0% 11.33  18.1  17.3   33.7    0.0  19.10
+7.14 353.4 100.0% 11.33  18.1  17.3   33.7    0.0  19.10
+7.90 353.6 100.0% 11.09  17.5  17.4   34.3    0.0  19.20
+7.90 353.6 100.0% 11.09  17.5  17.4   34.3    0.0  19.20
+
+[Outlet Summary]
+Exit Temperature: 80.4 C
+Simulation Crashed: 'exp_results'
+
+================================================================================
+FULL REPORT: Paper_Case_1
+================================================================================
+[System] Starting Solver (Instant Pyrolysis Mode) with 50 cells.
+  [Warn] Cell 0 convergence poor. Cost: 1.14e-01, Success: True, T: 366.0K
+  [Warn] Cell 2 convergence poor. Cost: 1.73e-04, Success: True, T: 361.5K
+  [Warn] Cell 8 convergence poor. Cost: 9.80e-06, Success: False, T: 361.7K
+  [Warn] Cell 9 convergence poor. Cost: 9.69e-06, Success: False, T: 361.8K
+  [Warn] Cell 18 convergence poor. Cost: 9.20e-06, Success: False, T: 361.9K
+  [Warn] Cell 19 convergence poor. Cost: 9.16e-06, Success: False, T: 361.9K
+  [Warn] Cell 20 convergence poor. Cost: 2.16e-05, Success: False, T: 352.0K
+  [Warn] Cell 21 convergence poor. Cost: 3.57e-06, Success: False, T: 352.1K
+  [Warn] Cell 22 convergence poor. Cost: 3.55e-06, Success: False, T: 352.1K
+  [Warn] Cell 23 convergence poor. Cost: 3.53e-06, Success: False, T: 352.1K
+  [Warn] Cell 24 convergence poor. Cost: 3.51e-06, Success: False, T: 352.2K
+[System] Solved.
+Z(m)  T(K)  Xc(%) O2(%) CO(%) H2(%) CO2(%) H2O(%) CH4(%)
+0.03 366.0  78.6% 20.28  20.9  20.2   20.2    4.8  13.18
+0.03 366.0  78.6% 20.28  20.9  20.2   20.2    4.8  13.18
+0.80 361.7  99.9% 13.86  23.4  16.3   28.0    0.0  17.89
+0.80 361.7  99.9% 13.86  23.4  16.3   28.0    0.0  17.89
+1.30 361.8 100.0% 13.60  22.8  16.5   28.6    0.0  18.03
+1.30 361.8 100.0% 13.60  22.8  16.5   28.6    0.0  18.03
+1.80 361.8 100.0% 13.34  22.1  16.6   29.3    0.0  18.17
+1.80 361.8 100.0% 13.34  22.1  16.6   29.3    0.0  18.17
+2.35 352.0 100.0% 13.10  21.4  16.8   29.9    0.0  18.32
+2.35 352.0 100.0% 13.10  21.4  16.8   29.9    0.0  18.32
+3.30 352.2 100.0% 12.82  20.8  16.9   30.6    0.0  18.44
+3.30 352.2 100.0% 12.82  20.8  16.9   30.6    0.0  18.44
+4.26 352.4 100.0% 12.53  20.1  17.0   31.3    0.0  18.55
+4.26 352.4 100.0% 12.53  20.1  17.0   31.3    0.0  18.55
+5.22 352.6 100.0% 12.24  19.4  17.1   32.0    0.0  18.67
+5.22 352.6 100.0% 12.24  19.4  17.1   32.0    0.0  18.67
+6.18 352.8 100.0% 11.95  18.8  17.3   32.8    0.0  18.79
+6.18 352.8 100.0% 11.95  18.8  17.3   32.8    0.0  18.79
+7.14 353.0 100.0% 11.65  18.1  17.4   33.5    0.0  18.91
+7.14 353.0 100.0% 11.65  18.1  17.4   33.5    0.0  18.91
+7.90 353.2 100.0% 11.41  17.5  17.5   34.1    0.0  19.01
+7.90 353.2 100.0% 11.41  17.5  17.5   34.1    0.0  19.01
+
+[Outlet Summary]
+Exit Temperature: 80.0 C
+Simulation Crashed: 'exp_results'
+
+================================================================================
+FULL REPORT: Paper_Case_2
+================================================================================
+[System] Starting Solver (Instant Pyrolysis Mode) with 50 cells.
+  [Warn] Cell 0 convergence poor. Cost: 1.05e-01, Success: True, T: 364.6K
+  [Warn] Cell 2 convergence poor. Cost: 1.64e-04, Success: True, T: 357.3K
+  [Warn] Cell 8 convergence poor. Cost: 9.31e-06, Success: False, T: 357.4K
+  [Warn] Cell 9 convergence poor. Cost: 9.23e-06, Success: False, T: 357.4K
+  [Warn] Cell 11 convergence poor. Cost: 9.10e-06, Success: False, T: 357.3K
+  [Warn] Cell 12 convergence poor. Cost: 9.05e-06, Success: False, T: 357.3K
+  [Warn] Cell 13 convergence poor. Cost: 9.00e-06, Success: False, T: 357.3K
+  [Warn] Cell 14 convergence poor. Cost: 8.96e-06, Success: False, T: 357.3K
+  [Warn] Cell 15 convergence poor. Cost: 8.92e-06, Success: False, T: 357.3K
+  [Warn] Cell 16 convergence poor. Cost: 8.88e-06, Success: False, T: 357.3K
+  [Warn] Cell 17 convergence poor. Cost: 8.83e-06, Success: False, T: 357.3K
+[System] Solved.
+Z(m)  T(K)  Xc(%) O2(%) CO(%) H2(%) CO2(%) H2O(%) CH4(%)
+0.03 364.6  79.6% 23.71  18.7  19.7   19.7    5.7  12.04
+0.03 364.6  79.6% 23.71  18.7  19.7   19.7    5.7  12.04
+0.80 357.4 100.0% 17.74  19.1  18.5   28.4    0.0  15.72
+0.80 357.4 100.0% 17.74  19.1  18.5   28.4    0.0  15.72
+1.30 357.3 100.0% 17.55  18.5  18.7   29.0    0.0  15.84
+1.30 357.3 100.0% 17.55  18.5  18.7   29.0    0.0  15.84
+1.80 357.3 100.0% 17.37  17.8  18.8   29.6    0.0  15.95
+1.80 357.3 100.0% 17.37  17.8  18.8   29.6    0.0  15.95
+2.35 347.6 100.0% 17.20  17.1  19.0   30.2    0.0  16.08
+2.35 347.6 100.0% 17.20  17.1  19.0   30.2    0.0  16.08
+3.30 347.7 100.0% 16.98  16.4  19.1   30.8    0.0  16.17
+3.30 347.7 100.0% 16.98  16.4  19.1   30.8    0.0  16.17
+4.26 347.7 100.0% 16.76  15.7  19.3   31.5    0.0  16.27
+4.26 347.7 100.0% 16.76  15.7  19.3   31.5    0.0  16.27
+5.22 347.8 100.0% 16.53  15.1  19.4   32.2    0.0  16.37
+5.22 347.8 100.0% 16.53  15.1  19.4   32.2    0.0  16.37
+6.18 347.8 100.0% 16.29  14.4  19.5   32.9    0.0  16.47
+6.18 347.8 100.0% 16.29  14.4  19.5   32.9    0.0  16.47
+7.14 347.9 100.0% 16.06  13.7  19.7   33.6    0.0  16.57
+7.14 347.9 100.0% 16.06  13.7  19.7   33.6    0.0  16.57
+7.90 348.0 100.0% 15.87  13.1  19.8   34.2    0.0  16.65
+7.90 348.0 100.0% 15.87  13.1  19.8   34.2    0.0  16.65
+
+[Outlet Summary]
+Exit Temperature: 74.8 C
+Simulation Crashed: 'exp_results'

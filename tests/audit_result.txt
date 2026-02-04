@@ -1,0 +1,76 @@
+====================================================================================================
+GASIFIER PHYSICS AUDIT - CONSERVATION & PLAUSIBILITY CHECKS
+====================================================================================================
+
+Auditing Case: Paper_Case_6...
+[System] Consistent Hf_coal: -3.37 MJ/kg (Basis: LHV_d=28.74 MJ/kg)
+[System] Starting Solver (Instant Pyrolysis Mode) with 50 cells.
+  [Warn] Cell 0 convergence poor. Cost: 1.14e-01, Success: True, T: 366.1K
+  [Warn] Cell 2 convergence poor. Cost: 1.74e-04, Success: True, T: 361.8K
+  [Warn] Cell 9 convergence poor. Cost: 9.68e-06, Success: False, T: 362.1K
+  [Warn] Cell 10 convergence poor. Cost: 9.60e-06, Success: False, T: 362.1K
+  [Warn] Cell 12 convergence poor. Cost: 9.47e-06, Success: False, T: 362.1K
+  [Warn] Cell 13 convergence poor. Cost: 9.42e-06, Success: False, T: 362.1K
+  [Warn] Cell 14 convergence poor. Cost: 9.37e-06, Success: False, T: 362.2K
+  [Warn] Cell 15 convergence poor. Cost: 9.32e-06, Success: False, T: 362.2K
+  [Warn] Cell 16 convergence poor. Cost: 9.28e-06, Success: False, T: 362.2K
+  [Warn] Cell 17 convergence poor. Cost: 9.23e-06, Success: False, T: 362.2K
+  [Warn] Cell 19 convergence poor. Cost: 9.15e-06, Success: False, T: 362.2K
+  [Warn] Cell 20 convergence poor. Cost: 2.15e-05, Success: False, T: 352.4K
+  [Warn] Cell 22 convergence poor. Cost: 3.54e-06, Success: False, T: 352.4K
+  [Warn] Cell 23 convergence poor. Cost: 3.52e-06, Success: False, T: 352.5K
+  [Warn] Cell 24 convergence poor. Cost: 3.50e-06, Success: False, T: 352.5K
+  [Warn] Cell 25 convergence poor. Cost: 3.48e-06, Success: False, T: 352.5K
+[System] Solved.
+  [Audit Trace] Element Conservation (mol/s):
+    C: In=737.7836, Out=701.5994, Err=4.90%
+    H: In=1339.6495, Out=1105.7111, Err=17.46%
+    O: In=1232.1396, Out=1069.9387, Err=13.16%
+    N: In=6.7060, Out=6.7088, Err=0.04%
+Auditing Case: Paper_Case_1...
+[System] Starting Solver (Instant Pyrolysis Mode) with 50 cells.
+  [Warn] Cell 0 convergence poor. Cost: 1.14e-01, Success: True, T: 366.0K
+  [Warn] Cell 2 convergence poor. Cost: 1.73e-04, Success: True, T: 361.5K
+  [Warn] Cell 8 convergence poor. Cost: 9.80e-06, Success: False, T: 361.7K
+  [Warn] Cell 9 convergence poor. Cost: 9.69e-06, Success: False, T: 361.8K
+  [Warn] Cell 19 convergence poor. Cost: 9.16e-06, Success: False, T: 361.9K
+  [Warn] Cell 20 convergence poor. Cost: 2.16e-05, Success: False, T: 352.1K
+  [Warn] Cell 21 convergence poor. Cost: 3.58e-06, Success: False, T: 352.1K
+  [Warn] Cell 22 convergence poor. Cost: 3.55e-06, Success: False, T: 352.1K
+  [Warn] Cell 23 convergence poor. Cost: 3.53e-06, Success: False, T: 352.1K
+  [Warn] Cell 24 convergence poor. Cost: 3.51e-06, Success: False, T: 352.2K
+[System] Solved.
+  [Audit Trace] Element Conservation (mol/s):
+    C: In=737.7836, Out=701.4290, Err=4.93%
+    H: In=1339.6495, Out=1105.2001, Err=17.50%
+    O: In=1239.3744, Out=1078.0815, Err=13.01%
+    N: In=6.7060, Out=6.7088, Err=0.04%
+Auditing Case: Paper_Case_2...
+[System] Starting Solver (Instant Pyrolysis Mode) with 50 cells.
+  [Warn] Cell 0 convergence poor. Cost: 1.05e-01, Success: True, T: 364.6K
+  [Warn] Cell 2 convergence poor. Cost: 1.64e-04, Success: True, T: 357.3K
+  [Warn] Cell 8 convergence poor. Cost: 9.31e-06, Success: False, T: 357.4K
+  [Warn] Cell 9 convergence poor. Cost: 9.23e-06, Success: False, T: 357.4K
+  [Warn] Cell 11 convergence poor. Cost: 9.10e-06, Success: False, T: 357.3K
+  [Warn] Cell 12 convergence poor. Cost: 9.05e-06, Success: False, T: 357.3K
+  [Warn] Cell 13 convergence poor. Cost: 9.00e-06, Success: False, T: 357.3K
+  [Warn] Cell 14 convergence poor. Cost: 8.96e-06, Success: False, T: 357.3K
+  [Warn] Cell 15 convergence poor. Cost: 8.91e-06, Success: False, T: 357.3K
+  [Warn] Cell 16 convergence poor. Cost: 8.88e-06, Success: False, T: 357.3K
+  [Warn] Cell 17 convergence poor. Cost: 8.84e-06, Success: False, T: 357.3K
+[System] Solved.
+  [Audit Trace] Element Conservation (mol/s):
+    C: In=737.7836, Out=697.3145, Err=5.49%
+    H: In=1405.6080, Out=1160.6793, Err=17.43%
+    O: In=1388.1109, Out=1234.6429, Err=11.06%
+    N: In=6.7060, Out=6.7085, Err=0.04%
+
+GASIFIER AUDIT SUMMARY
+----------------------------------------------------------------------------------------------------
+           Case  Cons_C(%)  Cons_H(%)  Cons_O(%)  Cons_N(%)         T_Out H2/CO      CH4_Level
+0  Paper_Case_6     4.9044    17.4627    13.1642     0.0421  FAIL (80.4C)  PASS  WARN (19.20%)
+1  Paper_Case_1     4.9275    17.5008    13.0141     0.0419  FAIL (80.0C)  PASS  WARN (19.01%)
+2  Paper_Case_2     5.4852    17.4251    11.0559     0.0374  FAIL (74.8C)  PASS  WARN (16.65%)
+
+OVERALL AUDIT VERDICT:
+❌ FAILED: Mass conservation violation detected (>0.1%).
