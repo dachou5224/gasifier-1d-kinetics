@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 import numpy as np
 from typing import List
+from .physics import R_CONST
 
 @dataclass
 class StateVector:
@@ -61,3 +62,17 @@ class StateVector:
             P=P,
             z=z
         )
+
+    def get_concentration(self, species_idx: int) -> float:
+        """
+        Calculate molar concentration of a species (kmol/m³).
+        Formula: C_i = (F_i / F_total) * (P / RT)
+        """
+        F_i = self.gas_moles[species_idx]
+        F_total = self.total_gas_moles
+        if F_total < 1e-9: F_total = 1e-9
+        
+        # P [Pa], T [K], R [J/mol.K] -> P/RT [mol/m3]
+        # Result needed in kmol/m3 for kinetics
+        c_mol_m3 = (F_i / F_total) * (self.P / (R_CONST * self.T))
+        return c_mol_m3 / 1000.0

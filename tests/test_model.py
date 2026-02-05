@@ -1,11 +1,15 @@
 import sys
 import os
 import numpy as np
+import logging
+
+# Configure basic logging for tests (INFO level to suppress DEBUG noise)
+logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 
 # 添加 src 到路径
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
 
-from model.solver import GasifierSolver1D
+from model.gasifier_system import GasifierSystem
 
 def test_solver():
     # 使用 Paper Case 6 进行对标 (刘臻 论文)
@@ -29,10 +33,12 @@ def test_solver():
     
     geometry = {'L': 6.0, 'D': 2.0}
     
-    solver = GasifierSolver1D(geometry, coal_props, operating_conds)
+    # Use GasifierSystem instead of GasifierSolver1D
+    solver = GasifierSystem(geometry, coal_props, operating_conds)
     
     print("Starting 1D Solver Test...")
-    results = solver.solve(N_cells=25)
+    # GasifierSystem.solve returns (results_array, z_positions)
+    results, z_positions = solver.solve(N_cells=25)
     
     print(f"Solver finished. Number of cells solved: {len(results)}")
     

@@ -1,6 +1,8 @@
 import numpy as np
+from typing import Dict, List, Optional
 from model.state import StateVector
 from model.kinetics import HeterogeneousKinetics
+from model.constants import PhysicalConstants
 from model.physics import R_CONST
 from model.material import SPECIES_NAMES
 
@@ -9,17 +11,7 @@ class KineticsService:
     Service for calculating all reaction rates (Pyrolysis, Heterogeneous, Homogeneous).
     Decouples logic from the Solver/Cell.
     """
-    def __init__(self, scaling_config: dict = None):
-        if scaling_config is None:
-            scaling_config = {}
-        
-        self.scale_comb = scaling_config.get('comb', 1.0)
-        self.scale_gas = scaling_config.get('gas', 1.0) 
-        
-        # Mixing Factor (to stretch reaction zone)
-        # Industrial 1D models typically use 0.05-0.1 to account for gas-solid contact delay.
-        self.mixing_factor = scaling_config.get('mixing', 1.0) 
-        
+    def __init__(self):
         # Underlying Physics Model
         self.het_model = HeterogeneousKinetics()
         
@@ -37,28 +29,33 @@ class KineticsService:
             'H2_Ox':  8.37e7 / 1000.0,
             'WGS':    1.25e7 / 1000.0,
             'RWGS':   6.27e7 / 1000.0,
-            'CH4_Ox': 9.304e4, # User requested: 9.304e4
+            'CH4_Ox': 1.256e8 / 1000.0, 
             'MSR':    30000.0 * R_CONST 
         }
         
     def calc_heterogeneous_rates(self, state: StateVector, particle_diameter: float, 
                                  surface_area: float, X_total: float = 0.0, 
-                                 Re: float = 0.0, Sc: float = 1.0) -> dict:
+                                 Re: float = 0.0, Sc: float = 1.0) -> Dict[str, float]:
         """
         Calculate Surface Reaction Rates (mol/s).
         Returns: Dict {'C+O2': rate, ...}
         """
         r = {}
-        F_total = state.total_gas_moles + 1e-9
+        F_total = state.total_gas_moles
+        if F_total < PhysicalConstants.TOLERANCE_SMALL:
+             # This is expected for initial cells with no gas yet, debug level only
+             # logging.debug(f"LogicWarning: F_total ~ 0 at T={state.T:.1f}")
+             F_total = PhysicalConstants.TOLERANCE_SMALL
         
         # 1. Particle Temperature Model (Ross)
         P, T = state.P, state.T
         F_O2 = state.gas_moles[0]
-        C_O2_kmol = (max(F_O2, 0.0) / F_total) * (P / (R_CONST * T)) / 1000.0
+        # P_eff / RT for O2 = C_O2 [kmol/m3]
+        C_O2_kmol = state.get_concentration(0)
         T_p = T + 6.6e4 * C_O2_kmol
         T_p = min(T_p, 4000.0)
         
-        # 2. Mechanism Factor phi (决定CO/CO2比例)
+        # 2. Mechanism Factor phi (Determines CO/CO2 ratio)
         p_fac = 2500.0 * np.exp(-5.19e4 / (R_CONST * T_p))
         phi = (2*p_fac + 2) / (p_fac + 2)
         r['phi'] = phi 
@@ -76,6 +73,10 @@ class KineticsService:
             P_i = (F_i / F_total) * P # Pa
             
             # 4. Driving Force Correction (P_eq)
+            # Use concentration-derived partial pressures if possible, but here we need P_i
+            # P_i = C_i * R * T (Pa)
+            # But let's keep P_i = y_i * P for simplicity as it handles F_total ~ 0 better in some checks
+            
             P_eq = 0.0
             if rxn == 'C+CO2':
                 # C + CO2 <-> 2CO. Kp = P_CO^2 / P_CO2 (atm)
@@ -106,29 +107,28 @@ class KineticsService:
             # Convert kmol/m2.s -> mol/m2.s
             rate_flux = rate_kmols * 1000.0
             
-            # Apply Scaling
-            sf = self.scale_comb if rxn == 'C+O2' else self.scale_gas
-            if rxn == 'C+O2':
-                sf *= self.mixing_factor
+            # Convert kmol/m2.s -> mol/m2.s
+            rate_flux = rate_kmols * 1000.0
             
-            r[rxn] = rate_flux * sf * surface_area 
+            r[rxn] = rate_flux * surface_area 
             
         return r
 
-    def calc_homogeneous_rates(self, state: StateVector, volume: float) -> dict:
+    def calc_homogeneous_rates(self, state: StateVector, volume: float) -> Dict[str, float]:
         """
         Calculate Homogeneous Rates (mol/s) based on Table 2-5.
         """
         rates = {}
         P, T = state.P, state.T
-        F_total = state.total_gas_moles + 1e-9
+        F_total = state.total_gas_moles
+        if F_total < PhysicalConstants.TOLERANCE_SMALL:
+             F_total = PhysicalConstants.TOLERANCE_SMALL
         
+        # Concentrations (kmol/m3) - Table 2-5 refers to Ca, Cb in kmol/m3
         # Concentrations (kmol/m3) - Table 2-5 refers to Ca, Cb in kmol/m3
         C = {}
         for i, sp in enumerate(SPECIES_NAMES):
-            F_i = max(state.gas_moles[i], 0.0)
-            c_kmol = (F_i / F_total) * (P / (R_CONST * T)) / 1000.0
-            C[sp] = c_kmol
+            C[sp] = state.get_concentration(i)
 
         # 1-5: Second Order (r = k Ca Cb) [kmol/m3.s]
         # (1) CO Combustion

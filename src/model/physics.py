@@ -1,9 +1,9 @@
 import numpy as np
 
-# 通用气体常数 R (J/(mol*K))
+# Universal Gas Constant R (J/(mol*K))
 R_CONST = 8.3144626
 
-# 分子量 (g/mol 或 kg/kmol)
+# Molar Mass (g/mol or kg/kmol)
 MOLAR_MASS = {
     'CO': 28.01,
     'H2': 2.016,
@@ -18,8 +18,8 @@ MOLAR_MASS = {
 
 # =============================================================================
 # NIST Shomate Equation Coefficients
-# 数据来源: NIST Chemistry WebBook
-# 结构: { 'Species': { 'Low': [coeffs...], 'High': [coeffs...], 'T_cut': 1000.0 } }
+# Data Source: NIST Chemistry WebBook
+# Structure: { 'Species': { 'Low': [coeffs...], 'High': [coeffs...], 'T_cut': 1000.0 } }
 # Coeffs format: [A, B, C, D, E, F, G, H]
 # =============================================================================
 
@@ -73,7 +73,7 @@ SHOMATE_DB = {
 }
 
 def _get_coeffs(species, T):
-    """根据温度选择合适的 Shomate 系数"""
+    """Select appropriate Shomate coefficients based on temperature"""
     if species not in SHOMATE_DB:
         return None
     
@@ -85,8 +85,8 @@ def _get_coeffs(species, T):
 
 def _calculate_shomate(species, T, prop_type):
     """
-    内部辅助函数：根据 Shomate 方程计算热力学性质
-    T: 温度 (K)
+    Internal helper: Calculate thermodynamic properties using Shomate equation
+    T: Temperature (K)
     prop_type: 'H' (Enthalpy), 'S' (Entropy), 'Cp' (Heat Capacity)
     """
     coeffs = _get_coeffs(species, T)
@@ -103,10 +103,10 @@ def _calculate_shomate(species, T, prop_type):
 
     elif prop_type == 'H':
         # H = A*t + B*t^2/2 + C*t^3/3 + D*t^4/4 - E/t + F - H_ref (kJ/mol)
-        # NIST 计算出的是 H(T) - H(298.15) + Delta_f H(298.15)
-        # 注意：公式里的 H 项 (coeffs[7]) 对应的是 Delta_f H(298.15) 吗？
-        # NIST 定义: H - H(298) = ... + F - H. 
-        # 这里的 F 包含了生成焓信息. NIST 网站结果 H = standard enthalpy.
+        # NIST result is H(T) - H(298.15) + Delta_f H(298.15)
+        # Note: Does H term (coeffs[7]) correspond to Delta_f H(298.15)?
+        # NIST definition: H - H(298) = ... + F - H. 
+        # Here F contains formation enthalpy info. NIST web result H = standard enthalpy.
         H_val = A*t + B*(t**2)/2 + C*(t**3)/3 + D*(t**4)/4 - E/t + F
         return H_val * 1000.0  # kJ/mol -> J/mol
 
@@ -116,16 +116,16 @@ def _calculate_shomate(species, T, prop_type):
         return S_val 
 
 def get_enthalpy_molar(species, T):
-    """计算摩尔焓 (J/mol)"""
+    """Calculate Molar Enthalpy (J/mol)"""
     return _calculate_shomate(species, T, 'H')
 
 def get_entropy_molar(species, T):
-    """计算摩尔熵 (J/(mol K))"""
+    """Calculate Molar Entropy (J/(mol K))"""
     return _calculate_shomate(species, T, 'S')
 
 def get_gibbs_free_energy(species, T):
     """
-    计算吉布斯自由能 G = H - TS (J/mol)
+    Calculate Gibbs Free Energy G = H - TS (J/mol)
     """
     H = get_enthalpy_molar(species, T)
     S = get_entropy_molar(species, T)
@@ -133,7 +133,7 @@ def get_gibbs_free_energy(species, T):
 
 def get_equilibrium_constants(T):
     """
-    计算平衡常数 K (仅用于显示，核心计算已转为 Gibbs 最小化)
+    Calculate Equilibrium Constant K (For display only, core calc uses Gibbs minimization)
     R1: CO + H2O <-> CO2 + H2
     R2: CO + 3H2 <-> CH4 + H2O
     """

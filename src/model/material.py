@@ -2,6 +2,7 @@ import numpy as np
 from model.state import StateVector
 from model.physics import calculate_enthalpy, calculate_cp, calculate_gas_density
 from model.physics import MOLAR_MASS
+from model.constants import PhysicalConstants
 
 # Global Species Order Definition
 # MUST MATCH StateVector comments and Solver logic
@@ -30,7 +31,7 @@ class MaterialService:
         Calculate Total Heat Flow of Solid Phase (J/s).
         Uses simple capacity model + Formation Enthalpy of Coal.
         """
-        cp_s = 1500.0 # J/kgK
+        cp_s = PhysicalConstants.HEAT_CAPACITY_SOLID # J/kgK
         
         # Consistent Hf Calculation (if not provided)
         # Hf = -LHV + sum(n_i * Hf_prod_i)

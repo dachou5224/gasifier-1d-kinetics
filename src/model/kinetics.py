@@ -2,27 +2,27 @@ import numpy as np
 from .physics import R_CONST, calculate_cp, calculate_enthalpy, calculate_gas_viscosity, calculate_diffusion_coefficient
 
 class PyrolysisModel:
-    """煤的热解（脱挥发分）模型"""
+    """Coal pyrolysis (Devolatilization) model"""
     @staticmethod
     def calculate_yield(T, P, V_initial, dt):
         """
-        计算热解挥发分产率
-        T: 温度 (K)
-        P: 压力 (Pa)
-        V_initial: 初始挥发分含量 (kg/kg_coal)
-        dt: 时间步长 (s)
+        Calculate pyrolysis volatile yield
+        T: Temperature (K)
+        P: Pressure (Pa)
+        V_initial: Initial volatile content (kg/kg_coal)
+        dt: Time step (s)
         """
-        # 压力修正 (参考算法文档)
+        # Pressure correction (Ref: Algorithms Doc)
         P_ref = 1.01325e5
         V_star = V_initial * (1 - 0.066 * np.log(max(P / P_ref, 1.0)))
         
-        # 一阶反应动力学
+        # First-order reaction kinetics
         k = 2.0e5 * np.exp(-74000 / (R_CONST * T))
         V_released = V_star * (1 - np.exp(-k * dt))
         return V_released
 
 class HeterogeneousKinetics:
-    """气固异相反应动力学 (未反应缩核模型 UCSM)"""
+    """Heterogeneous Reaction Kinetics (Unreacted Core Shrinking Model - UCSM)"""
     def __init__(self):
         # Table 2-7 Parameters (E converted to J/mol)
         self.params = {
@@ -35,12 +35,25 @@ class HeterogeneousKinetics:
 
     def calculate_total_rate(self, reaction, T, P, partial_pressure, d_p, Y, nu=1.0, Re=0.0, Sc=None, porosity=0.75, T_p=None):
         """
-        计算异相反应的总速率 (kmol Carbon / (m^2·s))
+        Calculate total heterogeneous reaction rates (kmol Carbon / (m^2·s))
         Based on Equation 2-12 and Table 2-7.
         Driving force: P_eff = P_i - P_eq
         
-        nu: Stoichiometric factor (mols Carbon per mol oxidant). 
-            For C+O2, nu = phi. For gasification, nu = 1.0 usually.
+        Args:
+            reaction (str): Reaction type ('C+O2', 'C+H2O', etc.)
+            T (float): Gas temperature [K]
+            P (float): Total pressure [Pa]
+            partial_pressure (float): Effective driving pressure [Pa]
+            d_p (float): Particle diameter [m]
+            Y (float): Shrinking core factor (Rc/Rp)
+            nu (float): Stoichiometric coefficient [mol_C/mol_oxidant]
+            Re (float): Reynolds number (Optional)
+            Sc (float): Schmidt number (Optional)
+            porosity (float): Particle porosity (Default 0.75)
+            T_p (float): Particle temperature (Optional, defaults to T)
+
+        Returns:
+            float: Reaction rate [kmol/(m^2·s)]
         """
         if reaction not in self.params: return 0.0
         if T_p is None: T_p = T
@@ -48,7 +61,7 @@ class HeterogeneousKinetics:
         A_p = self.params[reaction]['A']
         E_p = self.params[reaction]['E']
         
-        # 1. 气膜扩散速率 k_d (Formula: Sh * D / dp) [m/s]
+        # 1. Film diffusion rate k_d (Formula: Sh * D / dp) [m/s]
         species_map = {'C+O2': 'O2', 'C+H2O': 'H2O', 'C+CO2': 'CO2', 'C+H2': 'H2'}
         gas_i = species_map.get(reaction, 'O2')
         D_i = calculate_diffusion_coefficient(T, P, gas_i)
@@ -58,13 +71,13 @@ class HeterogeneousKinetics:
         Sh = 2.0 + 0.6 * (Re**0.5) * (Sc**(1/3.0))
         k_d = (Sh * D_i) / d_p 
         
-        # 2. 灰层扩散速率 k_ash [m/s]
+        # 2. Ash layer diffusion rate k_ash [m/s]
         # Formula: k_ash = k_d * eps^2.5 (Normalized to external surface)
         # Note: In standard UCSM, D_e = D_bulk * eps / tau. 
         # Here we follow the literature correlation provided.
         k_ash = k_d * (porosity ** 2.5)
         
-        # 3. 表面化学反应速率 k_s (m/s)
+        # 3. Surface chemical reaction rate k_s (m/s)
         k_s = A_p * np.exp(-E_p / (R_CONST * T_p))
         
         # 4. Equilibrium Driving Force (P_eff = P_i - P_eq)
@@ -88,16 +101,16 @@ class HeterogeneousKinetics:
         return rate
 
 def calculate_wgs_equilibrium(T):
-    """水煤气变换反应 (WGS) 平衡常数 (Table 2-2)"""
+    """Water Gas Shift (WGS) Equilibrium Constant (Table 2-2)"""
     # K = exp(4578/T - 4.33)
     return np.exp(4578.0 / T - 4.33)
 
 def calculate_methanation_equilibrium(T):
-    """甲烷化反应平衡 (Table 2-3)"""
+    """Methanation Equilibrium (Table 2-3)"""
     # K = exp(21832/T - 21.03) 
     return np.exp(21832.0 / T - 21.03)
 
 def calculate_boudouard_equilibrium(T):
-    """Boudouard反应平衡 (Table 2-4)"""
+    """Boudouard Reaction Equilibrium (Table 2-4)"""
     # K = exp(-20573/T + 20.32)
     return np.exp(-20573.0 / T + 20.32)

@@ -1,5 +1,6 @@
-
 import numpy as np
+from typing import Tuple, Dict
+from model.material import SPECIES_NAMES
 
 class PyrolysisService:
     """
@@ -11,7 +12,7 @@ class PyrolysisService:
     def __init__(self):
         pass
 
-    def calc_yields(self, coal_props: dict):
+    def calc_yields(self, coal_props: dict) -> Tuple[np.ndarray, float]:
         """
         Calculate pyrolysis product yields enforcing Elemental Conservation.
         Limits Volatile Carbon based on available H and O stoichiometry.
@@ -91,11 +92,9 @@ class PyrolysisService:
         n_H_resid = max(n_H_avail - n_H_used_from_avail, 0.0)
         n_H2 = n_H_resid / 2.0
         
-        # 8. Output
+        # 8. Output Prep
         factor = 10.0 # kmol/100kg -> mol/kg
-        
         molar_yields = np.zeros(8)
-        molar_yields[0] = 0.0 
         molar_yields[1] = n_CH4 * factor
         molar_yields[2] = n_CO * factor
         molar_yields[3] = n_CO2 * factor
@@ -104,8 +103,44 @@ class PyrolysisService:
         molar_yields[6] = n_N2 * factor 
         molar_yields[7] = n_H2O * factor
         
-        # 9. Calc Volatile Mass
-        MW = [32.0, 16.04, 28.01, 44.01, 34.08, 2.016, 28.013, 18.015]
+        # 9. Energy Normalization (CRITICAL: Enforce HHV/LHV Conservation)
+        # We need sum(n_i * LHV_i_net) = Target - HHV_Carbon_Basis
+        # LHV_i_net = LHV_i - (atoms_C_i * LHV_C)
+        from model.physics import get_lhv
+        
+        LHV_C = 393510.0 # J/mol
+        
+        # Calculate Delta Energy: Product LHV - Coal Basis LHV
+        # Coal Basis LHV is all Carbon as Char.
+        lhv_basis = (Cd / 100.0) * (LHV_C / 0.012011) 
+        
+        hhv_coal = coal_props.get('HHV_d', 30.0) * 1e6
+        target_lhv = hhv_coal * 0.95 # Assume 5% for heat of pyrolysis and moisture heat
+        
+        # Available delta from combustible volatiles
+        # CH4(1): 1 C atom. CO(2): 1 C atom. H2(5): 0 C.
+        d_lhv = {
+            1: get_lhv('CH4') - 1.0 * LHV_C,
+            2: get_lhv('CO') - 1.0 * LHV_C,
+            5: get_lhv('H2') - 0.0 * LHV_C,
+            4: get_lhv('H2S') - 0.0 * LHV_C
+        }
+        
+        current_excess = 0.0
+        for i in [1, 2, 4, 5]:
+            current_excess += molar_yields[i] * d_lhv[i]
+        
+        target_excess = target_lhv - lhv_basis
+        
+        if current_excess > target_excess and current_excess > 0:
+            scale = max(target_excess / current_excess, 0.0)
+            molar_yields[1] *= scale
+            molar_yields[2] *= scale
+            molar_yields[5] *= scale
+            # molar_yields[4] is usually fixed by sulfur content, keep it.
+            
+        # 10. Final Mass Calc
+        MW = [31.998, 16.04, 28.01, 44.01, 34.08, 2.016, 28.013, 18.015]
         W_vol_calc = sum(molar_yields[i] * MW[i] for i in range(8)) / 1000.0
         
         return molar_yields, W_vol_calc

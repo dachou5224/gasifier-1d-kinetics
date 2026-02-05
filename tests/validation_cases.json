@@ -1,0 +1,21 @@
+{
+    "cases": {
+        "Paper_Case_6": {
+            "description": "Validation against Liu Zhen's Paper Case 6",
+            "coal_type": "Paper_Base_Coal",
+            "inputs": {
+                "FeedRate_kg_h": 41670.0,
+                "Ratio_OC": 1.05,
+                "SteamRatio_SC": 0.08,
+                "P_Pa": 4.08e6,
+                "T_in_K": 300.0,
+                "L_reactor": 6.0,
+                "D_reactor": 2.0
+            },
+            "expected": {
+                "TOUT_K_approx": 1643.0,
+                "YCO_pct_approx": 61.7
+            }
+        }
+    }
+}
