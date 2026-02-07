@@ -6,7 +6,8 @@
             "inputs": {
                 "FeedRate_kg_h": 41670.0,
                 "Ratio_OC": 1.05,
-                "SteamRatio_SC": 0.08,
+                "SteamRatio_SC": 0.0,
+                "SlurryConcentration": 62.0,
                 "P_Pa": 4.08e6,
                 "T_in_K": 300.0,
                 "L_reactor": 6.0,

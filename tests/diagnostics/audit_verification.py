@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 # Add src to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from model.gasifier_system import GasifierSystem
 from model.state import StateVector

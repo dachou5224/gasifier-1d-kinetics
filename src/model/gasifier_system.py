@@ -9,6 +9,7 @@ from .pyrolysis_service import PyrolysisService
 from .constants import PhysicalConstants
 from .grid_service import AdaptiveMeshGenerator, MeshConfig
 from .source_terms import EvaporationSource, PyrolysisSource
+from .solver import NewtonSolver
 import logging
 
 # Set up logging
@@ -154,8 +155,10 @@ class GasifierSystem:
         
         # Pre-calc Pyrolysis for Source Term
         molar_yields_per_kg, W_vol_mass_per_kg = self.pyrolysis.calc_yields(self.coal_props)
+
         self.tmp_F_volatiles = molar_yields_per_kg * W_dry
         self.tmp_W_vol_loss = W_dry * W_vol_mass_per_kg
+
         
         # Update Char Xc0 just for reference? 
         # Actually, once volatiles leave, the REMAINING solid is Char.
@@ -175,7 +178,7 @@ class GasifierSystem:
         
         return inlet
 
-    def solve(self, N_cells=100):
+    def solve(self, N_cells=100, solver_method='minimize'):
         """Sequential Solver"""
         L = self.geometry['L']
         D = self.geometry['D']
@@ -247,6 +250,8 @@ class GasifierSystem:
         # 2. Pyrolysis Source (Cell 0)
         # tmp_F_volatiles is mol/s array. tmp_W_vol_loss is kg/s.
         pyro_src = PyrolysisSource(self.tmp_F_volatiles, self.tmp_W_vol_loss, target_cell_idx=0)
+
+
         
         sources = [evap_src, pyro_src]
         
@@ -381,14 +386,25 @@ class GasifierSystem:
 
 
                     
-                    logger.info(f"  > Attempting Solver with Initial T = {x0[10]:.1f} K")
+                    logger.info(f"  > Attempting Solver with Initial T = {x0[10]:.1f} K (Method: {solver_method})")
                     
-                    sol = least_squares(func, x0, bounds=(lower, upper), method='trf', 
-                                        xtol=1e-12, ftol=1e-8, max_nfev=500)
+                    if solver_method == 'newton':
+                        # Manual Newton-Raphson
+                        ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8) # Slightly damped
+                        sol = ns.solve(func, x0, bounds=(lower, upper))
+                    else:
+                        # Default Scipy TRF (Newton-like)
+                        sol = least_squares(func, x0, bounds=(lower, upper), method='trf', 
+                                            xtol=1e-12, ftol=1e-8, max_nfev=500)
                     
                     # DEBUG Ignition
-                    logger.debug(f"  [Ignition Guess] T: {t_start}K -> Res: {sol.x[10]:.1f}K, Cost: {sol.cost:.2e}, Success: {sol.success}")
+                    logger.info(f"  [Ignition Guess] T: {t_start}K -> Res: {sol.x[10]:.1f}K, Cost: {sol.cost:.2e}, Success: {sol.success}")
                     
+                    if sol.success:
+                        # Log detailed residuals if verified success
+                        final_res = cell.residuals(sol.x)
+                        logger.info(f"    Final Residuals (Max): {np.max(np.abs(final_res)):.4e}")
+
                         is_ignited = sol.x[10] > 900.0
                         
                         update_best = False
@@ -398,6 +414,7 @@ class GasifierSystem:
                             best_ignited = best_sol.x[10] > 900.0
                             if is_ignited and not best_ignited:
                                 update_best = True # Always prefer ignited
+
                             elif is_ignited == best_ignited:
                                 if sol.cost < best_cost:
                                     update_best = True

@@ -90,6 +90,9 @@ class PyrolysisService:
         n_H_used_from_avail = 4.0*n_CH4 + 2.0*n_H2O
         
         n_H_resid = max(n_H_avail - n_H_used_from_avail, 0.0)
+        
+        # Debug H Balance (Removed)
+        
         n_H2 = n_H_resid / 2.0
         
         # 8. Output Prep
@@ -138,6 +141,8 @@ class PyrolysisService:
             molar_yields[2] *= scale
             molar_yields[5] *= scale
             # molar_yields[4] is usually fixed by sulfur content, keep it.
+
+
             
         # 10. Final Mass Calc
         MW = [31.998, 16.04, 28.01, 44.01, 34.08, 2.016, 28.013, 18.015]

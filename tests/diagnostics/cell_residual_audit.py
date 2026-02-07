@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 # Add src to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from model.cell import Cell
 from model.state import StateVector

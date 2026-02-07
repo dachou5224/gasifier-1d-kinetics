@@ -2,7 +2,7 @@ import sys
 import os
 import numpy as np
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from model.gasifier_system import GasifierSystem
 from model.chemistry import VALIDATION_CASES, COAL_DATABASE

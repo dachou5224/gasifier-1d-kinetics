@@ -4,7 +4,7 @@ import sys
 import numpy as np
 
 # Add src to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from model.gasifier_system import GasifierSystem
 from model.material import MaterialService, SPECIES_NAMES
@@ -12,7 +12,7 @@ from model.physics import R_CONST
 
 def audit_kinetics_limitations():
     # 1. Load Case 6
-    json_path = os.path.join(os.path.dirname(__file__), 'validation_cases.json')
+    json_path = os.path.join(os.path.dirname(__file__), '../../data/validation_cases.json')
     if not os.path.exists(json_path):
         json_path = '/Users/liuzhen/AI-projects/gasifier-1d-kinetic/tests/validation_cases.json'
     with open(json_path, 'r') as f:

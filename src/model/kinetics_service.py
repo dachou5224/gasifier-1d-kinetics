@@ -114,27 +114,65 @@ class KineticsService:
             
         return r
 
-    def calc_homogeneous_rates(self, state: StateVector, volume: float) -> Dict[str, float]:
+    def calc_homogeneous_rates(self, state: StateVector, volume: float, 
+                                inlet_state: StateVector = None, gas_src: np.ndarray = None) -> Dict[str, float]:
         """
         Calculate Homogeneous Rates (mol/s) based on Table 2-5.
+        
+        Uses AVERAGE concentration: C_avg = (C_inlet + C_outlet) / 2
+        This provides a more physically meaningful rate estimate for plug flow reactors.
         """
         rates = {}
         P, T = state.P, state.T
-        F_total = state.total_gas_moles
-        if F_total < PhysicalConstants.TOLERANCE_SMALL:
-             F_total = PhysicalConstants.TOLERANCE_SMALL
         
-        # Concentrations (kmol/m3) - Table 2-5 refers to Ca, Cb in kmol/m3
-        # Concentrations (kmol/m3) - Table 2-5 refers to Ca, Cb in kmol/m3
-        C = {}
-        for i, sp in enumerate(SPECIES_NAMES):
-            C[sp] = state.get_concentration(i)
+        # Calculate concentrations using AVERAGE of inlet and outlet
+        if inlet_state is not None and gas_src is not None:
+            # Inlet + Source moles (what enters the cell)
+            inlet_moles = {}
+            for i, sp in enumerate(SPECIES_NAMES):
+                inlet_moles[sp] = max(inlet_state.gas_moles[i] + gas_src[i], 0.0)
+            
+            # Outlet moles (current state)
+            outlet_moles = {sp: max(state.gas_moles[i], 0.0) for i, sp in enumerate(SPECIES_NAMES)}
+            
+            # Average moles = (inlet + outlet) / 2
+            avg_moles = {sp: (inlet_moles[sp] + outlet_moles[sp]) / 2.0 for sp in SPECIES_NAMES}
+            
+            F_total_avg = sum(avg_moles.values())
+            if F_total_avg < PhysicalConstants.TOLERANCE_SMALL:
+                F_total_avg = PhysicalConstants.TOLERANCE_SMALL
+            
+            # Calculate concentrations from average moles
+            C = {}
+            for sp in SPECIES_NAMES:
+                y_i = avg_moles[sp] / F_total_avg
+                # C_i = y_i * P / (R*T) [mol/m³] -> [kmol/m³]
+                C[sp] = (y_i * P / (R_CONST * T)) / 1000.0
+            
+            # Debug: Show average moles for key species (only once per solve)
+            import logging
+            logger = logging.getLogger(__name__)
+            if inlet_moles.get('CH4', 0) > 1.0:  # Only log if there's significant CH4
+                logger.info(f"[AVG CONC] CH4: inlet={inlet_moles['CH4']:.2f}, outlet={outlet_moles['CH4']:.2f}, avg={avg_moles['CH4']:.2f}")
+                logger.info(f"[AVG CONC] O2:  inlet={inlet_moles['O2']:.2f}, outlet={outlet_moles['O2']:.2f}, avg={avg_moles['O2']:.2f}")
+
+
+        else:
+            # Fallback: Use outlet (current) concentration
+            F_total = state.total_gas_moles
+            if F_total < PhysicalConstants.TOLERANCE_SMALL:
+                F_total = PhysicalConstants.TOLERANCE_SMALL
+            
+            C = {}
+            for i, sp in enumerate(SPECIES_NAMES):
+                C[sp] = state.get_concentration(i)
+
 
         # 1-5: Second Order (r = k Ca Cb) [kmol/m3.s]
         # (1) CO Combustion
         k = self.A_homo['CO_Ox'] * np.exp(-self.E_homo['CO_Ox'] / (R_CONST * T))
         r1 = k * C['CO'] * C['O2']
-        rates['CO_Ox'] = r1 * volume * 1000.0 # mol/s
+        rates['CO_Ox'] = r1 * volume * 1000.0  # mol/s
         
         # (2) H2 Combustion
         k = self.A_homo['H2_Ox'] * np.exp(-self.E_homo['H2_Ox'] / (R_CONST * T))
@@ -160,4 +198,6 @@ class KineticsService:
         k = self.A_homo['MSR'] * np.exp(-self.E_homo['MSR'] / (R_CONST * T))
         r6 = k * C['CH4']
         rates['MSR'] = r6 * volume * 1000.0
+        
         return rates
+

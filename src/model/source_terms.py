@@ -38,10 +38,30 @@ class EvaporationSource(SourceTerm):
         if cell_idx == self.target_idx:
             # Add H2O (Index 7)
             gas_src[7] = self.water_flow
-            # Energy Sink (Evaporation requires heat)
-            energy_src = -self.Q_evap
+            
+            # Energy Sink: Total Enthalpy of Incoming Liquid Water
+            # energy_src = m_dot * h_liquid
+            # h_liquid = h_gas(T_in) - LatentHeat
+            # We assume T_in = 298.15 K for the feed water basis or use constant.
+            # Hf(H2O, gas) = -241.8 kJ/mol
+            # Latent = 44.0 kJ/mol (at 298K)
+            # h_liquid ~ -285.8 kJ/mol
+            
+            h_liquid_J_mol = -285830.0 # J/mol (Standard Enthalpy of Liquid Water)
+            
+            # If we want to be precise with T_feed, we could add Cp_liq * (T - 298).
+            # But strictly, the source term must balance the Enthalpy added to Gas.
+            # Balance: H_out = H_in + Source.
+            # H_out (Gas) includes Hf_gas (-241 kJ/mol).
+            # H_in = 0 (for water).
+            # Source must bridge 0 to -241.
+            # AND provide Latent heat (-44).
+            # So Source = -285 kJ/mol.
+            
+            energy_src = self.water_flow * h_liquid_J_mol
             
         return gas_src, solid_src, energy_src
+
 
 class PyrolysisSource(SourceTerm):
     """

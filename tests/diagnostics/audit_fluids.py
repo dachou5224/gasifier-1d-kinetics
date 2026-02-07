@@ -4,14 +4,14 @@ import sys
 import numpy as np
 
 # Add src to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../src')))
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from model.gasifier_system import GasifierSystem
 from model.material import MaterialService, SPECIES_NAMES
 
 def audit_cell_0_fluids():
     # 1. Load Case 6
-    json_path = os.path.join(os.path.dirname(__file__), 'validation_cases.json')
+    json_path = os.path.join(os.path.dirname(__file__), '../../data/validation_cases.json')
     with open(json_path, 'r') as f:
         config = json.load(f)
     
