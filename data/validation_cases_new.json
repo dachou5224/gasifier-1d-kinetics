@@ -1,0 +1,40 @@
+{
+  "validation_cases": {
+    "Illinois_No6": {
+      "input": {
+        "slurry_conc": 0.665,
+        "O2_purity": 0.98,
+        "O2_coal_ratio_daf": 0.86,
+        "pressure": 4.083e6,
+        "coal_dry": {"C": 69.6, "H": 5.3, "O": 10.0, "N": 1.3, "S": 3.9, "Ash": 10.0}
+      },
+      "target_output": {
+        "CO": 40.80, "H2": 29.80, "CO2": 10.27, "H2O": 17.10, "CH4": 0.30
+      }
+    },
+    "Australia_UBE": {
+      "input": {
+        "slurry_conc": 0.621,
+        "O2_purity": 0.996,
+        "O2_coal_ratio_daf": 0.87,
+        "pressure": 4.083e6,
+        "coal_dry": {"C": 66.8, "H": 5.0, "O": 7.3, "N": 1.7, "S": 4.2, "Ash": 15.0}
+      },
+      "target_output": {
+        "CO": 35.97, "H2": 29.47, "CO2": 12.31, "H2O": 20.25, "CH4": 0.22
+      }
+    },
+    "Fluid_Coke": {
+      "input": {
+        "slurry_conc": 0.606,
+        "O2_purity": 1.00,
+        "O2_coal_ratio_daf": 1.03,
+        "pressure": 4.083e6,
+        "coal_dry": {"C": 86.0, "H": 2.0, "O": 2.3, "N": 1.0, "S": 8.3, "Ash": 0.5}
+      },
+      "target_output": {
+        "CO": 47.34, "H2": 24.25, "CO2": 13.36, "H2O": 12.45, "CH4": 0.09
+      }
+    }
+  }
+}

@@ -77,93 +77,224 @@ class Cell:
             'Re_p': Re_p, 'Sc_p': Sc_p, 'v_g': v_g
         }
 
-    def _calc_rates(self, current, phys, gas_src):
-        """Calculates Heterogeneous and Homogeneous reaction rates."""
-        # 1. Base Rates
+    # Fortran 燃烧区判据: pO2 > 0.05 atm (见 docs/fortran_combustion_mechanism.md)
+    P_O2_COMBUSTION_THRESHOLD_PA = 5066.0  # 0.05 * 101325
+
+    def _calc_particle_temperature(self, Tg: float, Ts_in: float, tau: float,
+                                   d_p: float, solid_mass: float,
+                                   carbon_fraction: float,
+                                   current: 'StateVector' = None,
+                                   phys: dict = None,
+                                   gas_src: np.ndarray = None,
+                                   is_combustion_zone: bool = False) -> tuple:
+        """
+        Fortran 式颗粒瞬态传热。
+        - 气化区：简单指数衰减 Ts(t+Δt) = Tg - (Tg - Ts(t)) × exp(ct)
+        - 燃烧区 (有 O2)：Runge-Kutta-Gill 含反应热源 (Fortran Line 459-475)
+        
+        Returns:
+            (Ts_avg, Ts_out): 时间步内平均温度（用于反应速率）、出口颗粒温度
+        """
+        nc = PhysicalConstants.TS_TRANSIENT_NC
+        deltim = tau / max(nc, 1)
+        
+        r = d_p / 2.0  # 半径 [m]
+        dens = PhysicalConstants.PARTICLE_DENSITY
+        cps = self.coal_props.get('cp_char', PhysicalConstants.HEAT_CAPACITY_SOLID)
+        ef = PhysicalConstants.EF_PARTICLE_TRANSIENT
+        sigma = PhysicalConstants.STEFAN_BOLTZMANN  # W/(m²·K⁴)
+        condut_coeff = PhysicalConstants.CONDUT_COEFF
+        
+        ts = Ts_in
+        Ts_sum = 0.0
+        
+        # 燃烧区：RK-Gill 含 C+O2 放热（Ts 升高）；气化区：含 C+H2O/C+CO2 吸热（Ts 降低，可抑制 WGS）
+        use_rk_gill = (PhysicalConstants.USE_RK_GILL_COMBUSTION and
+                       current is not None and phys is not None and gas_src is not None)
+        
+        for step in range(nc):
+            if use_rk_gill:
+                try:
+                    ts_new = self._step_particle_temp_rkgill(
+                        Tg, ts, deltim, r, dens, cps, ef, sigma, condut_coeff,
+                        current, phys, gas_src
+                    )
+                    if np.isfinite(ts_new):
+                        ts = ts_new
+                    else:
+                        use_rk_gill = False
+                except (ValueError, FloatingPointError, ZeroDivisionError):
+                    use_rk_gill = False
+                if not use_rk_gill:
+                    condut = condut_coeff * ((Tg + ts) ** 0.75)
+                    rad_term = ef * sigma * 4.0 * (Tg ** 3)
+                    ct = -(3.0 / (dens * cps * r + 1e-12)) * (condut / r + rad_term) * deltim
+                    ct = np.clip(ct, -25.0, 25.0)
+                    ect = np.exp(ct)
+                    delts = (Tg - (Tg - ts) * ect) - ts
+                    tsm = ts + delts / 2.0
+                    ts = ts + delts
+                else:
+                    tsm = ts
+            else:
+                condut = condut_coeff * ((Tg + ts) ** 0.75)
+                rad_term = ef * sigma * 4.0 * (Tg ** 3)
+                ct = -(3.0 / (dens * cps * r + 1e-12)) * (condut / r + rad_term) * deltim
+                ct = np.clip(ct, -25.0, 25.0)
+                ect = np.exp(ct)
+                delts = (Tg - (Tg - ts) * ect) - ts
+                tsm = ts + delts / 2.0
+                ts = ts + delts
+            
+            tsm = min(tsm, PhysicalConstants.TS_MAX_FOR_RATES)
+            Ts_sum += tsm
+        
+        Ts_avg = Ts_sum / nc
+        Ts_out = ts
+        return Ts_avg, Ts_out
+
+    def _step_particle_temp_rkgill(self, Tg: float, ts: float, deltim: float,
+                                   r: float, dens: float, cps: float,
+                                   ef: float, sigma: float, condut_coeff: float,
+                                   current: 'StateVector', phys: dict,
+                                   gas_src: np.ndarray) -> float:
+        """
+        Fortran Runge-Kutta-Gill 单步 (Line 459-475).
+        dTs/dt = (3/(dens*cps*r)) * (conv+rad + qrh*rate - qcsm*rate2/12 - qcbco2*rate3/12)
+        """
+        CAL2J = 4.184
+
+        def _dts_dt(ts_val):
+            ts_val = max(min(ts_val, 3500.0), 273.0)
+            r_het, _, _ = self._calc_rates(current, phys, gas_src, Ts_avg=ts_val)
+            q1 = -94051.0 - 3.964*(ts_val-298.) + 3.077e-3*(ts_val**2-298.**2) - 0.874e-6*(ts_val**3-298.**3)
+            q2 = -26414.0 - 0.684*(ts_val-298.) - 0.513e-3*(ts_val**2-298.**2) + 8.85e-8*(ts_val**3-298.**3)
+            z = 2500.0 * np.exp(-6249.0 / ((Tg+ts_val)/2.0 + 1e-9))
+            phi_val = (2.*z+2.) / (z+2.)
+            qrh = (-(q1/12.)*(2./phi_val-1.) - (q2/12.)*(2.-2./phi_val)) * CAL2J
+            qcsm = (31382. + 2.011*(ts_val-298.) - 0.733e-3*(ts_val**2-298.**2)/2.) * CAL2J
+            qcbco2 = (41220. + 2.256*(ts_val-298.) - 7.066e-3*(ts_val**2-298.**2)/2. +
+                     3.153e-6*(ts_val**3-298.**3)/3.) * CAL2J
+            rate_C_O2 = r_het.get('C+O2', 0.0)
+            rate_C_H2O = r_het.get('C+H2O', 0.0)
+            rate_C_CO2 = r_het.get('C+CO2', 0.0)
+            condut = condut_coeff * ((Tg + ts_val) ** 0.75)
+            conv_rad = condut * (Tg - ts_val) / r + ef * sigma * (Tg**4 - ts_val**4)
+            Q_rxn = qrh * rate_C_O2 - qcsm * rate_C_H2O - qcbco2 * rate_C_CO2
+            S_total = max(phys['S_total'], 1e-12)
+            Q_rxn_per_area = Q_rxn / S_total
+            coef = 3.0 / (dens * cps * r + 1e-12)
+            val = coef * (conv_rad + Q_rxn_per_area)
+            return float(np.clip(val, -1e5, 1e5))
+
+        tsolid = [ts]
+        rk = [0.0] * 5
+        for l in range(1, 5):
+            ts_stage = (tsolid[0] + 0.5*deltim*rk[1] if l == 2 else
+                        tsolid[0] + 0.2071*deltim*rk[1] + 0.2929*deltim*rk[2] if l == 3 else
+                        tsolid[0] - 0.7071*deltim*rk[2] + 1.7071*deltim*rk[3] if l == 4 else
+                        tsolid[0])
+            ts_stage = max(min(ts_stage, 3500.0), 273.0)
+            rk[l] = _dts_dt(ts_stage)
+        
+        ts_new = tsolid[0] + (deltim/6.) * (rk[1] + 0.58578*rk[2] + 3.41422*rk[3] + rk[4])
+        ts_new = max(min(float(ts_new), 3500.0), 273.0)
+        if not np.isfinite(ts_new):
+            return tsolid[0]
+        return ts_new
+
+    def _instant_volatile_combustion(self, avail: dict) -> tuple:
+        """
+        Fortran 式挥发分瞬时燃烧：仅用化学计量 + O2  availability，无动力学。
+        优先顺序（O2 不足时）: CH4 > CO > H2（文献 tar > CH4 > CO > H2，无 tar 时 CH4 优先）
+        """
+        O2 = avail['O2']
+        CH4 = avail['CH4'] * 0.99
+        CO = avail['CO'] * 0.99
+        H2 = avail['H2'] * 0.99
+
+        O2_demand_total = CH4 * 2.0 + CO * 0.5 + H2 * 0.5
+        if O2 >= O2_demand_total:
+            return CH4, CO, H2  # 完全燃烧
+
+        # O2 不足：按优先级 CH4 > CO > H2 分配
+        remaining_O2 = O2
+        r_CH4 = min(CH4, remaining_O2 / 2.0)
+        remaining_O2 -= r_CH4 * 2.0
+        r_CO = min(CO, max(remaining_O2, 0.0) / 0.5)
+        remaining_O2 -= r_CO * 0.5
+        r_H2 = min(H2, max(remaining_O2, 0.0) / 0.5)
+        return r_CH4, r_CO, r_H2
+
+    def _calc_rates(self, current, phys, gas_src, Ts_avg: float = None):
+        """Calculates Heterogeneous and Homogeneous reaction rates.
+        Ts_avg: 颗粒平均温度，用于异相反应；None 时用 current.T（向后兼容）
+        """
+        T_het = Ts_avg if Ts_avg is not None else current.T
+        # 1. Base Rates：异相用 Ts_avg，均相用 Tg (current.T)
         r_het = self.kinetics.calc_heterogeneous_rates(
-            current, phys['d_p'], phys['S_total'], 
-            X_total=phys['X_total'], Re=phys['Re_p'], Sc=phys['Sc_p']
+            current, phys['d_p'], phys['S_total'],
+            X_total=phys['X_total'], Re=phys['Re_p'], Sc=phys['Sc_p'],
+            T_particle=T_het
         )
         phi = r_het.pop('phi', 1.0)
-        # Use AVERAGE concentration for rate calculation: (C_inlet + C_outlet) / 2
         r_homo = self.kinetics.calc_homogeneous_rates(
-            current, self.V, 
+            current, self.V,
             inlet_state=self.inlet,
-            gas_src=gas_src
+            gas_src=gas_src,
+            Ts_particle=T_het  # Fortran wgshift: ts<=1000K 时不计 WGS
         )
 
-
-
-        
-        # 2. Availability Clipping (Prevents non-physical consumption)
-        # Total molecules in cell = Inlet + Source
-        avail = [max(self.inlet.gas_moles[i] + gas_src[i], 0.0) for i in range(8)]
-        
-        # ========================================================================
-        # FORCED VOLATILES PRIORITY COMBUSTION
-        # Physical Principle: Volatiles MUST combust before char
-        # Even if kinetics rate is low (due to low T), we enforce stoichiometry
-        # This ensures char is preserved for subsequent gasification reactions
-        # ========================================================================
-        O2_budget = avail[0] * 0.99  # Total O2 available
-        
-        # 1. CH4 + 2O2 -> CO2 + 2H2O (FORCED - use available CH4, not kinetics)
-        # Force-consume all available CH4 up to O2 limit
-        avail_CH4 = avail[1]
-        O2_for_CH4 = avail_CH4 * 2.0  # 2 O2 per CH4
-        if O2_for_CH4 <= O2_budget:
-            r_homo['CH4_Ox'] = avail_CH4 * 0.99  # Combust all CH4
-            O2_budget -= r_homo['CH4_Ox'] * 2.0
-        else:
-            r_homo['CH4_Ox'] = O2_budget / 2.0 * 0.99  # Limited by O2
-            O2_budget = 0.0
-        
-        # 2. H2 + 0.5O2 -> H2O (FORCED - use available H2)
-        avail_H2 = avail[5]
-        O2_for_H2 = avail_H2 * 0.5  # 0.5 O2 per H2
-        if O2_for_H2 <= O2_budget:
-            r_homo['H2_Ox'] = avail_H2 * 0.99  # Combust all H2
-            O2_budget -= r_homo['H2_Ox'] * 0.5
-        else:
-            r_homo['H2_Ox'] = O2_budget / 0.5 * 0.99  # Limited by O2
-            O2_budget = 0.0
-        
-        # 3. CO + 0.5O2 -> CO2 (FORCED - use available CO)
-        avail_CO = avail[2]
-        O2_for_CO = avail_CO * 0.5  # 0.5 O2 per CO
-        if O2_for_CO <= O2_budget:
-            r_homo['CO_Ox'] = avail_CO * 0.99  # Combust all CO
-            O2_budget -= r_homo['CO_Ox'] * 0.5
-        else:
-            r_homo['CO_Ox'] = O2_budget / 0.5 * 0.99  # Limited by O2
-            O2_budget = 0.0
-        
-        # Debug: Show forced volatiles combustion for Cell 0
-        if self.idx == 0:
-            logger.info(f"[FORCED] Volatiles: CH4={r_homo['CH4_Ox']:.2f}, H2={r_homo['H2_Ox']:.2f}, CO={r_homo['CO_Ox']:.2f}, O2_remain={O2_budget:.2f}")
-        
-        # 4. C + O2 -> CO/CO2 (Het - uses REMAINING O2 only)
+        avail = {sp: max(self.inlet.gas_moles[i] + gas_src[i], 0.0) for i, sp in enumerate(SPECIES_NAMES)}
+        O2_budget = avail['O2']
         raw_C_O2 = r_het['C+O2']
-        O2_for_C_O2 = raw_C_O2 / phi  # O2 needed
-        if O2_for_C_O2 > O2_budget:
-            r_het['C+O2'] = O2_budget * phi  # Limit by remaining O2
-            O2_budget = 0.0
+
+        # ========================================================================
+        # Fortran 分区: poxyin > 0.05 atm → 燃烧区（挥发分瞬时完全燃烧）
+        # 使用入口 pO2（与 Fortran Line 345 poxyin 一致）
+        # ========================================================================
+        F_total_in = sum(avail.values())
+        F_total_in = max(F_total_in, 1e-9)
+        pO2_Pa = current.P * (avail['O2'] / F_total_in)
+        is_combustion_zone = pO2_Pa > self.P_O2_COMBUSTION_THRESHOLD_PA
+
+        if is_combustion_zone:
+            # 燃烧区：挥发分瞬时燃烧（无动力学），CH4 > CO > H2 分配 O2
+            r_CH4, r_CO, r_H2 = self._instant_volatile_combustion(avail)
+            r_homo['CH4_Ox'] = r_CH4
+            r_homo['CO_Ox'] = r_CO
+            r_homo['H2_Ox'] = r_H2
+            O2_after_vol = O2_budget - (r_CH4 * 2.0 + r_CO * 0.5 + r_H2 * 0.5)
+            # Char-O2 使用剩余 O2
+            r_het['C+O2'] = min(raw_C_O2, max(O2_after_vol, 0.0) * phi)
         else:
-            O2_budget -= O2_for_C_O2
+            # 气化区：挥发分不氧化
+            r_homo['CH4_Ox'] = 0.0
+            r_homo['CO_Ox'] = 0.0
+            r_homo['H2_Ox'] = 0.0
+            r_het['C+O2'] = min(raw_C_O2, O2_budget * phi)
         
-        # Debug: Show C+O2 clipping for Cell 0
+        # ========================================================================
+        # NON-O2 REACTION LIMITS (GASIFICATION & MSR)
+        # ========================================================================
+        
+        # 5. Char Gasification
+        r_het['C+H2O'] = min(r_het['C+H2O'], avail['H2O'] * 0.99)
+        r_het['C+CO2'] = min(r_het['C+CO2'], avail['CO2'] * 0.99)
+        r_het['C+H2'] = min(r_het['C+H2'], avail['H2'] * 0.5 * 0.99) # C + 2H2 -> CH4
+        
+        # 6. MSR: CH4 + H2O -> CO + 3H2
+        # Remaining reactants after oxidation/gasification
+        rem_CH4 = max(avail['CH4'] - r_homo['CH4_Ox'], 0.0)
+        rem_H2O = max(avail['H2O'] - r_het['C+H2O'], 0.0)
+        r_homo['MSR'] = min(r_homo['MSR'], rem_CH4 * 0.99, rem_H2O * 0.99)
+        
+        # Debug: Show budgets for Cell 0
         if self.idx == 0:
-            logger.info(f"[FORCED] C+O2: raw={raw_C_O2:.2f}, clipped={r_het['C+O2']:.2f}, O2_remain={O2_budget:.2f}")
-        
-        # Other Het reactions (non-O2)
-        r_het['C+H2O'] = min(r_het['C+H2O'], avail[7] * 0.99)
-        r_het['C+CO2'] = min(r_het['C+CO2'], avail[3] * 0.99)
-        r_het['C+H2'] = min(r_het['C+H2'], avail[5] * 0.5 * 0.99)
-        
-        # MSR (no O2): CH4 + H2O -> CO + 3H2
-        max_MSR_by_CH4 = max(avail[1] - r_homo['CH4_Ox'], 0.0) * 0.99  # Remaining CH4
-        max_MSR_by_H2O = max(avail[7] - r_het['C+H2O'], 0.0) * 0.99   # Remaining H2O
-        r_homo['MSR'] = min(r_homo['MSR'], max_MSR_by_CH4, max_MSR_by_H2O)
+            zone = "combustion" if is_combustion_zone else "gasification"
+            logger.info(f"[BUDGET] zone={zone} pO2_in={pO2_Pa/101325:.3f}atm O2={avail['O2']:.2f}")
+            logger.info(f"         Volatile Ox (instant): CH4={r_homo['CH4_Ox']:.2f} H2={r_homo['H2_Ox']:.2f} CO={r_homo['CO_Ox']:.2f}")
+            logger.info(f"         Het: C+O2={r_het['C+O2']:.2f}, C+H2O={r_het['C+H2O']:.2f}")
         
         # WGS/RWGS are typically slower, no constraint needed
 
@@ -203,31 +334,32 @@ class Cell:
         gas_res = [res_O2, res_CH4, res_CO, res_CO2, res_H2S, res_H2, res_N2, res_H2O]
         return gas_res, res_Ws, res_Xc
 
-    def _calc_energy_balance(self, current, energy_src, phys=None, r_het=None, r_homo=None, phi=None):
+    def _calc_energy_balance(self, current, energy_src, phys=None, r_het=None, r_homo=None, phi=None, Ts_out=None, gas_src=None):
         """
         Computes enthalpy residual for the cell.
-        All values are in SI units: Watts (W) for power, Joules (J) for energy.
+        Ts_out: 出口颗粒温度；若提供则 H_out 固相用 Ts_out，否则用 current.T
+        gas_src: 保留接口（temperature_diagnosis 兼容）
         """
         H_in = MaterialService.get_total_enthalpy(self.inlet, self.coal_props)  # W (J/s)
-        H_out = MaterialService.get_total_enthalpy(current, self.coal_props)    # W (J/s)
+        H_out = MaterialService.get_total_enthalpy(current, self.coal_props, T_solid_override=Ts_out)
         
         # === Detailed Energy Audit ===
         H_gas_in = MaterialService.get_gas_enthalpy(self.inlet)
-        H_solid_in = MaterialService.get_solid_enthalpy(self.inlet, self.coal_props)
+        H_solid_in = MaterialService.get_solid_enthalpy(self.inlet, self.coal_props, T_solid_override=self.inlet.T_solid_or_gas)
         H_gas_out = MaterialService.get_gas_enthalpy(current)
-        H_solid_out = MaterialService.get_solid_enthalpy(current, self.coal_props)
+        H_solid_out = MaterialService.get_solid_enthalpy(current, self.coal_props, T_solid_override=Ts_out)
         
-        # Heat Loss Calculation
+        # Heat Loss: 文献为入炉煤 HHV 的 2%，按 dz 比例摊分到各格
         L_total = self.op_conds.get('L_reactor', 6.0)  # m
-        loss_pct = self.op_conds.get('HeatLossPercent', 1.0)  # %
+        loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
         
         coal_flow_kg_s = self.op_conds['coal_flow']  # kg/s
-        hhv_MJ_kg = self.coal_props.get('HHV_d', 30.0)  # MJ/kg
+        hhv_MJ_kg = self.coal_props.get('HHV_d', 30.0)  # MJ/kg (or kJ/kg, normalized below)
         
         if hhv_MJ_kg > 1000.0:
             hhv_MJ_kg = hhv_MJ_kg / 1000.0
         
-        Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6
+        Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6  # total coal power (W), base for heat loss
         Q_loss_W = (loss_pct / 100.0) * Q_total_W * (self.dz / L_total)
         
         # Reaction heat from rates (for audit only)
@@ -284,16 +416,40 @@ class Cell:
             s_src += s_m
             e_src += e
             
-        phys = self._calc_physics_props(current, self.coal_flow_dry * (self.coal_props.get('Cd', 60.0)/100.0))
-        r_het, r_homo, phi = self._calc_rates(current, phys, g_src)
-        res_gas, res_Ws, res_Xc = self._calc_balances(current, r_het, r_homo, phi, g_src, s_src)
-        res_E = self._calc_energy_balance(current, e_src, phys=phys, r_het=r_het, r_homo=r_homo, phi=phi)
+        C_fed = self.coal_flow_dry * (self.coal_props.get('Cd', 60.0)/100.0)
+        phys = self._calc_physics_props(current, C_fed)
         
-        # Scaling
-        res_gas_sc = [r / self.ref_flow for r in res_gas]
+        # Fortran 式：Tg → Ts(瞬态求解) → 反应速率
+        Ts_in = self.inlet.T_solid_or_gas
+        tau = self.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
+        F_total_in = max(sum(self.inlet.gas_moles[i] + g_src[i] for i in range(8)), 1e-9)
+        pO2_Pa = current.P * (max(self.inlet.gas_moles[0] + g_src[0], 0) / F_total_in)
+        is_combustion = pO2_Pa > self.P_O2_COMBUSTION_THRESHOLD_PA
+        
+        Ts_avg, Ts_out = self._calc_particle_temperature(
+            current.T, Ts_in, tau, phys['d_p'],
+            current.solid_mass, current.carbon_fraction,
+            current=current, phys=phys, gas_src=g_src,
+            is_combustion_zone=is_combustion
+        )
+        
+        r_het, r_homo, phi = self._calc_rates(current, phys, g_src, Ts_avg=Ts_avg)
+        res_gas, res_Ws, res_Xc = self._calc_balances(current, r_het, r_homo, phi, g_src, s_src)
+        res_E = self._calc_energy_balance(current, e_src, phys=phys, r_het=r_het, r_homo=r_homo, phi=phi, Ts_out=Ts_out, gas_src=g_src)
+        
+        # Scaling: most species by ref_flow; N2 (index 6) by coal-N scale so solver enforces N conservation
+        # Pure O2 gasification: N in syngas comes only from coal (pyrolysis N2). Small N2 flow => weak residual if scaled by ref_flow.
+        ref_N2 = max(abs(self.inlet.gas_moles[6]) + abs(g_src[6]), 1e-3)
+        res_gas_sc = []
+        for i, r in enumerate(res_gas):
+            if i == 6:
+                res_gas_sc.append(r / ref_N2)
+            else:
+                res_gas_sc.append(r / self.ref_flow)
         res_Ws_sc = res_Ws / self.ref_solid
         res_Xc_sc = res_Xc / max(self.char_Xc0, 0.1)
-        res_E_sc = res_E / 1.0e6
+        # 能量残差相对放大，避免被质量残差主导陷入低温解（temperature_diagnosis）
+        res_E_sc = res_E / 5.0e5
         
         return np.concatenate([res_gas_sc, [res_Ws_sc, res_Xc_sc, res_E_sc]])
 
@@ -307,8 +463,15 @@ class Cell:
             g, sm, e = s.get_sources(self.idx, self.z, self.dz)
             g_src += g; s_src += sm; e_src += e
             
-        phys = self._calc_physics_props(current, self.coal_flow_dry * (self.coal_props.get('Cd', 60.0)/100.0))
-        r_het, r_homo, phi = self._calc_rates(current, phys, g_src)
+        C_fed = self.coal_flow_dry * (self.coal_props.get('Cd', 60.0)/100.0)
+        phys = self._calc_physics_props(current, C_fed)
+        Ts_in = self.inlet.T_solid_or_gas
+        tau = self.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
+        Ts_avg, _ = self._calc_particle_temperature(
+            current.T, Ts_in, tau, phys['d_p'],
+            current.solid_mass, current.carbon_fraction
+        )
+        r_het, r_homo, phi = self._calc_rates(current, phys, g_src, Ts_avg=Ts_avg)
         
         # Recalculate H for log
         H_in = MaterialService.get_total_enthalpy(self.inlet, self.coal_props)

@@ -102,33 +102,40 @@ class GasifierSystem:
         Mt = self.coal_props.get('Mt', 0.0)
         W_dry = W_wet_coal * (1 - Mt/100.0)
         
-        # 2. Moisture Calculation (For Source Term generation later)
+        # 2. Moisture Calculation (for SourceTerm later)
         W_coal_moist = W_wet_coal * (Mt/100.0)
         
-        # Slurry Water
+        # 3. Slurry Water (liquid part only; additional to coal moisture)
         slurry_conc = self.op_conds.get('SlurryConcentration', 100.0)
         if slurry_conc < 100.0:
             W_slurry_h2o = (W_dry / (slurry_conc/100.0)) - W_dry
         else:
             W_slurry_h2o = 0.0
         
+        # 4. External steam (already vapor, no latent heat)
         W_steam = self.op_conds.get('steam_flow', 0.0)
+        
+        # Total water for mass balance (liquid + steam)
         W_h2o_total = W_coal_moist + W_slurry_h2o + W_steam
         
         # Store for Source Term Factory
         self.tmp_W_h2o_total = W_h2o_total
-        self.tmp_W_liq_evap = W_coal_moist + W_slurry_h2o # Only liquid needs latent heat
+        # Only liquid water (moisture + slurry) should carry latent heat sink
+        self.tmp_W_liq_evap = W_coal_moist + W_slurry_h2o
         
-        # 3. Oxidant (Gas)
+        # 5. Oxidant + Steam (Gas)
         MW_O2 = 31.998
-        F_O2 = (self.op_conds['o2_flow'] / MW_O2) * 1000.0 # mol/s
+        F_O2 = (self.op_conds['o2_flow'] / MW_O2) * 1000.0  # mol/s
         F_N2_ox = self.op_conds.get('n2_flow', 0.0) / 28.013 * 1000.0
+        MW_H2O = 18.015
+        F_steam = (W_steam / MW_H2O) * 1000.0  # mol/s (pre-vaporized steam)
         
-        # 4. Assemble Initial Gas State (mol/s)
-        # Only Oxidant enters here. Volatiles/Steam added via Source.
+        # 6. Assemble Initial Gas State (mol/s)
+        # Oxidant and any pre-vaporized steam enter as gas.
         gas_moles = np.zeros(8)
         gas_moles[0] = F_O2
         gas_moles[6] = F_N2_ox
+        gas_moles[7] = F_steam
         
         # 5. Solid State (Raw Dry Coal)
         # Volatiles are still IN the solid at inlet.
@@ -220,32 +227,21 @@ class GasifierSystem:
             V_curr = A * dz_curr
             
         # [SOURCE TERMS]
-        # 1. Evaporation Source (Cell 0)
-        # [SOURCE TERMS]
-        # 1. Evaporation Source (Cell 0)
-        # We are injecting H2O mass into the system from "outside" (not in Inlet State).
-        # We must provide the Enthalpy of this mass (Liquid Water).
-        # H_liq = H_f(liq) approx -285.8 MJ/kmol.
-        # Energy Source = Flow * H_liq.
-        # EvaporationSource returns -Q, so we pass Q = -H_liq (Positive Magnitude).
-        # H_f_liq_mol = -285830 J/mol (NIST: -285.8 kJ/mol)
-        # Total Enthalpy Input = Flow_mol * (-285830).
-        # But we also should consider T_in sensible heat? 
-        # Assume T_in = 298K for moisture reference.
-        
-        F_H2O_total_mol = (self.tmp_W_h2o_total / 18.015) * 1000.0
-        H_liq_J_mol = -285830.0 # Standard Enthalpy of Liquid Water
-        
-        # Source Energy = Flow * H_liq (Negative value)
-        # Class expects 'Q_evap' which it subtracts.
-        # src = -Q_evap.
-        # We want src = Flow * H_liq.
-        # So -Q_evap = Flow * H_liq
-        # Q_evap = -(Flow * H_liq).
-        Q_water_enthalpy_mag = -(F_H2O_total_mol * H_liq_J_mol)
-        logger.info(f"Evaporation Source (Cell 0): Flow={F_H2O_total_mol/1000.0:.2f} mol/s, Enthalpy_Src=-{Q_water_enthalpy_mag/1e6:.2f} MW")
-        
-        evap_src = EvaporationSource(F_H2O_total_mol, Q_water_enthalpy_mag, target_cell_idx=0)
+        # 1. Evaporation Source (distributed over first L_evap to avoid over-cooling Cell 0)
+        # Only liquid water (coal moisture + slurry) consumes latent heat.
+        F_H2O_liq_mol = (self.tmp_W_liq_evap / 18.015) * 1000.0
+        # Evaporation zone length (m). If 0, all evaporation is in Cell 0 (original behavior; can under-predict T).
+        L_evap_m = self.op_conds.get("L_evap_m", 0.0)
+        if L_evap_m <= 0.0:
+            L_evap_m = 1e-6  # effectively all in first cell
+        evap_src = EvaporationSource(
+            F_H2O_liq_mol,
+            enthalpy_per_mol_J=EvaporationSource.H_LIQUID_J_MOL,
+            L_evap_m=L_evap_m
+        )
+        total_evap_MW = (F_H2O_liq_mol * (-EvaporationSource.H_LIQUID_J_MOL)) / 1e6
+        evap_note = "Cell 0 only (may under-predict T)" if L_evap_m < 0.01 else f"distributed over L_evap={L_evap_m:.2f} m"
+        logger.info(f"Evaporation Source: Flow={F_H2O_liq_mol/1000.0:.2f} mol/s, total sink={total_evap_MW:.1f} MW, {evap_note}")
         
         # 2. Pyrolysis Source (Cell 0)
         # tmp_F_volatiles is mol/s array. tmp_W_vol_loss is kg/s.
@@ -293,7 +289,7 @@ class GasifierSystem:
             if i == 0:
                 # Multi-Guess ignition for first Active cell
                 # [IGNITION STRATEGY] Start with HIGH temperatures (2000K) to overcome evaporation
-                guesses_T = [400.0, 1000.0, 1500.0, 2000.0, 3000.0]
+                guesses_T = [3000.0, 2000.0, 1500.0, 1000.0, 400.0]  # 高温优先，避免低温冷态解
                 best_sol = None
                 best_cost = 1e9
                 
@@ -302,7 +298,11 @@ class GasifierSystem:
                     x0[10] = t_start 
                     
                     if t_start > 900.0:
-                        # [IGNITION HELPER]
+                        # [IGNITION HELPER] temperature_diagnosis.md: 必须先将挥发分加入 x0
+                        # 否则 n_CH4=0（入口无 CH4），起燃逻辑无效
+                        x0[:8] += self.tmp_F_volatiles
+                        x0[8] -= self.tmp_W_vol_loss  # 固相损失（热解）
+                        x0[9] = self.char_Xc0  # 焦炭碳含量
                         # Balanced Ignition Guess (Strict Atomic Conservation)
                         # Step 1: Burn CH4 to CO + 2H2 (JL Partial Oxidation)
                         n_CH4 = x0[1]
@@ -405,18 +405,20 @@ class GasifierSystem:
                         final_res = cell.residuals(sol.x)
                         logger.info(f"    Final Residuals (Max): {np.max(np.abs(final_res)):.4e}")
 
-                        is_ignited = sol.x[10] > 900.0
+                        is_ignited = sol.x[10] > 1200.0  # temperature_diagnosis: 目标 1350-1400°C
                         
                         update_best = False
                         if best_sol is None:
                             update_best = True
                         else:
-                            best_ignited = best_sol.x[10] > 900.0
+                            best_ignited = best_sol.x[10] > 1200.0
                             if is_ignited and not best_ignited:
                                 update_best = True # Always prefer ignited
-
                             elif is_ignited == best_ignited:
                                 if sol.cost < best_cost:
+                                    update_best = True
+                                # 同 ignited 且 cost 接近时，优先更高温度
+                                elif abs(sol.cost - best_cost) < best_cost * 0.1 and sol.x[10] > best_sol.x[10]:
                                     update_best = True
                         
                         if update_best:
@@ -429,10 +431,48 @@ class GasifierSystem:
                                 
                 sol = best_sol if best_sol is not None else sol
             else:
-                x0 = current_inlet.to_array()
-                # Downstream cells need robustness to track the profile
-                sol = least_squares(func, x0, bounds=(lower, upper), method='trf', 
-                                    xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                # 下游 cell：入口温度高时多初值猜测，避免陷入低温解
+                # (WGS 等吸热不应造成剧烈降温，温度下降会自我限制；用户诊断：多为 cell 初值/求解问题)
+                x0_base = current_inlet.to_array()
+                T_in = float(x0_base[10])
+                if T_in > 1200.0:
+                    # 温度初值探索：先在 T_in 附近精细搜索，再探索略高/略低
+                    T_cands = [
+                        T_in, min(T_in * 1.02, 3500.0), min(T_in * 1.08, 3200.0),
+                        min(T_in * 1.15, 3500.0), max(T_in * 0.98, 1100.0), max(T_in * 0.92, 1100.0)
+                    ]
+                    best_down = None
+                    best_cost_down = 1e9
+                    for Tc in T_cands:
+                        x0 = x0_base.copy()
+                        x0[10] = Tc
+                        s = least_squares(func, x0, bounds=(lower, upper), method='trf',
+                                          xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                        if s.success:
+                            if s.cost < best_cost_down:
+                                best_cost_down = s.cost
+                                best_down = s
+                            # 同 cost 接近时优先更高温度（避免气化吸热被过度放大导致的低温解）
+                            elif abs(s.cost - best_cost_down) < best_cost_down * 0.2 and s.x[10] > best_down.x[10]:
+                                best_down = s
+                                best_cost_down = s.cost
+                    sol = best_down if best_down is not None else least_squares(
+                        func, x0_base, bounds=(lower, upper), method='trf',
+                        xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                    # 异常降温检测：若 T_out 相对 T_in 骤降 >20%，重试更高初值（避免陷入低温解）
+                    if sol.success and T_in > 1800 and sol.x[10] < T_in * 0.8:
+                        for Tc in [min(T_in * 1.2, 3500.0), min(T_in * 1.1, 3400.0)]:
+                            x0 = x0_base.copy()
+                            x0[10] = Tc
+                            s = least_squares(func, x0, bounds=(lower, upper), method='trf',
+                                              xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                            if s.success and s.x[10] > sol.x[10] and s.cost < best_cost_down * 2.0:
+                                sol = s
+                                best_cost_down = s.cost
+                                break
+                else:
+                    sol = least_squares(func, x0_base, bounds=(lower, upper), method='trf',
+                                        xtol=1e-10, ftol=1e-10, max_nfev=1000)
             
             if not sol.success or sol.cost > 1e-4:
                 logger.warning(f"Cell {i} convergence poor. Cost: {sol.cost:.2e}, Success: {sol.success}, T: {sol.x[10]:.1f}K")
@@ -440,6 +480,15 @@ class GasifierSystem:
                 cell.diagnose_failure(sol.x)
             
             sol_state = StateVector.from_array(sol.x, P=current_inlet.P, z=cell.z)
+            # Fortran 式：计算出口颗粒温度 Ts_out，供下一 cell 使用
+            Ts_in = current_inlet.T_solid_or_gas
+            phys = cell._calc_physics_props(sol_state, self.W_dry * self.Cd_total)
+            tau = cell.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
+            _, Ts_out = cell._calc_particle_temperature(
+                sol_state.T, Ts_in, tau, phys['d_p'],
+                sol_state.solid_mass, sol_state.carbon_fraction
+            )
+            sol_state.T_solid = Ts_out
             self.results.append(sol_state)
             current_inlet = sol_state
             

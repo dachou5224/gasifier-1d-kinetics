@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Optional
 from model.state import StateVector
 from model.physics import calculate_enthalpy, calculate_cp, calculate_gas_density
 from model.physics import MOLAR_MASS
@@ -27,51 +28,35 @@ class MaterialService:
 
 
     @staticmethod
-    def get_solid_enthalpy(state: StateVector, coal_props: dict) -> float:
+    def get_solid_enthalpy(state: StateVector, coal_props: dict, T_solid_override: Optional[float] = None) -> float:
         """
         Calculate Total Heat Flow of Solid Phase (J/s).
-        
-        Distinguishes between raw coal and char:
-        - Raw coal (before pyrolysis): Uses Hf_coal and cp_coal
-        - Char (after pyrolysis): Uses Hf_char and cp_char
-        
-        The carbon fraction (Xc) is used as a proxy:
-        - Initial Xc (Cd_total) indicates raw coal
-        - Higher Xc indicates char (volatiles have left, concentrating carbon)
+        T_solid_override: 若提供则用此温度替代 state.T 计算固相焓（Fortran 式 Tg≠Ts）
         """
+        T_s = T_solid_override if T_solid_override is not None else state.T
         # Get carbon fractions
         Cd_raw = coal_props.get('Cd', 60.0) / 100.0  # Raw coal carbon fraction
         Xc_current = state.carbon_fraction  # Current carbon fraction
         
         # Determine if solid is predominantly char or coal
-        # After pyrolysis, Xc increases (char is ~80-90% C, coal is ~60-70% C)
-        # Use a threshold: if Xc > Cd_raw * 1.1, it's char
         is_char = Xc_current > Cd_raw * 1.05  # 5% tolerance
         
         if is_char:
-            # Char properties
             cp_s = coal_props.get('cp_char', 1300.0)  # J/kgK (char ~1100-1500)
-            # Char formation enthalpy: Much lower than coal (volatiles gone)
-            # Estimate: Hf_char ≈ Hf_coal + (energy carried by volatiles)
-            # Simplified: Hf_char ≈ 0 for pure carbon (graphite reference)
-            # For practical char: use a fraction of coal Hf
             hf_coal = coal_props.get('Hf_coal', -3e6)
-            vol_frac = coal_props.get('VM', 30.0) / 100.0  # Volatile matter fraction
-            # Char Hf is roughly the non-volatile fraction's contribution
-            # Simplified estimate: Hf_char = (1 - vol_frac) * Hf_coal
+            vol_frac = coal_props.get('VM', 30.0) / 100.0
             hf_solid = coal_props.get('Hf_char', (1.0 - vol_frac * 0.7) * hf_coal)
         else:
-            # Raw coal properties
             cp_s = coal_props.get('cp_coal', 1500.0)  # J/kgK (coal ~1300-1700)
             hf_solid = coal_props.get('Hf_coal', -3e6)
         
-        h_s = hf_solid + cp_s * (state.T - 298.15)
+        h_s = hf_solid + cp_s * (T_s - 298.15)
         return state.solid_mass * h_s
 
 
     @staticmethod
-    def get_total_enthalpy(state: StateVector, coal_props: dict) -> float:
-        return MaterialService.get_gas_enthalpy(state) + MaterialService.get_solid_enthalpy(state, coal_props)
+    def get_total_enthalpy(state: StateVector, coal_props: dict, T_solid_override: Optional[float] = None) -> float:
+        return MaterialService.get_gas_enthalpy(state) + MaterialService.get_solid_enthalpy(state, coal_props, T_solid_override)
 
     @staticmethod
     def get_gas_mix_property(state: StateVector, prop='density') -> float:

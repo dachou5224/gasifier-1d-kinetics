@@ -1,5 +1,11 @@
 # data_calibration.py
 # Standardized Coal Database and Validation Cases for Comparison
+#
+# Feed type note:
+# - Texaco = coal-water slurry (typical 40–70% solids → 30–60% water); Cell 0 has large evaporation sink.
+# - Shell  = dry pulverized coal (no slurry water); no liquid water evaporation in Cell 0.
+# If the paper providing expected TOUT/YCO/YH2 is for dry-feed, set SlurryConcentration=100 (no slurry water).
+# Typical O/C (oxygen-to-coal mass ratio): entrained flow ~0.9–1.1; Ratio_OC 1.05–1.06 is in range; 1.22 is high.
 
 COAL_DATABASE = {
     "ShenYou 1 (神优1)": {
@@ -27,12 +33,12 @@ VALIDATION_CASES = {
         "inputs": {
             "coal": "Paper_Base_Coal",
             "FeedRate": 41670.0, # kg/h
-            "Ratio_OC": 1.05,
-            "Ratio_SC": 0.0, # CWS uses slurry water, no external steam
+            "Ratio_OC": 1.05,    # O2/coal mass ~0.9–1.1 typical for entrained flow
+            "Ratio_SC": 0.0,    # CWS uses slurry water, no external steam
             "P": 4.08e6, # Pa
             "TIN": 300.0, # K
-            "HeatLossPercent": 3.0,
-            "SlurryConcentration": 62.0, # Texaco typical (%)
+            "HeatLossPercent": 2.0,  # 文献: 散热损失为入炉煤HHV的2%
+            "SlurryConcentration": 62.0, # Texaco slurry (% solids). Use 100 for dry-feed (Shell-type).
         },
         "expected": {
             "TOUT_C": 1370.0, "YCO": 61.7, "YH2": 30.3, "YCO2": 1.3
@@ -46,7 +52,7 @@ VALIDATION_CASES = {
             "Ratio_SC": 0.0,
             "P": 4.08e6,
             "TIN": 300.0,
-            "HeatLossPercent": 3.0,
+            "HeatLossPercent": 2.0,
             "SlurryConcentration": 62.0,
         },
         "expected": {
@@ -61,7 +67,7 @@ VALIDATION_CASES = {
             "Ratio_SC": 0.0,
             "P": 4.08e6,
             "TIN": 300.0,
-            "HeatLossPercent": 3.0,
+            "HeatLossPercent": 2.0,
             "SlurryConcentration": 60.0,
         },
         "expected": {

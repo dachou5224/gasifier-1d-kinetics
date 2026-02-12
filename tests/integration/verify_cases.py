@@ -60,11 +60,8 @@ def run_verification():
         geometry = {'L': 8.0, 'D': 2.6} 
         run_N = 50
             
-        # Scaling
-        scaling = {'kinetics': {'comb': 1.0, 'gas': 1.0, 'mixing': 1.0}}
-            
-        # 2. Solver
-        system = GasifierSystem(geometry, coal_props, op_conds, scaling)
+        # 2. Solver (scaling now handled internally by GasifierSystem)
+        system = GasifierSystem(geometry, coal_props, op_conds)
         try:
             results, z_grid = system.solve(N_cells=run_N)
             

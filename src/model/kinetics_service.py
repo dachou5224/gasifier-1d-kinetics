@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Dict, List, Optional
 from model.state import StateVector
-from model.kinetics import HeterogeneousKinetics
+from model.kinetics import HeterogeneousKinetics, calculate_wgs_equilibrium
 from model.constants import PhysicalConstants
 from model.physics import R_CONST
 from model.material import SPECIES_NAMES
@@ -16,10 +16,11 @@ class KineticsService:
         self.het_model = HeterogeneousKinetics()
         
         # Homogeneous Parameters (Table 2-5, converted to J/mol)
+        # WGS: 参考 Fortran wgshift — ek=exp(-27760/(1.987*ts)) → E=27760*4.184≈116148 J/mol; rate4 前因子 2.877e5
         self.A_homo = {
             'CO_Ox':  2.23e12,
             'H2_Ox':  1.08e13,
-            'WGS':    2.78e3,
+            'WGS':    2.88e5,   # Fortran 2.877e5
             'RWGS':   1.0e5,
             'CH4_Ox': 1.6e10,
             'MSR':    4.4e11 
@@ -27,7 +28,7 @@ class KineticsService:
         self.E_homo = {
             'CO_Ox':  1.25e8 / 1000.0,
             'H2_Ox':  8.37e7 / 1000.0,
-            'WGS':    1.25e7 / 1000.0,
+            'WGS':    116148.0,  # J/mol (Fortran 27760 cal/mol × 4.184)
             'RWGS':   6.27e7 / 1000.0,
             'CH4_Ox': 1.256e8 / 1000.0, 
             'MSR':    30000.0 * R_CONST 
@@ -35,9 +36,11 @@ class KineticsService:
         
     def calc_heterogeneous_rates(self, state: StateVector, particle_diameter: float, 
                                  surface_area: float, X_total: float = 0.0, 
-                                 Re: float = 0.0, Sc: float = 1.0) -> Dict[str, float]:
+                                 Re: float = 0.0, Sc: float = 1.0,
+                                 T_particle: float = None) -> Dict[str, float]:
         """
         Calculate Surface Reaction Rates (mol/s).
+        T_particle: 颗粒温度 Ts_avg；None 时用 Ross 修正 T_p = T + 6.6e4*C_O2（向后兼容）
         Returns: Dict {'C+O2': rate, ...}
         """
         r = {}
@@ -47,13 +50,14 @@ class KineticsService:
              # logging.debug(f"LogicWarning: F_total ~ 0 at T={state.T:.1f}")
              F_total = PhysicalConstants.TOLERANCE_SMALL
         
-        # 1. Particle Temperature Model (Ross)
+        # 1. Particle Temperature: Fortran 式用 Ts_avg；否则用 Ross 修正
         P, T = state.P, state.T
-        F_O2 = state.gas_moles[0]
-        # P_eff / RT for O2 = C_O2 [kmol/m3]
-        C_O2_kmol = state.get_concentration(0)
-        T_p = T + 6.6e4 * C_O2_kmol
-        T_p = min(T_p, 4000.0)
+        if T_particle is not None:
+            T_p = min(T_particle, 4000.0)
+        else:
+            C_O2_kmol = state.get_concentration(0)
+            T_p = T + 6.6e4 * C_O2_kmol
+            T_p = min(T_p, 4000.0)
         
         # 2. Mechanism Factor phi (Determines CO/CO2 ratio)
         p_fac = 2500.0 * np.exp(-5.19e4 / (R_CONST * T_p))
@@ -78,19 +82,17 @@ class KineticsService:
             # But let's keep P_i = y_i * P for simplicity as it handles F_total ~ 0 better in some checks
             
             P_eq = 0.0
+            # 表面平衡用颗粒温度 T_p
             if rxn == 'C+CO2':
-                # C + CO2 <-> 2CO. Kp = P_CO^2 / P_CO2 (atm)
                 from model.kinetics import calculate_boudouard_equilibrium
-                Kp_atm = calculate_boudouard_equilibrium(T)
+                Kp_atm = calculate_boudouard_equilibrium(T_p)
                 P_CO = (state.gas_moles[2] / F_total) * P
                 P_eq = (P_CO**2 / (Kp_atm * 1.01325e5 + 1e-9))
             elif rxn == 'C+H2O':
-                # C + H2O <-> CO + H2. Kp = P_CO * P_H2 / P_H2O
                 from model.kinetics import calculate_wgs_equilibrium
-                Kp_wgs_homo = calculate_wgs_equilibrium(T)
+                Kp_wgs_homo = calculate_wgs_equilibrium(T_p)
                 from model.kinetics import calculate_boudouard_equilibrium
-                # Roughly Kp_C+H2O = Kp_Boudouard / Kp_WGS
-                Kp_het_atm = calculate_boudouard_equilibrium(T) / (Kp_wgs_homo + 1e-9)
+                Kp_het_atm = calculate_boudouard_equilibrium(T_p) / (Kp_wgs_homo + 1e-9)
                 P_CO = (state.gas_moles[2] / F_total) * P
                 P_H2 = (state.gas_moles[5] / F_total) * P
                 P_eq = (P_CO * P_H2) / (Kp_het_atm * 1.01325e5 + 1e-9)
@@ -107,20 +109,23 @@ class KineticsService:
             # Convert kmol/m2.s -> mol/m2.s
             rate_flux = rate_kmols * 1000.0
             
-            # Convert kmol/m2.s -> mol/m2.s
-            rate_flux = rate_kmols * 1000.0
-            
-            r[rxn] = rate_flux * surface_area 
+            r[rxn] = rate_flux * surface_area
+            # 焦炭燃烧比气相燃烧更慢，对 C+O2 施加缩放因子
+            if rxn == 'C+O2':
+                r[rxn] *= PhysicalConstants.CHAR_COMBUSTION_RATE_FACTOR
             
         return r
 
     def calc_homogeneous_rates(self, state: StateVector, volume: float, 
-                                inlet_state: StateVector = None, gas_src: np.ndarray = None) -> Dict[str, float]:
+                                inlet_state: StateVector = None, gas_src: np.ndarray = None,
+                                Ts_particle: float = None) -> Dict[str, float]:
         """
         Calculate Homogeneous Rates (mol/s) based on Table 2-5.
         
         Uses AVERAGE concentration: C_avg = (C_inlet + C_outlet) / 2
         This provides a more physically meaningful rate estimate for plug flow reactors.
+        
+        WGS: Fortran wgshift 逻辑 — Ts_particle<=1000K 时不计 WGS；若未提供 Ts_particle 则用气相 T。
         """
         rates = {}
         P, T = state.P, state.T
@@ -178,16 +183,20 @@ class KineticsService:
         k = self.A_homo['H2_Ox'] * np.exp(-self.E_homo['H2_Ox'] / (R_CONST * T))
         r2 = k * C['H2'] * C['O2']
         rates['H2_Ox'] = r2 * volume * 1000.0
-        
-        # (3) WGS
-        k = self.A_homo['WGS'] * np.exp(-self.E_homo['WGS'] / (R_CONST * T))
-        r3 = k * C['CO'] * C['H2O']
-        rates['WGS'] = r3 * volume * 1000.0
-        
-        # (4) RWGS
-        k = self.A_homo['RWGS'] * np.exp(-self.E_homo['RWGS'] / (R_CONST * T))
-        r4 = k * C['CO2'] * C['H2']
-        rates['RWGS'] = r4 * volume * 1000.0
+
+        # (3) WGS 净速：R_net = k_fwd × (C_CO C_H2O - C_CO2 C_H2 / K_eq)，保证热力学一致
+        # 不用 R_net = k_f C_A C_B - k_r C_C C_D 双常数形式；单一 k_fwd + K_eq 驱动
+        # Fortran wgshift: ts<=1000K 时不计 WGS（使用颗粒温度 ts 作为判据）
+        T_wgs_check = Ts_particle if Ts_particle is not None else T
+        if T_wgs_check <= 1000.0:
+            rates['WGS'] = 0.0
+            rates['RWGS'] = 0.0
+        else:
+            k_fwd = self.A_homo['WGS'] * np.exp(-self.E_homo['WGS'] / (R_CONST * T))
+            K_eq = calculate_wgs_equilibrium(T)
+            r_net = k_fwd * (C['CO'] * C['H2O'] - C['CO2'] * C['H2'] / (K_eq + 1e-12))
+            rates['WGS'] = r_net * volume * 1000.0  # mol/s
+            rates['RWGS'] = 0.0
         
         # (5) CH4 Combustion
         k = self.A_homo['CH4_Ox'] * np.exp(-self.E_homo['CH4_Ox'] / (R_CONST * T))

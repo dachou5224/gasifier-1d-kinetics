@@ -1,0 +1,507 @@
+{
+  "metadata": {
+    "source": "Wen & Chaung (1979) - Entrainment Coal Gasification Modeling",
+    "journal": "Ind. Eng. Chem. Process Des. Dev., Vol. 18, No. 4, 1979",
+    "facility": "Texaco Downflow Entrainment Pilot Plant Gasifier",
+    "reactor_dimensions": {
+      "diameter_ft": 5.0,
+      "length_ft": 20.0,
+      "diameter_m": 1.524,
+      "length_m": 6.096
+    },
+    "operating_pressure_atm": 24.0,
+    "operating_pressure_Pa": 2432280.0
+  },
+  
+  "coal_database": {
+    "H-coal_residue_Illinois_No6": {
+      "description": "H-coal residue from Illinois No. 6 coal",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 74.05,
+        "H": 6.25,
+        "N": 0.71,
+        "S": 1.77,
+        "O": 1.32,
+        "Ash": 15.53,
+        "Cl": 0.37
+      },
+      "proximate_analysis_wt_pct_dry": {
+        "volatile_matter": 31.24,
+        "fixed_carbon": 61.41,
+        "ash": 7.35
+      },
+      "moisture_wt_pct": 4.53,
+      "HHV_kJ_kg": 29800.0
+    },
+    
+    "H-coal_residue_Illinois_No6_run2": {
+      "description": "H-coal residue from Illinois No. 6 coal (Run I-2)",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 73.04,
+        "H": 5.82,
+        "N": 0.73,
+        "S": 1.87,
+        "O": 1.70,
+        "Ash": 16.83,
+        "Cl": 0.48
+      }
+    },
+    
+    "H-coal_residue_Wyodak": {
+      "description": "H-coal residue from Wyodak coal",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 78.37,
+        "H": 5.79,
+        "N": 0.92,
+        "S": 0.07,
+        "O": 3.70,
+        "Ash": 11.05,
+        "Cl": 0.08
+      }
+    },
+    
+    "SRC_II_vacuum_flash_drum_bottoms": {
+      "description": "SRC II vacuum flash drum bottoms",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 64.90,
+        "H": 3.65,
+        "N": 1.25,
+        "S": 2.96,
+        "O": 1.70,
+        "Ash": 25.54
+      }
+    },
+    
+    "Exxon_DSP_vacuum_tower_bottoms": {
+      "description": "Exxon DSP vacuum tower bottoms",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 70.74,
+        "H": 4.67,
+        "N": 1.18,
+        "S": 2.74,
+        "O": 3.95,
+        "Ash": 16.72
+      }
+    },
+    
+    "Western_coal": {
+      "description": "Western coal used in coal-water slurry runs",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 74.56,
+        "H": 5.31,
+        "N": 0.99,
+        "S": 0.46,
+        "O": 11.47,
+        "Ash": 7.20
+      }
+    },
+    
+    "Eastern_coal": {
+      "description": "Eastern coal used in coal-water slurry runs",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 72.72,
+        "H": 5.03,
+        "N": 1.40,
+        "S": 2.99,
+        "O": 9.13,
+        "Ash": 8.73
+      }
+    }
+  },
+  
+  "validation_cases": {
+    "Texaco_I-1": {
+      "description": "H-coal residue from Illinois No. 6 coal, base case",
+      "coal_type": "H-coal_residue_Illinois_No6",
+      "feedstock_type": "molten_residue",
+      "operating_conditions": {
+        "coal_feed_rate_kg_hr": 276.0,
+        "coal_feed_rate_g_s": 76.66,
+        "oxygen_feed_rate_g_s": 66.36,
+        "steam_feed_rate_g_s": 18.48,
+        "O2_to_fuel_ratio": 0.866,
+        "steam_to_fuel_ratio": 0.241,
+        "pressure_atm": 24.0,
+        "inlet_temperature_K": 505.22,
+        "steam_temperature_K": 696.67,
+        "oxygen_temperature_K": 298.0,
+        "heat_loss_percent": 3.0
+      },
+      "fortran_input_parameters": {
+        "ta": 505.22,
+        "tsteam": 696.67,
+        "toxy": 298.0,
+        "yoxy": 0.0156956,
+        "yh": 0.0743163,
+        "yc": 0.8802616,
+        "ys": 0.0210464,
+        "yn": 0.0084423,
+        "yash": 0.159,
+        "xmois": 0.002,
+        "foxy": 0.866,
+        "fsteam": 0.241,
+        "tfcoal": 76.66
+      },
+      "expected_results": {
+        "outlet_temperature_C": 1370.0,
+        "carbon_conversion_pct": 98.64,
+        "dry_product_gas_vol_pct": {
+          "CO": 57.57,
+          "H2": 39.13,
+          "CO2": 2.95,
+          "CH4": 0.12,
+          "H2S": 0.06,
+          "N2": 0.12
+        },
+        "model_predictions": {
+          "outlet_temperature_C": 1380.0,
+          "carbon_conversion_pct": 98.88,
+          "dry_product_gas_vol_pct": {
+            "CO": 56.60,
+            "H2": 39.84,
+            "CO2": 2.92,
+            "CH4": 0.16,
+            "H2S": 0.27,
+            "N2": 0.20
+          }
+        }
+      }
+    },
+    
+    "Texaco_I-2": {
+      "description": "H-coal residue from Illinois No. 6 coal, lower O2/fuel ratio",
+      "coal_type": "H-coal_residue_Illinois_No6_run2",
+      "feedstock_type": "molten_residue",
+      "operating_conditions": {
+        "coal_feed_rate_g_s": 81.18,
+        "oxygen_feed_rate_g_s": 62.35,
+        "steam_feed_rate_g_s": 25.49,
+        "O2_to_fuel_ratio": 0.768,
+        "steam_to_fuel_ratio": 0.314,
+        "pressure_atm": 24.0,
+        "inlet_temperature_K": 496.33,
+        "steam_temperature_K": 676.33,
+        "oxygen_temperature_K": 298.0,
+        "heat_loss_percent": 3.0
+      },
+      "fortran_input_parameters": {
+        "ta": 496.33,
+        "tsteam": 676.33,
+        "toxy": 298.0,
+        "yoxy": 0.0205587,
+        "yh": 0.070383,
+        "yc": 0.8833,
+        "ys": 0.016568,
+        "yn": 0.008828,
+        "yash": 0.1731,
+        "xmois": 0.002,
+        "foxy": 0.76818,
+        "fsteam": 0.314,
+        "tfcoal": 81.18
+      },
+      "expected_results": {
+        "outlet_temperature_C": 1333.0,
+        "carbon_conversion_pct": 90.66,
+        "dry_product_gas_vol_pct": {
+          "CO": 53.06,
+          "H2": 41.00,
+          "CO2": 5.15
+        },
+        "model_predictions": {
+          "carbon_conversion_pct": 93.29,
+          "dry_product_gas_vol_pct": {
+            "CO": 54.11,
+            "H2": 41.39,
+            "CO2": 3.89
+          }
+        }
+      }
+    },
+    
+    "Texaco_I-5C": {
+      "description": "H-coal residue from Illinois No. 6 coal, high steam/fuel ratio",
+      "coal_type": "H-coal_residue_Illinois_No6",
+      "feedstock_type": "molten_residue",
+      "operating_conditions": {
+        "coal_feed_rate_g_s": 56.264,
+        "O2_to_fuel_ratio": 0.832,
+        "steam_to_fuel_ratio": 0.429,
+        "pressure_atm": 24.0,
+        "inlet_temperature_K": 497.44,
+        "steam_temperature_K": 714.67,
+        "oxygen_temperature_K": 298.0,
+        "heat_loss_percent": 3.0
+      },
+      "fortran_input_parameters": {
+        "ta": 497.44,
+        "tsteam": 714.67,
+        "toxy": 298.0,
+        "yoxy": 0.0268824,
+        "yh": 0.0665837,
+        "yc": 0.874051,
+        "ys": 0.022402,
+        "yn": 0.0097075,
+        "yash": 0.1965,
+        "xmois": 0.002,
+        "foxy": 0.832,
+        "fsteam": 0.429,
+        "tfcoal": 56.264
+      },
+      "expected_results": {
+        "carbon_conversion_pct": 98.885,
+        "model_predictions": {
+          "carbon_conversion_pct": 99.76
+        }
+      }
+    },
+    
+    "Texaco_I-10": {
+      "description": "H-coal residue from Illinois No. 6 coal, high feed rate",
+      "coal_type": "H-coal_residue_Illinois_No6",
+      "feedstock_type": "molten_residue",
+      "operating_conditions": {
+        "coal_feed_rate_g_s": 129.77,
+        "O2_to_fuel_ratio": 0.8346,
+        "steam_to_fuel_ratio": 0.276,
+        "pressure_atm": 24.0,
+        "inlet_temperature_K": 481.33,
+        "steam_temperature_K": 708.0,
+        "oxygen_temperature_K": 298.0,
+        "heat_loss_percent": 3.0
+      },
+      "fortran_input_parameters": {
+        "ta": 481.33,
+        "tsteam": 708.0,
+        "toxy": 298.0,
+        "yoxy": 0.0213949,
+        "yh": 0.069624,
+        "yc": 0.88396,
+        "ys": 0.0168,
+        "yn": 0.0078568,
+        "yash": 0.1727,
+        "xmois": 0.002,
+        "foxy": 0.83457,
+        "fsteam": 0.276,
+        "tfcoal": 129.77
+      },
+      "expected_results": {
+        "carbon_conversion_pct": 99.158,
+        "dry_product_gas_vol_pct": {
+          "CO": 55.18,
+          "H2": 39.24,
+          "CO2": 4.69
+        },
+        "model_predictions": {
+          "carbon_conversion_pct": 96.01,
+          "dry_product_gas_vol_pct": {
+            "CO": 55.42,
+            "H2": 39.56,
+            "CO2": 4.46
+          }
+        }
+      }
+    },
+    
+    "Texaco_Exxon": {
+      "description": "Exxon DSP vacuum tower bottoms as feedstock",
+      "coal_type": "Exxon_DSP_vacuum_tower_bottoms",
+      "feedstock_type": "molten_residue",
+      "operating_conditions": {
+        "coal_feed_rate_g_s": 126.11,
+        "O2_to_fuel_ratio": 0.79,
+        "steam_to_fuel_ratio": 0.50,
+        "pressure_atm": 24.0,
+        "inlet_temperature_K": 505.22,
+        "steam_temperature_K": 696.67,
+        "oxygen_temperature_K": 298.0,
+        "heat_loss_percent": 3.0
+      },
+      "fortran_input_parameters": {
+        "ta": 505.22,
+        "tsteam": 696.67,
+        "toxy": 298.0,
+        "yoxy": 0.04743,
+        "yh": 0.056076,
+        "yc": 0.849423,
+        "ys": 0.0329,
+        "yn": 0.01417,
+        "yash": 0.1672,
+        "xmois": 0.0,
+        "foxy": 0.79,
+        "fsteam": 0.5,
+        "tfcoal": 126.11
+      },
+      "expected_results": {
+        "carbon_conversion_pct": 99.0,
+        "wet_product_gas_vol_pct": {
+          "CO": 45.6,
+          "H2": 33.8,
+          "CO2": 7.52,
+          "H2O": 11.9
+        },
+        "model_predictions": {
+          "carbon_conversion_pct": 99.00,
+          "wet_product_gas_vol_pct": {
+            "CO": 44.87,
+            "H2": 34.99,
+            "CO2": 7.74,
+            "H2O": 11.6
+          }
+        }
+      }
+    },
+    
+    "Coal_Water_Slurry_Western": {
+      "description": "Western coal in coal-water slurry",
+      "coal_type": "Western_coal",
+      "feedstock_type": "coal_water_slurry",
+      "operating_conditions": {
+        "coal_feed_rate_g_s": 186.78,
+        "O2_to_coal_ratio": 0.91,
+        "water_to_coal_ratio": 0.51,
+        "pressure_atm": 21.0,
+        "inlet_temperature_K": 400.0,
+        "steam_temperature_K": 400.0,
+        "oxygen_temperature_K": 600.0,
+        "slurry_concentration_pct": 66.2
+      },
+      "fortran_input_parameters": {
+        "ta": 400.0,
+        "tsteam": 400.0,
+        "toxy": 600.0,
+        "yoxy": 0.123599,
+        "yh": 0.05722,
+        "yc": 0.803448,
+        "ys": 0.004957,
+        "yn": 0.010668,
+        "yash": 0.072,
+        "xmois": 0.0,
+        "foxy": 0.91,
+        "fsteam": 0.52,
+        "tfcoal": 186.78
+      },
+      "expected_results": {
+        "carbon_conversion_pct": 92.7,
+        "dry_product_gas_vol_pct": {
+          "CO": 50.71,
+          "H2": 35.79,
+          "CO2": 13.14,
+          "CH4": 0.09,
+          "H2S": 0.03,
+          "N2": 0.24
+        },
+        "model_predictions": {
+          "carbon_conversion_pct": 94.87,
+          "dry_product_gas_vol_pct": {
+            "CO": 47.86,
+            "H2": 37.30,
+            "CO2": 14.45,
+            "CH4": 0.055,
+            "H2S": 0.074,
+            "N2": 0.26
+          }
+        }
+      }
+    },
+    
+    "Coal_Water_Slurry_Eastern": {
+      "description": "Eastern coal in coal-water slurry",
+      "coal_type": "Eastern_coal",
+      "feedstock_type": "coal_water_slurry",
+      "operating_conditions": {
+        "coal_feed_rate_g_s": 133.5,
+        "O2_to_coal_ratio": 0.87,
+        "water_to_coal_ratio": 0.79,
+        "pressure_atm": 21.0,
+        "inlet_temperature_K": 400.0,
+        "steam_temperature_K": 400.0,
+        "oxygen_temperature_K": 600.0,
+        "slurry_concentration_pct": 55.9
+      },
+      "fortran_input_parameters": {
+        "ta": 400.0,
+        "tsteam": 400.0,
+        "toxy": 600.0,
+        "yoxy": 0.100033,
+        "yh": 0.055111,
+        "yc": 0.796757,
+        "ys": 0.03276,
+        "yn": 0.015339,
+        "yash": 0.0873,
+        "xmois": 0.0,
+        "foxy": 0.87,
+        "fsteam": 0.79,
+        "tfcoal": 133.5
+      },
+      "expected_results": {
+        "carbon_conversion_pct": 85.8,
+        "dry_product_gas_vol_pct": {
+          "CO": 41.55,
+          "H2": 36.15,
+          "CO2": 20.64,
+          "CH4": 0.40,
+          "H2S": 0.85,
+          "N2": 0.38
+        },
+        "model_predictions": {
+          "carbon_conversion_pct": 84.66,
+          "dry_product_gas_vol_pct": {
+            "CO": 43.27,
+            "H2": 36.91,
+            "CO2": 18.91,
+            "CH4": 0.036,
+            "H2S": 0.50,
+            "N2": 0.373
+          }
+        }
+      }
+    }
+  },
+  
+  "model_parameters": {
+    "pyrolysis_kinetics": {
+      "activation_energy_cal_mol": 8900.0,
+      "pre_exponential_factor": 114000.0,
+      "reference": "Badzioch & Hawksley (1970)"
+    },
+    "char_oxygen_reaction": {
+      "pre_exponential_factor_g_cm2_atm_s": 8710.0,
+      "activation_energy_cal_mol": 17967.0
+    },
+    "char_steam_reaction": {
+      "pre_exponential_factor_g_cm2_atm_s": 247.0,
+      "activation_energy_cal_mol": 21060.0,
+      "valid_temperature_range_C": [1100, 2000]
+    },
+    "char_CO2_reaction": {
+      "pre_exponential_factor_g_cm2_atm_s": 247.0,
+      "activation_energy_cal_mol": 21060.0,
+      "valid_temperature_range_C": [1100, 2000]
+    },
+    "char_hydrogen_reaction": {
+      "pre_exponential_factor_g_cm2_atm_s": 0.12,
+      "activation_energy_cal_mol": 17921.0
+    },
+    "water_gas_shift": {
+      "catalytic_reactivity_factor": 0.2,
+      "activation_energy_cal_mol": 27760.0
+    },
+    "heat_transfer": {
+      "wall_heat_loss_percent_of_total": 30.0,
+      "overall_heat_transfer_coeff_cal_s_cm2_K": 0.0034,
+      "gas_emissivity": 0.9,
+      "particle_emissivity": 0.85
+    },
+    "hydrodynamics": {
+      "initial_particle_velocity_cm_s": 300.0,
+      "particle_diameter_microns": 350.0,
+      "particle_density_g_cm3": 1.18,
+      "gas_viscosity_poise": 0.0006
+    }
+  },
+  
+  "usage_example_python": {
+    "load_data": "import json\nwith open('validation_cases.json', 'r') as f:\n    data = json.load(f)\n\ncase = data['validation_cases']['Texaco_I-1']\ncoal = data['coal_database'][case['coal_type']]",
+    "access_parameters": "coal_feed = case['operating_conditions']['coal_feed_rate_g_s']\nO2_ratio = case['operating_conditions']['O2_to_fuel_ratio']\nC_content = coal['ultimate_analysis_wt_pct_dry']['C']"
+  }
+}

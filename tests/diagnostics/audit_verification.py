@@ -44,6 +44,10 @@ def get_atoms_from_state(state, coal_props):
 def get_atoms_from_feed(op_conds, coal_props):
     """
     Calculate effective atom feed rate (mol/s) from Coal + Oxidant + Steam.
+
+    Note: Validation cases use pure O2 gasification (no air). Oxidant is o2_flow only;
+    n2_flow is not set, so inlet N2 = 0. All N in the syngas comes from coal (Nd)
+    via PyrolysisSource in Cell 0.
     """
     # 1. Coal Atoms
     # coal_flow is wet or dry? 
@@ -107,7 +111,8 @@ def get_atoms_from_feed(op_conds, coal_props):
 def run_audit():
     print(f"{'='*100}")
     print(f"GASIFIER PHYSICS AUDIT - CONSERVATION & PLAUSIBILITY CHECKS")
-    print(f"{'='*100}\n")
+    print(f"{'='*100}")
+    print("Assumption: Pure O2 gasification (no air). N in syngas is from coal only (Nd -> N2 in pyrolysis).\n")
     
     audit_results = []
     
@@ -130,9 +135,11 @@ def run_audit():
             'SlurryConcentration': inputs.get('SlurryConcentration', 100.0),
         }
         geometry = {'L': 8.0, 'D': 2.6} 
-        scaling = {'kinetics': {'comb': 1.0, 'gas': 1.0, 'mixing': 1.0}}
         
-        system = GasifierSystem(geometry, coal_props, op_conds, scaling)
+        # Scaling was previously passed into GasifierSystem; the class
+        # signature has since been simplified and any scaling is now
+        # handled internally. We keep geometry/operating conditions only.
+        system = GasifierSystem(geometry, coal_props, op_conds)
         
         # 0. Pre-Check Feed Atoms (First Principles)
         atoms_feed = get_atoms_from_feed(op_conds, coal_props)

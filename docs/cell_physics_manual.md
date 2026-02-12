@@ -95,9 +95,11 @@ $$R_{homo} = k \cdot C_a \cdot C_b \cdot V_{cell}$$
 
 ## 4. 传热过程说明
 
-- **对流/辐射损失**：通过 `Q_loss` 摊分到每个 cell，与 dz 成正比。
+- **对流/辐射损失**：文献取为**入炉煤 HHV 的 2%**；通过 `Q_loss` 按 dz 比例摊分到每个 cell（`HeatLossPercent`，默认 2%）。
 - **蒸发吸热**：
-  $$Q_{evap, cell} = \frac{dz}{L_{dev}} \cdot \dot{W}_{moisture} \cdot h_{latent}$$
+  - 默认实现中，煤水分+浆液水在 **Cell 0 一次性** 以液态焓源项加入（`EvaporationSource`），等价于全部蒸发吸热集中在首格。
+  - 若浆液量大（如 62% 浓度），Cell 0 吸热可达数十 MW，**可能高估首格吸热**，导致该格或整体预测温度偏低。
+  - 可通过 `op_conds['L_evap_m']`（单位 m，如 0.5）将蒸发按轴向长度分摊到前若干格，减轻 Cell 0 吸热；默认 0 表示全部在 Cell 0。
 - **反应热**：隐含在组分焓变中。$H = \int C_p dT + \Delta H_f$。
 
 ---

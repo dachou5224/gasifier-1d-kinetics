@@ -20,46 +20,46 @@ class SourceTerm(ABC):
 
 class EvaporationSource(SourceTerm):
     """
-    Handles Moisture Evaporation:
+    Handles Moisture/Slurry Evaporation:
     - Mass Source: +H2O (Gas)
-    - Solid Source: -Moisture (If tracking moisture as solid, but we simplify to Gas Source only for now, as Inlet handling varies)
-    - Energy Source: -Latent Heat (Sink)
+    - Energy Source: Enthalpy of liquid water (sink = latent + sensible to gas at T).
+
+    If L_evap_m is 0 or very small, all evaporation is applied in the first cell (Cell 0),
+    which can overestimate the heat sink there and lead to under-predicted reaction temperature.
+    Use L_evap_m > 0 (e.g. 0.5–1.5 m) to distribute evaporation over the first L_evap_m meters
+    (op_conds['L_evap_m']); default remains "all in Cell 0" for backward compatibility.
     """
-    def __init__(self, water_flow_mol_s: float, latent_heat_watts: float, target_cell_idx: int = 0):
+    # Standard enthalpy of liquid water (J/mol), NIST
+    H_LIQUID_J_MOL = -285830.0
+
+    def __init__(self, water_flow_mol_s: float, enthalpy_per_mol_J: float = None,
+                 L_evap_m: float = 0.0):
         self.water_flow = water_flow_mol_s
-        self.Q_evap = latent_heat_watts # Positive magnitude
-        self.target_idx = target_cell_idx
-        
+        self.h_liq = enthalpy_per_mol_J if enthalpy_per_mol_J is not None else self.H_LIQUID_J_MOL
+        self.L_evap = max(L_evap_m, 1e-6)
+
+    def _fraction_in_cell(self, z: float, dz: float) -> float:
+        """Fraction of total evaporation in this cell. z is cell center; cell spans [z-dz/2, z+dz/2].
+        Linear distribution over [0, L_evap] so sum over cells = 1."""
+        z_start = z - dz / 2.0
+        z_end = z + dz / 2.0
+        overlap_start = max(0.0, z_start)
+        overlap_end = min(self.L_evap, z_end)
+        if overlap_end <= overlap_start:
+            return 0.0
+        return (overlap_end - overlap_start) / self.L_evap
+
     def get_sources(self, cell_idx: int, z: float, dz: float) -> Tuple[np.ndarray, float, float]:
         gas_src = np.zeros(8)
         solid_src = 0.0
         energy_src = 0.0
-        
-        if cell_idx == self.target_idx:
-            # Add H2O (Index 7)
-            gas_src[7] = self.water_flow
-            
-            # Energy Sink: Total Enthalpy of Incoming Liquid Water
-            # energy_src = m_dot * h_liquid
-            # h_liquid = h_gas(T_in) - LatentHeat
-            # We assume T_in = 298.15 K for the feed water basis or use constant.
-            # Hf(H2O, gas) = -241.8 kJ/mol
-            # Latent = 44.0 kJ/mol (at 298K)
-            # h_liquid ~ -285.8 kJ/mol
-            
-            h_liquid_J_mol = -285830.0 # J/mol (Standard Enthalpy of Liquid Water)
-            
-            # If we want to be precise with T_feed, we could add Cp_liq * (T - 298).
-            # But strictly, the source term must balance the Enthalpy added to Gas.
-            # Balance: H_out = H_in + Source.
-            # H_out (Gas) includes Hf_gas (-241 kJ/mol).
-            # H_in = 0 (for water).
-            # Source must bridge 0 to -241.
-            # AND provide Latent heat (-44).
-            # So Source = -285 kJ/mol.
-            
-            energy_src = self.water_flow * h_liquid_J_mol
-            
+
+        frac = self._fraction_in_cell(z, dz)
+        if frac <= 0.0:
+            return gas_src, solid_src, energy_src
+
+        gas_src[7] = self.water_flow * frac
+        energy_src = self.water_flow * frac * self.h_liq
         return gas_src, solid_src, energy_src
 
 
