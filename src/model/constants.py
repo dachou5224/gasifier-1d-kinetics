@@ -16,10 +16,10 @@ class PhysicalConstants:
     UNIVERSAL_GAS_CONSTANT: float = 8.314 # J/(mol*K)
     STEFAN_BOLTZMANN: float = 5.67e-8     # W/(m^2*K^4)
     
-    # Grid Generation
-    FIRST_CELL_LENGTH: float = 0.05  # m (Reduced from 0.40 for shorter tau)
-    IGNITION_ZONE_DZ: float = 0.05   # m (Reduced from 0.10)
-    MIN_GRID_SIZE: float = 0.05      # m (Reduced from 0.10)
+    # Grid Generation (Cell 0 过小→tau 过短→起燃不足；过大→稀释→反应弱)
+    FIRST_CELL_LENGTH: float = 0.20   # m (0.05 过小导致高流量时 tau 太短；0.2 折中)
+    IGNITION_ZONE_DZ: float = 0.08   # m (起燃区细网格)
+    MIN_GRID_SIZE: float = 0.05      # m
     
     # Numerical / Solver
     TOLERANCE_SMALL: float = 1e-9    # Small number for division safety

@@ -1,0 +1,68 @@
+{
+  "metadata": {
+    "source": "工业规模气流床气化炉验证算例",
+    "description": "包含 gasifier-model Paper 工况及国内鲁南化肥厂 Texaco 气化炉案例"
+  },
+  "coal_database": {
+    "LuNan_Coal": {
+      "description": "山东鲁南化肥厂北宿+落陵混煤 (王天骄、李政等《德士古煤气化炉模型研究》)",
+      "ultimate_analysis_wt_pct_dry": {
+        "C": 71.5,
+        "H": 4.97,
+        "O": 11.15,
+        "N": 1.07,
+        "S": 2.16,
+        "Ash": 9.15
+      },
+      "proximate_analysis_wt_pct_dry": {
+        "volatile_matter": 32.0,
+        "fixed_carbon": 58.85
+      },
+      "moisture_wt_pct": 0,
+      "HHV_kJ_kg": 27800,
+      "particle_diameter_um": 100
+    }
+  },
+  "validation_cases": {
+    "LuNan_Texaco": {
+      "description": "山东鲁南化肥厂 Texaco 气化炉，国内气流床模型重要工业验证案例。文献：清华大学王天骄、李政等《德士古煤气化炉模型研究》",
+      "coal_type": "LuNan_Coal",
+      "feedstock_type": "coal_water_slurry",
+      "source": "鲁南化肥厂实际运行数据",
+      "operating_conditions": {
+        "coal_feed_rate_kg_hr": 17917.0,
+        "coal_feed_rate_g_s": 4976.9,
+        "O2_to_fuel_ratio": 0.872,
+        "steam_to_fuel_ratio": 0.0,
+        "pressure_atm": 39.48,
+        "pressure_Pa": 4000000.0,
+        "inlet_temperature_K": 400.0,
+        "heat_loss_percent": 2.0,
+        "slurry_concentration_pct": 66.0,
+        "O2_purity": 0.98,
+        "L_reactor_m": 6.87,
+        "D_reactor_m": 1.68
+      },
+      "geometry_notes": "炉膛内径1.68m，总长6.87m；顶部渐扩1.4m+中部直筒4.377m+底部渐缩1.1m；容积12.74m³",
+      "expected_results": {
+        "outlet_temperature_C": 1350.0,
+        "carbon_conversion_pct": 91.0,
+        "dry_product_gas_vol_pct": {
+          "CO": 48.82,
+          "H2": 36.58,
+          "CO2": 14.41,
+          "N2": 0.19,
+          "CH4": 0.0,
+          "H2S": 0.0
+        },
+        "model_predictions_literature": {
+          "CO": 49.54,
+          "H2": 35.69,
+          "CO2": 12.79,
+          "carbon_conversion_pct": 90.92
+        },
+        "notes": "工业数据为鲁南厂实测；文献模型预测CO略偏高、CO2偏低，可能与WGS动力学或氧气混合不均有关"
+      }
+    }
+  }
+}

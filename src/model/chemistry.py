@@ -26,6 +26,12 @@ COAL_DATABASE = {
         "Mt": 10.0,
         "HHV_d": 25000.0, # kJ/kg
     },
+    "LuNan_Coal": {
+        "Cd": 71.5, "Hd": 4.97, "Od": 11.15, "Nd": 1.07, "Sd": 2.16,
+        "Ad": 9.15, "Vd": 32.0, "FCd": 58.85,
+        "Mt": 0.0,
+        "HHV_d": 27800.0,  # kJ/kg, 鲁南北宿+落陵混煤
+    },
 }
 
 VALIDATION_CASES = {

@@ -1,7 +1,11 @@
 import numpy as np
 from typing import Dict, List, Optional
 from model.state import StateVector
-from model.kinetics import HeterogeneousKinetics, calculate_wgs_equilibrium
+from model.kinetics import (
+    HeterogeneousKinetics,
+    calculate_wgs_equilibrium,
+    calculate_cstm_equilibrium,
+)
 from model.constants import PhysicalConstants
 from model.physics import R_CONST
 from model.material import SPECIES_NAMES
@@ -31,13 +35,15 @@ class KineticsService:
             'WGS':    116148.0,  # J/mol (Fortran 27760 cal/mol × 4.184)
             'RWGS':   6.27e7 / 1000.0,
             'CH4_Ox': 1.256e8 / 1000.0, 
-            'MSR':    30000.0 * R_CONST 
+            'MSR':    30000.0 * 4.184  # J/mol (Fortran ch4ref: 30000 cal/mol = 125.6 kJ/mol)
         }
         
     def calc_heterogeneous_rates(self, state: StateVector, particle_diameter: float, 
                                  surface_area: float, X_total: float = 0.0, 
                                  Re: float = 0.0, Sc: float = 1.0,
-                                 T_particle: float = None) -> Dict[str, float]:
+                                 T_particle: float = None,
+                                 char_combustion_factor: float = None,
+                                 use_fortran_diffusion: bool = False) -> Dict[str, float]:
         """
         Calculate Surface Reaction Rates (mol/s).
         T_particle: 颗粒温度 Ts_avg；None 时用 Ross 修正 T_p = T + 6.6e4*C_O2（向后兼容）
@@ -70,55 +76,74 @@ class KineticsService:
         Y = max(Y, 1e-3)
         
         mapping = {'C+O2': 'O2', 'C+H2O': 'H2O', 'C+CO2': 'CO2', 'C+H2': 'H2'}
-        
+        P_atm = 101325.0
+
         for rxn, sp in mapping.items():
             idx = SPECIES_NAMES.index(sp)
             F_i = max(state.gas_moles[idx], 0.0)
-            P_i = (F_i / F_total) * P # Pa
-            
-            # 4. Driving Force Correction (P_eq)
-            # Use concentration-derived partial pressures if possible, but here we need P_i
-            # P_i = C_i * R * T (Pa)
-            # But let's keep P_i = y_i * P for simplicity as it handles F_total ~ 0 better in some checks
-            
+            P_i = (F_i / F_total) * P  # Pa
             P_eq = 0.0
-            # 表面平衡用颗粒温度 T_p
+
+            # Fortran 安全与温度阈值 (fortran_analysis.md)
+            if rxn == 'C+CO2':
+                if T_p <= 850.0 or P_i < 1e-6 or X_total >= 0.999:
+                    r[rxn] = 0.0
+                    continue
+            elif rxn == 'C+H2':
+                if T_p <= 1200.0 or X_total >= 0.999:
+                    r[rxn] = 0.0
+                    continue
+            elif rxn == 'C+H2O':
+                if P_i < 0.001 * P_atm or X_total >= 0.999:
+                    r[rxn] = 0.0
+                    continue
+                P_CO = (state.gas_moles[2] / F_total) * P
+                P_H2 = (state.gas_moles[5] / F_total) * P
+                if P_CO < 1e-6 or P_H2 < 1e-6:
+                    P_eq = 0.0  # Fortran goto 5: pexc = psteam
+                else:
+                    K_cstm = calculate_cstm_equilibrium(T_p)
+                    cts = 17.644 - 16811.0 / T_p
+                    if abs(cts) > 16.0 or K_cstm > 10000.0:
+                        r[rxn] = 0.0
+                        continue
+                    P_eq = (P_H2 * P_CO) / (K_cstm * P_atm + 1e-12)
+
+            # 4. Driving Force Correction (P_eq)
+            # C+H2O 的 P_eq 已在 Fortran 安全检查块中计算
             if rxn == 'C+CO2':
                 from model.kinetics import calculate_boudouard_equilibrium
                 Kp_atm = calculate_boudouard_equilibrium(T_p)
                 P_CO = (state.gas_moles[2] / F_total) * P
-                P_eq = (P_CO**2 / (Kp_atm * 1.01325e5 + 1e-9))
-            elif rxn == 'C+H2O':
-                from model.kinetics import calculate_wgs_equilibrium
-                Kp_wgs_homo = calculate_wgs_equilibrium(T_p)
-                from model.kinetics import calculate_boudouard_equilibrium
-                Kp_het_atm = calculate_boudouard_equilibrium(T_p) / (Kp_wgs_homo + 1e-9)
-                P_CO = (state.gas_moles[2] / F_total) * P
-                P_H2 = (state.gas_moles[5] / F_total) * P
-                P_eq = (P_CO * P_H2) / (Kp_het_atm * 1.01325e5 + 1e-9)
-            
+                P_eq = (P_CO**2 / (Kp_atm * P_atm + 1e-9))
+
             # 5. Stoichiometric factor nu (Mols Carbon per mol oxidant)
             nu = phi if rxn == 'C+O2' else 1.0
-            
-            # UCSM Rate Evaluation (kmol/m2.s)
+
+            # UCSM Rate Evaluation: flux [kmol/(m²·s)] 已折算到颗粒外表面积
             P_eff = max(P_i - P_eq, 0.0)
+            if rxn == 'C+H2O' and P_eff < 1e-6:
+                r[rxn] = 0.0
+                continue
+
             rate_kmols = self.het_model.calculate_total_rate(
-                rxn, T, P, P_eff, particle_diameter, Y, nu=nu, Re=Re, Sc=Sc, T_p=T_p
+                rxn, T, P, P_eff, particle_diameter, Y, nu=nu, Re=Re, Sc=Sc, T_p=T_p,
+                use_fortran_diffusion=use_fortran_diffusion, phi=r.get('phi', 1.0)
             )
-            
-            # Convert kmol/m2.s -> mol/m2.s
+
             rate_flux = rate_kmols * 1000.0
-            
             r[rxn] = rate_flux * surface_area
-            # 焦炭燃烧比气相燃烧更慢，对 C+O2 施加缩放因子
+            # 焦炭燃烧比气相燃烧更慢，对 C+O2 施加缩放因子（可工况级覆盖）
             if rxn == 'C+O2':
-                r[rxn] *= PhysicalConstants.CHAR_COMBUSTION_RATE_FACTOR
+                fac = char_combustion_factor if char_combustion_factor is not None else PhysicalConstants.CHAR_COMBUSTION_RATE_FACTOR
+                r[rxn] *= fac
             
         return r
 
     def calc_homogeneous_rates(self, state: StateVector, volume: float, 
                                 inlet_state: StateVector = None, gas_src: np.ndarray = None,
-                                Ts_particle: float = None) -> Dict[str, float]:
+                                Ts_particle: float = None, wgs_rat_factor: bool = False,
+                                msr_tmin_k: float = 1000.0) -> Dict[str, float]:
         """
         Calculate Homogeneous Rates (mol/s) based on Table 2-5.
         
@@ -185,16 +210,21 @@ class KineticsService:
         rates['H2_Ox'] = r2 * volume * 1000.0
 
         # (3) WGS 净速：R_net = k_fwd × (C_CO C_H2O - C_CO2 C_H2 / K_eq)，保证热力学一致
-        # 不用 R_net = k_f C_A C_B - k_r C_C C_D 双常数形式；单一 k_fwd + K_eq 驱动
-        # Fortran wgshift: ts<=1000K 时不计 WGS（使用颗粒温度 ts 作为判据）
+        # Fortran wgshift 对齐：催化因子 f=0.2、rat=exp(-8.91+5553/ts) 压低速率
         T_wgs_check = Ts_particle if Ts_particle is not None else T
         if T_wgs_check <= 1000.0:
             rates['WGS'] = 0.0
             rates['RWGS'] = 0.0
         else:
             k_fwd = self.A_homo['WGS'] * np.exp(-self.E_homo['WGS'] / (R_CONST * T))
+            # Fortran 催化因子 f=0.2 (validation_cases_OriginalPaper model_parameters)
+            WGS_CATALYTIC_FACTOR = 0.2
+            # Fortran rat 因子：exp(-8.91+5553/ts)。启用时高温下压低约2个数量级
+            # 物理预估：抑制 WGS → 少放热、少 CO→CO2，CO 可能略升；温度略降
+            WGS_RAT_FACTOR = np.exp(-8.91 + 5553.0 / T_wgs_check) if wgs_rat_factor else 1.0
+            k_eff = k_fwd * WGS_CATALYTIC_FACTOR * WGS_RAT_FACTOR
             K_eq = calculate_wgs_equilibrium(T)
-            r_net = k_fwd * (C['CO'] * C['H2O'] - C['CO2'] * C['H2'] / (K_eq + 1e-12))
+            r_net = k_eff * (C['CO'] * C['H2O'] - C['CO2'] * C['H2'] / (K_eq + 1e-12))
             rates['WGS'] = r_net * volume * 1000.0  # mol/s
             rates['RWGS'] = 0.0
         
@@ -203,10 +233,14 @@ class KineticsService:
         r5 = k * C['CH4'] * C['O2']
         rates['CH4_Ox'] = r5 * volume * 1000.0
         
-        # (6) MSR
-        k = self.A_homo['MSR'] * np.exp(-self.E_homo['MSR'] / (R_CONST * T))
-        r6 = k * C['CH4']
-        rates['MSR'] = r6 * volume * 1000.0
+        # (6) MSR (Fortran ch4ref: ts≤1000K → rate=0)
+        T_msr_check = Ts_particle if Ts_particle is not None else T
+        if T_msr_check <= msr_tmin_k:
+            rates['MSR'] = 0.0
+        else:
+            k = self.A_homo['MSR'] * np.exp(-self.E_homo['MSR'] / (R_CONST * T))
+            r6 = k * C['CH4']
+            rates['MSR'] = r6 * volume * 1000.0
         
         return rates
 

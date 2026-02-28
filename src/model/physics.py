@@ -171,6 +171,7 @@ def calculate_gas_viscosity(T, species='N2'):
     return mu_ref * (T/T_ref)**1.5 * (T_ref + S) / (T + S)
 
 def calculate_diffusion_coefficient(T, P, species_A, species_B='N2'):
+    """Fuller correlation: D [m²/s]. Used when use_fortran_diffusion=False."""
     P_bar = P / 1e5
     M_A = MOLAR_MASS.get(species_A, 28.0)
     M_B = MOLAR_MASS.get(species_B, 28.0)
@@ -181,6 +182,36 @@ def calculate_diffusion_coefficient(T, P, species_A, species_B='N2'):
     
     D_cm2s = (0.00143 * T**1.75) / (P_bar * np.sqrt(M_AB) * (v_A**(1/3) + v_B**(1/3))**2)
     return D_cm2s * 1e-4
+
+
+def calculate_kdiff_fortran(reaction: str, T_gas: float, T_mean: float, P_Pa: float,
+                            d_p_m: float, phi: float = 1.0) -> float:
+    """
+    Fortran 式扩散传质系数 k_diff [m/s]，用于异相反应 UCSM。
+    Source1_副本.for: combus L1179-1181, cbstm L1218, cbco2 L1249, cbhym L1334.
+    
+    物理预估：Fortran 用 T^0.75（C+H2O/CO2/H2）或 T^1.75（C+O2），Fuller 用 T^1.75。
+    低温下 Fortran k_diff 更小 → 传质阻力更大 → 异相速率更低 → 燃烧区可能略长。
+    """
+    P_atm = P_Pa / 101325.0
+    d_p_cm = d_p_m * 100.0
+    # Fortran → SI: k_diff_fortran [g/(cm²·s·atm)] * (R*T)*1e4/(101325*12) = k [m/s]
+    conv = (R_CONST * T_mean) * 1e4 / (101325.0 * 12.0)
+    
+    if reaction == 'C+O2':
+        # diff = (4.26/pt)*(tg/1800)^1.75, kdiff = (phi*0.292*diff)/(dp*tm)
+        diff = (4.26 / P_atm) * (T_gas / 1800.0) ** 1.75
+        kdiff_f = (phi * 0.292 * diff) / (d_p_cm * T_mean)
+    elif reaction == 'C+H2O':
+        kdiff_f = (10.0e-4) * (T_mean / 2000.0) ** 0.75 / (d_p_cm * P_atm)
+    elif reaction == 'C+CO2':
+        kdiff_f = (7.45e-4) * (T_mean / 2000.0) ** 0.75 / (d_p_cm * P_atm)
+    elif reaction == 'C+H2':
+        kdiff_f = (1.33e-3) * (T_mean / 2000.0) ** 0.75 / (d_p_cm * P_atm)
+    else:
+        return 0.0
+    
+    return kdiff_f * conv
 
 def calculate_gas_density(P, T, composition):
     M_avg = sum(MOLAR_MASS.get(s, 28.0) * y for s, y in composition.items())

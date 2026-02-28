@@ -193,11 +193,23 @@ class GasifierSystem:
         V_total = A * L
         
         # [GRID STRATEGY] Variable Mesh via Service
+        # Cell 0 尺寸：tau=dz/v_g，高流量时 v_g 大、τ 短，需更大 dz 保证挥发分燃尽
+        # 见 docs/cell0_ignition_analysis.md
+        dz_cell0 = self.op_conds.get('FirstCellLength')
+        if dz_cell0 is None and self.op_conds.get('AdaptiveFirstCellLength', False):
+            m_coal_g_s = self.op_conds['coal_flow'] * 1000.0
+            m_ref = 77.0  # Texaco pilot g/s
+            dz_base = PhysicalConstants.FIRST_CELL_LENGTH
+            dz_cell0 = dz_base * (m_coal_g_s / m_ref) ** 0.4
+            dz_cell0 = max(0.03, min(0.5, dz_cell0))
+        if dz_cell0 is None:
+            dz_cell0 = PhysicalConstants.FIRST_CELL_LENGTH
+        dz_ignition = self.op_conds.get('IgnitionZoneDz', PhysicalConstants.IGNITION_ZONE_DZ)
         mesh_cfg = MeshConfig(
             total_length=L,
             n_cells=N_cells,
-            ignition_zone_length=PhysicalConstants.FIRST_CELL_LENGTH,
-            ignition_zone_res=PhysicalConstants.IGNITION_ZONE_DZ,
+            ignition_zone_length=dz_cell0,
+            ignition_zone_res=dz_ignition,
             min_grid_size=PhysicalConstants.MIN_GRID_SIZE
         )
         generator = AdaptiveMeshGenerator(mesh_cfg)

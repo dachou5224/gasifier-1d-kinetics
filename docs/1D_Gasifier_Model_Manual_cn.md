@@ -113,28 +113,31 @@ END FOR
 | WGS | $CO + H_2O \to CO_2 + H_2$ | $2.78 \times 10^3$ | $1.25 \times 10^7$ |
 | RWGS | $CO_2 + H_2 \to CO + H_2O$ | $1.0 \times 10^5$ | $6.27 \times 10^7$ |
 | CH4 燃烧 | $CH_4 + 2 O_2 \to CO_2 + 2 H_2O$ | $1.6 \times 10^{10}$ | $1.25 \times 10^8$ |
-| MSR | $CH_4 + H_2O \to CO + 3 H_2$ | $4.4 \times 10^{15}$ | $2.49 \times 10^8$ |
+| MSR | $CH_4 + H_2O \to CO + 3 H_2$ | $4.4 \times 10^{15}$ | $1.26 \times 10^8$ |
 
-> **注**: WGS 活化能已根据物理合理性校正（文献原值 1.25e4 疑似为 kJ/kmol 或打印错误）。
+> **注**: WGS 活化能已根据物理合理性校正（文献原值 1.25e4 疑似为 kJ/kmol 或打印错误）。MSR 活化能已对齐 Fortran `ch4ref`：30000 cal/mol = 125.6 kJ/mol。
 
 ### 3.2 异相反应 (Heterogeneous Reactions)
 采用 **未反应缩核模型 (UCSM)**。
 
-#### 反应体系与参数 (Table 2-7)
-| 反应 | 方程式 | 指前因子 $A$ | 活化能 $E$ (J/kmol) |
+#### 反应体系与参数 (Fortran 对齐)
+Fortran 原版为**压力驱动**，$A$ 单位 g$_C$/(cm²·s·atm)。Python 内部转换为**浓度驱动** $k_s$ [m/s]：
+$$k_s = A \exp(-E/RT) \cdot \frac{RT \times 10^4}{101325 \times 12}$$
+
+| 反应 | 方程式 | $A$ (g/(cm²·s·atm)) | $E$ (J/mol) |
 | :--- | :--- | :--- | :--- |
-| 燃烧 | $C + O_2 \to CO/CO_2$ | $2.3 \times 10^2$ | $1.1 \times 10^8$ |
-| 水蒸气气化 | $C + H_2O \to CO + H_2$ | $2.4 \times 10^4$ | $1.43 \times 10^8$ |
-| 二氧化碳气化 | $C + CO_2 \to 2CO$ | $2.4 \times 10^4$ | $1.43 \times 10^8$ |
-| 加氢气化 | $C + 2H_2 \to CH_4$ | $6.4$ | $1.3 \times 10^8$ |
+| 燃烧 | $C + O_2 \to CO/CO_2$ | 8710 | $7.52 \times 10^4$ |
+| 水蒸气气化 | $C + H_2O \to CO + H_2$ | 247 | $8.81 \times 10^4$ |
+| 二氧化碳气化 | $C + CO_2 \to 2CO$ | 247 | $8.81 \times 10^4$ |
+| 加氢气化 | $C + 2H_2 \to CH_4$ | 0.12 | $7.50 \times 10^4$ |
 
 #### 阻力组合 (Resistances)
-总反应速率 $R_{tot}$ (kmol/m²·s) 考虑三项阻力的串联：
-1. **气膜扩散**: $k_d = 2 D / d_p$
+$k_d$、$k_{ash}$、$k_s$ 单位均为 m/s（浓度驱动），保证阻力 $1/k$ 单位一致 (s/m)：
+1. **气膜扩散**: $k_d = Sh \cdot D / d_p$（$D$ 为 m²/s）
 2. **灰层扩散**: $k_{ash} = k_d \cdot \varepsilon^{2.5}$, 其中 $\varepsilon=0.75$
-3. **表面化学反应**: $k_s = A \exp(-E/RT_p)$
+3. **表面化学反应**: $k_s = A \exp(-E/RT_p) \cdot (RT)/(101325 \times 12) \times 10^4$（由 Fortran 压力驱动转换）
 
-$$R_{total} = \frac{C_{gas}}{\frac{1}{k_d} + \frac{1-Y}{k_{ash} Y} + \frac{1}{k_s Y^2}}$$
+$$R_{total} = \frac{C_{gas}}{\frac{1}{\nu k_d} + \frac{1-Y}{\nu k_{ash} Y} + \frac{1}{k_s Y^2}}$$
 其中 $Y = (1-X)^{1/3}$ 为缩核因子，$X$ 为局部碳转化率。
 
 ---

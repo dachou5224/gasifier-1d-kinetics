@@ -61,6 +61,9 @@ class Cell:
         # Residence Time (Local approach: tau = dz / u_g)
         tau = self.dz / max(v_g, PhysicalConstants.MIN_SLIP_VELOCITY)
         m_hold = current.solid_mass * tau
+        # S_total = 几何外表面积 = N_particles * pi * d_p^2
+        # 公式: S = 6*m_hold/(rho_p*d_p)，源自 N = m/(rho*pi/6*d^3)，S = N*pi*d^2
+        # 注意: 不乘孔隙率、BET；calculate_total_rate 内部已含 1/(k_s*Y^2)，此处必须用外表面积
         S_total = (6 * m_hold) / (PhysicalConstants.PARTICLE_DENSITY * d_p + 1e-9)
         
         # 4. Transport Properties
@@ -78,7 +81,7 @@ class Cell:
         }
 
     # Fortran 燃烧区判据: pO2 > 0.05 atm (见 docs/fortran_combustion_mechanism.md)
-    P_O2_COMBUSTION_THRESHOLD_PA = 5066.0  # 0.05 * 101325
+    # 可工况级覆盖 P_O2_Combustion_atm，如 0.02–0.03 扩展燃烧区
 
     def _calc_particle_temperature(self, Tg: float, Ts_in: float, tau: float,
                                    d_p: float, solid_mass: float,
@@ -232,17 +235,25 @@ class Cell:
         """
         T_het = Ts_avg if Ts_avg is not None else current.T
         # 1. Base Rates：异相用 Ts_avg，均相用 Tg (current.T)
+        char_fac = self.op_conds.get('CharCombustionRateFactor')  # 工况级 C+O2 因子，缓解燃烧区过短
+        use_fortran_diff = self.op_conds.get('UseFortranDiffusion', False)
         r_het = self.kinetics.calc_heterogeneous_rates(
             current, phys['d_p'], phys['S_total'],
             X_total=phys['X_total'], Re=phys['Re_p'], Sc=phys['Sc_p'],
-            T_particle=T_het
+            T_particle=T_het,
+            char_combustion_factor=char_fac,
+            use_fortran_diffusion=use_fortran_diff
         )
         phi = r_het.pop('phi', 1.0)
+        wgs_rat = self.op_conds.get('WGS_RatFactor', False)
+        msr_tmin = self.op_conds.get('MSR_Tmin_K', 1000.0)
         r_homo = self.kinetics.calc_homogeneous_rates(
             current, self.V,
             inlet_state=self.inlet,
             gas_src=gas_src,
-            Ts_particle=T_het  # Fortran wgshift: ts<=1000K 时不计 WGS
+            Ts_particle=T_het,  # Fortran wgshift: ts<=1000K 时不计 WGS
+            wgs_rat_factor=wgs_rat,
+            msr_tmin_k=msr_tmin
         )
 
         avail = {sp: max(self.inlet.gas_moles[i] + gas_src[i], 0.0) for i, sp in enumerate(SPECIES_NAMES)}
@@ -252,11 +263,14 @@ class Cell:
         # ========================================================================
         # Fortran 分区: poxyin > 0.05 atm → 燃烧区（挥发分瞬时完全燃烧）
         # 使用入口 pO2（与 Fortran Line 345 poxyin 一致）
+        # P_O2_Combustion_atm 可工况级覆盖，如 0.02–0.03 扩展燃烧区
         # ========================================================================
         F_total_in = sum(avail.values())
         F_total_in = max(F_total_in, 1e-9)
         pO2_Pa = current.P * (avail['O2'] / F_total_in)
-        is_combustion_zone = pO2_Pa > self.P_O2_COMBUSTION_THRESHOLD_PA
+        p_o2_atm = self.op_conds.get('P_O2_Combustion_atm', 0.05)
+        threshold_Pa = p_o2_atm * 101325.0
+        is_combustion_zone = pO2_Pa > threshold_Pa
 
         if is_combustion_zone:
             # 燃烧区：挥发分瞬时燃烧（无动力学），CH4 > CO > H2 分配 O2
@@ -424,7 +438,8 @@ class Cell:
         tau = self.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
         F_total_in = max(sum(self.inlet.gas_moles[i] + g_src[i] for i in range(8)), 1e-9)
         pO2_Pa = current.P * (max(self.inlet.gas_moles[0] + g_src[0], 0) / F_total_in)
-        is_combustion = pO2_Pa > self.P_O2_COMBUSTION_THRESHOLD_PA
+        p_o2_atm = self.op_conds.get('P_O2_Combustion_atm', 0.05)
+        is_combustion = pO2_Pa > (p_o2_atm * 101325.0)
         
         Ts_avg, Ts_out = self._calc_particle_temperature(
             current.T, Ts_in, tau, phys['d_p'],

@@ -1,0 +1,50 @@
+{
+  "Paper_Case_6 (Base)": {
+    "predicted": {
+      "TOUT_C": 1308.5170280478328,
+      "Y_CO_dry": 51.54671296149548,
+      "Y_H2_dry": 27.83787858492496,
+      "Y_CO2_dry": 18.778908976243642,
+      "dz_cell0_m": 0.5
+    },
+    "expected": {
+      "TOUT_C": 1370.0,
+      "YCO": 61.7,
+      "YH2": 30.3,
+      "YCO2": 1.3,
+      "carbon_conversion_pct": null
+    }
+  },
+  "Paper_Case_1": {
+    "predicted": {
+      "TOUT_C": 1181.464601784477,
+      "Y_CO_dry": 50.54064513043882,
+      "Y_H2_dry": 30.506918046965193,
+      "Y_CO2_dry": 18.61554643617153,
+      "dz_cell0_m": 0.5
+    },
+    "expected": {
+      "TOUT_C": 1333.0,
+      "YCO": 59.9,
+      "YH2": 29.5,
+      "YCO2": null,
+      "carbon_conversion_pct": null
+    }
+  },
+  "LuNan_Texaco": {
+    "predicted": {
+      "TOUT_C": 931.6509158315631,
+      "Y_CO_dry": 48.751330661044,
+      "Y_H2_dry": 36.64545762332233,
+      "Y_CO2_dry": 13.502098002567314,
+      "dz_cell0_m": 0.5
+    },
+    "expected": {
+      "TOUT_C": 1350.0,
+      "YCO": 48.82,
+      "YH2": 36.58,
+      "YCO2": 14.41,
+      "carbon_conversion_pct": 91.0
+    }
+  }
+}

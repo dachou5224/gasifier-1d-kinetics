@@ -17,19 +17,35 @@ from model.chemistry import VALIDATION_CASES, COAL_DATABASE
 
 
 def run_cell0_energy_audit(case_name="Paper_Case_6"):
-    data = VALIDATION_CASES[case_name]
-    inputs = data["inputs"]
-    coal_props = COAL_DATABASE[inputs["coal"]]
-    op_conds = {
-        "coal_flow": inputs["FeedRate"] / 3600.0,
-        "o2_flow": (inputs["FeedRate"] * inputs["Ratio_OC"]) / 3600.0,
-        "steam_flow": (inputs["FeedRate"] * inputs["Ratio_SC"]) / 3600.0,
-        "P": inputs["P"],
-        "T_in": inputs["TIN"],
-        "HeatLossPercent": inputs.get("HeatLossPercent", 3.0),
-        "SlurryConcentration": inputs.get("SlurryConcentration", 100.0),
-    }
-    geometry = {"L": 8.0, "D": 2.6}
+    if case_name == "LuNan_Texaco":
+        coal_props = COAL_DATABASE["LuNan_Coal"]
+        coal_flow = 17917.0 / 3600.0
+        op_conds = {
+            "coal_flow": coal_flow,
+            "o2_flow": coal_flow * 0.872,
+            "steam_flow": 0.0,
+            "P": 4e6,
+            "T_in": 400.0,
+            "HeatLossPercent": 1.5,
+            "SlurryConcentration": 66.0,
+            "AdaptiveFirstCellLength": True,
+            "CharCombustionRateFactor": 0.2,
+        }
+        geometry = {"L": 6.87, "D": 1.68}
+    else:
+        data = VALIDATION_CASES[case_name]
+        inputs = data["inputs"]
+        coal_props = COAL_DATABASE[inputs["coal"]]
+        op_conds = {
+            "coal_flow": inputs["FeedRate"] / 3600.0,
+            "o2_flow": (inputs["FeedRate"] * inputs["Ratio_OC"]) / 3600.0,
+            "steam_flow": (inputs["FeedRate"] * inputs["Ratio_SC"]) / 3600.0,
+            "P": inputs["P"],
+            "T_in": inputs["TIN"],
+            "HeatLossPercent": inputs.get("HeatLossPercent", 3.0),
+            "SlurryConcentration": inputs.get("SlurryConcentration", 100.0),
+        }
+        geometry = {"L": 8.0, "D": 2.6}
     system = GasifierSystem(geometry, coal_props, op_conds)
     results, z_grid = system.solve(N_cells=50)
 
@@ -62,7 +78,7 @@ def run_cell0_energy_audit(case_name="Paper_Case_6"):
     Q_rxn_het = r_het.get("C+O2", 0.0) * 393510.0 * phi
     Q_rxn_total = Q_rxn_homo + Q_rxn_het
 
-    L_total = op_conds.get("L_reactor", 8.0)
+    L_total = geometry["L"]
     loss_pct = op_conds.get("HeatLossPercent", 3.0) / 100.0
     hhv = coal_props.get("HHV_d", 30.0)
     if hhv > 1000:
@@ -111,4 +127,5 @@ def run_cell0_energy_audit(case_name="Paper_Case_6"):
 
 
 if __name__ == "__main__":
-    run_cell0_energy_audit("Paper_Case_6")
+    case = sys.argv[1] if len(sys.argv) > 1 else "Paper_Case_6"
+    run_cell0_energy_audit(case)

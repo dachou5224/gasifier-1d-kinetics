@@ -1,0 +1,178 @@
+{
+  "Texaco_I-1": {
+    "predicted": {
+      "TOUT_C": 755.82,
+      "Y_CO_dry": 52.18,
+      "Y_H2_dry": 40.1,
+      "Y_CO2_dry": 6.95,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": 1370.0,
+      "YCO": 57.57,
+      "YH2": 39.13,
+      "YCO2": 2.95
+    }
+  },
+  "Texaco_I-2": {
+    "predicted": {
+      "TOUT_C": 1076.47,
+      "Y_CO_dry": 56.69,
+      "Y_H2_dry": 40.55,
+      "Y_CO2_dry": 1.95,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": 1333.0,
+      "YCO": 53.06,
+      "YH2": 41.0,
+      "YCO2": 5.15
+    }
+  },
+  "Texaco_I-5C": {
+    "predicted": {
+      "TOUT_C": 719.72,
+      "Y_CO_dry": 43.41,
+      "Y_H2_dry": 43.96,
+      "Y_CO2_dry": 11.88,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": null,
+      "YH2": null,
+      "YCO2": null
+    }
+  },
+  "Texaco_I-10": {
+    "predicted": {
+      "TOUT_C": 683.67,
+      "Y_CO_dry": 50.09,
+      "Y_H2_dry": 41.42,
+      "Y_CO2_dry": 7.71,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": 55.18,
+      "YH2": 39.24,
+      "YCO2": 4.69
+    }
+  },
+  "Texaco_Exxon": {
+    "predicted": {
+      "TOUT_C": 1153.34,
+      "Y_CO_dry": 55.24,
+      "Y_H2_dry": 37.61,
+      "Y_CO2_dry": 5.88,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": null,
+      "YH2": null,
+      "YCO2": null
+    }
+  },
+  "Coal_Water_Slurry_Western": {
+    "predicted": {
+      "TOUT_C": 869.35,
+      "Y_CO_dry": 38.17,
+      "Y_H2_dry": 42.57,
+      "Y_CO2_dry": 17.65,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": 50.71,
+      "YH2": 35.79,
+      "YCO2": 13.14
+    }
+  },
+  "Coal_Water_Slurry_Eastern": {
+    "predicted": {
+      "TOUT_C": 927.18,
+      "Y_CO_dry": 30.97,
+      "Y_H2_dry": 43.33,
+      "Y_CO2_dry": 24.32,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": 41.55,
+      "YH2": 36.15,
+      "YCO2": 20.64
+    }
+  },
+  "Paper_Case_6": {
+    "predicted": {
+      "TOUT_C": 999.81,
+      "Y_CO_dry": 49.31,
+      "Y_H2_dry": 32.9,
+      "Y_CO2_dry": 17.37,
+      "geometry_L": 6.0,
+      "geometry_D": 2.0
+    },
+    "expected": {
+      "TOUT_C": 1369.85,
+      "YCO": 61.7,
+      "YH2": null,
+      "YCO2": null
+    }
+  },
+  "Illinois_No6": {
+    "predicted": {
+      "TOUT_C": 1212.07,
+      "Y_CO_dry": 53.53,
+      "Y_H2_dry": 34.62,
+      "Y_CO2_dry": 10.03,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": 40.8,
+      "YH2": 29.8,
+      "YCO2": 10.27
+    }
+  },
+  "Australia_UBE": {
+    "predicted": {
+      "TOUT_C": 1247.82,
+      "Y_CO_dry": 51.18,
+      "Y_H2_dry": 34.73,
+      "Y_CO2_dry": 11.28,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": 35.97,
+      "YH2": 29.47,
+      "YCO2": 12.31
+    }
+  },
+  "Fluid_Coke": {
+    "predicted": {
+      "TOUT_C": 1937.6,
+      "Y_CO_dry": 69.11,
+      "Y_H2_dry": 15.18,
+      "Y_CO2_dry": 13.57,
+      "geometry_L": 6.096,
+      "geometry_D": 1.524
+    },
+    "expected": {
+      "TOUT_C": null,
+      "YCO": 47.34,
+      "YH2": 24.25,
+      "YCO2": 13.36
+    }
+  }
+}

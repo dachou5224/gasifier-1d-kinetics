@@ -16,8 +16,10 @@ run_original_paper_cases.py
 运行方式 (项目根目录):
 
   PYTHONPATH=src python tests/integration/run_original_paper_cases.py
+  PYTHONPATH=src python tests/integration/run_original_paper_cases.py --limit 3 --cells 30  # 快速测试
 """
 
+import argparse
 import json
 import os
 import sys
@@ -102,6 +104,11 @@ def _extract_model_pred_dry(expected: Dict[str, Any]) -> Dict[str, float]:
 
 
 def main():
+    ap = argparse.ArgumentParser(description="Run Wen & Chaung (1979) original paper cases")
+    ap.add_argument("--limit", type=int, default=None, help="Max number of cases to run (default: all)")
+    ap.add_argument("--cells", type=int, default=60, help="Number of cells (default: 60)")
+    args = ap.parse_args()
+
     json_path = get_original_paper_json_path()
     if not os.path.isfile(json_path):
         print("Not found:", json_path)
@@ -109,12 +116,17 @@ def main():
 
     coal_db, cases, metadata = load_original_paper_cases(json_path)
 
+    # 限制算例数量
+    if args.limit is not None:
+        cases = dict(list(cases.items())[: args.limit])
+        print(f"[Run limited to first {args.limit} cases]")
+
     # 反应器尺寸: 优先使用 metadata 中的 Texaco pilot 尺寸
     geom_meta = metadata.get("reactor_dimensions", {})
     L = float(geom_meta.get("length_m", 6.096))  # 20 ft
     D = float(geom_meta.get("diameter_m", 1.524))  # 5 ft
     geometry = {"L": L, "D": D}
-    n_cells = 60
+    n_cells = args.cells
 
     print("=" * 80)
     print("Wen & Chaung (1979) 原始工况 — 当前 1D 模型验证")
