@@ -1,0 +1,224 @@
+{
+  "metadata": {
+    "source": "reference_fortran/input_副本.txt",
+    "description": "Fortran 小试工况，煤进料 56–187 kg/h",
+    "scale": "pilot",
+    "note": "tfcoal 单位为 kg/h，与 input_副本.txt 一致；小炉子比表面积大，HeatLossPercent=4%"
+  },
+  "fortran_cases": {
+    "texaco i-1": {
+      "coal": {"Cd": 74.0, "Hd": 6.2, "Od": 1.32, "Nd": 0.71, "Sd": 1.77, "Ad": 15.9, "Vd": 30, "FCd": 53.1, "Mt": 0.2, "HHV_d": 31100},
+      "inputs": {"coal": "texaco i-1_Coal", "FeedRate": 76.66, "Ratio_OC": 0.866, "Ratio_SC": 0.241, "P": 2431800, "TIN": 505.22, "HeatLossPercent": 4, "SlurryConcentration": 100},
+      "expected": {}
+    },
+    "texaco i-2": {
+      "coal": {"Cd": 73.1, "Hd": 5.8, "Od": 1.71, "Nd": 0.73, "Sd": 1.37, "Ad": 17.3, "Vd": 30, "FCd": 52.7, "Mt": 0.2, "HHV_d": 30500},
+      "inputs": {"coal": "texaco i-2_Coal", "FeedRate": 81.18, "Ratio_OC": 0.76818, "Ratio_SC": 0.314, "P": 2431800, "TIN": 496.33, "HeatLossPercent": 4, "SlurryConcentration": 100},
+      "expected": {}
+    },
+    "texaco i-5c": {
+      "coal": {"Cd": 70.2, "Hd": 5.4, "Od": 2.16, "Nd": 0.78, "Sd": 1.80, "Ad": 19.7, "Vd": 30, "FCd": 50.3, "Mt": 0.2, "HHV_d": 29200},
+      "inputs": {"coal": "texaco i-5c_Coal", "FeedRate": 56.264, "Ratio_OC": 0.832, "Ratio_SC": 0.429, "P": 2431800, "TIN": 497.44, "HeatLossPercent": 4, "SlurryConcentration": 100},
+      "expected": {}
+    },
+    "texaco i-10": {
+      "coal": {"Cd": 73.2, "Hd": 5.8, "Od": 1.77, "Nd": 0.65, "Sd": 1.39, "Ad": 17.3, "Vd": 30, "FCd": 52.7, "Mt": 0.2, "HHV_d": 30600},
+      "inputs": {"coal": "texaco i-10_Coal", "FeedRate": 129.77, "Ratio_OC": 0.83457, "Ratio_SC": 0.276, "P": 2431800, "TIN": 481.33, "HeatLossPercent": 4, "SlurryConcentration": 100},
+      "expected": {}
+    },
+    "texaco exxon": {
+      "coal": {"Cd": 70.6, "Hd": 4.7, "Od": 3.94, "Nd": 1.18, "Sd": 2.73, "Ad": 16.7, "Vd": 30, "FCd": 53.3, "Mt": 0, "HHV_d": 28500},
+      "inputs": {"coal": "texaco exxon_Coal", "FeedRate": 126.11, "Ratio_OC": 0.79, "Ratio_SC": 0.5, "P": 2431800, "TIN": 505.22, "HeatLossPercent": 4, "SlurryConcentration": 100},
+      "expected": {}
+    },
+    "slurry western": {
+      "coal": {"Cd": 74.6, "Hd": 5.3, "Od": 11.5, "Nd": 0.99, "Sd": 0.46, "Ad": 7.2, "Vd": 30, "FCd": 62.2, "Mt": 0, "HHV_d": 27800},
+      "inputs": {"coal": "slurry western_Coal", "FeedRate": 186.78, "Ratio_OC": 0.91, "Ratio_SC": 0.52, "P": 2431800, "TIN": 400, "HeatLossPercent": 4, "SlurryConcentration": 100},
+      "expected": {}
+    },
+    "slurry eastern": {
+      "coal": {"Cd": 72.7, "Hd": 5.0, "Od": 9.2, "Nd": 1.40, "Sd": 3.0, "Ad": 8.7, "Vd": 30, "FCd": 61.3, "Mt": 0, "HHV_d": 27500},
+      "inputs": {"coal": "slurry eastern_Coal", "FeedRate": 133.5, "Ratio_OC": 0.87, "Ratio_SC": 0.79, "P": 2431800, "TIN": 400, "HeatLossPercent": 4, "SlurryConcentration": 100},
+      "expected": {}
+    }
+  },
+  "coal_database": {
+    "texaco i-1_Coal": {
+      "Cd": 74.0,
+      "Hd": 6.2,
+      "Od": 1.32,
+      "Nd": 0.71,
+      "Sd": 1.77,
+      "Ad": 15.9,
+      "Vd": 30,
+      "FCd": 53.1,
+      "Mt": 0.2,
+      "HHV_d": 31100
+    },
+    "texaco i-2_Coal": {
+      "Cd": 73.1,
+      "Hd": 5.8,
+      "Od": 1.71,
+      "Nd": 0.73,
+      "Sd": 1.37,
+      "Ad": 17.3,
+      "Vd": 30,
+      "FCd": 52.7,
+      "Mt": 0.2,
+      "HHV_d": 30500
+    },
+    "texaco i-5c_Coal": {
+      "Cd": 70.2,
+      "Hd": 5.4,
+      "Od": 2.16,
+      "Nd": 0.78,
+      "Sd": 1.80,
+      "Ad": 19.7,
+      "Vd": 30,
+      "FCd": 50.3,
+      "Mt": 0.2,
+      "HHV_d": 29200
+    },
+    "texaco i-10_Coal": {
+      "Cd": 73.2,
+      "Hd": 5.8,
+      "Od": 1.77,
+      "Nd": 0.65,
+      "Sd": 1.39,
+      "Ad": 17.3,
+      "Vd": 30,
+      "FCd": 52.7,
+      "Mt": 0.2,
+      "HHV_d": 30600
+    },
+    "texaco exxon_Coal": {
+      "Cd": 70.6,
+      "Hd": 4.7,
+      "Od": 3.94,
+      "Nd": 1.18,
+      "Sd": 2.73,
+      "Ad": 16.7,
+      "Vd": 30,
+      "FCd": 53.3,
+      "Mt": 0,
+      "HHV_d": 28500
+    },
+    "slurry western_Coal": {
+      "Cd": 74.6,
+      "Hd": 5.3,
+      "Od": 11.5,
+      "Nd": 0.99,
+      "Sd": 0.46,
+      "Ad": 7.2,
+      "Vd": 30,
+      "FCd": 62.2,
+      "Mt": 0,
+      "HHV_d": 27800
+    },
+    "slurry eastern_Coal": {
+      "Cd": 72.7,
+      "Hd": 5.0,
+      "Od": 9.2,
+      "Nd": 1.40,
+      "Sd": 3.0,
+      "Ad": 8.7,
+      "Vd": 30,
+      "FCd": 61.3,
+      "Mt": 0,
+      "HHV_d": 27500
+    }
+  },
+  "validation_cases": {
+    "texaco i-1": {
+      "inputs": {
+        "coal": "texaco i-1_Coal",
+        "FeedRate": 76.66,
+        "Ratio_OC": 0.866,
+        "Ratio_SC": 0.241,
+        "P": 2431800,
+        "TIN": 505.22,
+        "HeatLossPercent": 4,
+        "SlurryConcentration": 100
+      },
+      "expected": {}
+    },
+    "texaco i-2": {
+      "inputs": {
+        "coal": "texaco i-2_Coal",
+        "FeedRate": 81.18,
+        "Ratio_OC": 0.76818,
+        "Ratio_SC": 0.314,
+        "P": 2431800,
+        "TIN": 496.33,
+        "HeatLossPercent": 4,
+        "SlurryConcentration": 100
+      },
+      "expected": {}
+    },
+    "texaco i-5c": {
+      "inputs": {
+        "coal": "texaco i-5c_Coal",
+        "FeedRate": 56.264,
+        "Ratio_OC": 0.832,
+        "Ratio_SC": 0.429,
+        "P": 2431800,
+        "TIN": 497.44,
+        "HeatLossPercent": 4,
+        "SlurryConcentration": 100
+      },
+      "expected": {}
+    },
+    "texaco i-10": {
+      "inputs": {
+        "coal": "texaco i-10_Coal",
+        "FeedRate": 129.77,
+        "Ratio_OC": 0.83457,
+        "Ratio_SC": 0.276,
+        "P": 2431800,
+        "TIN": 481.33,
+        "HeatLossPercent": 4,
+        "SlurryConcentration": 100
+      },
+      "expected": {}
+    },
+    "texaco exxon": {
+      "inputs": {
+        "coal": "texaco exxon_Coal",
+        "FeedRate": 126.11,
+        "Ratio_OC": 0.79,
+        "Ratio_SC": 0.5,
+        "P": 2431800,
+        "TIN": 505.22,
+        "HeatLossPercent": 4,
+        "SlurryConcentration": 100
+      },
+      "expected": {}
+    },
+    "slurry western": {
+      "inputs": {
+        "coal": "slurry western_Coal",
+        "FeedRate": 186.78,
+        "Ratio_OC": 0.91,
+        "Ratio_SC": 0.52,
+        "P": 2431800,
+        "TIN": 400,
+        "HeatLossPercent": 4,
+        "SlurryConcentration": 100
+      },
+      "expected": {}
+    },
+    "slurry eastern": {
+      "inputs": {
+        "coal": "slurry eastern_Coal",
+        "FeedRate": 133.5,
+        "Ratio_OC": 0.87,
+        "Ratio_SC": 0.79,
+        "P": 2431800,
+        "TIN": 400,
+        "HeatLossPercent": 4,
+        "SlurryConcentration": 100
+      },
+      "expected": {}
+    }
+  }
+}

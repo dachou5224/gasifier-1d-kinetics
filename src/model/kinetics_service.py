@@ -19,23 +19,25 @@ class KineticsService:
         # Underlying Physics Model
         self.het_model = HeterogeneousKinetics()
         
-        # Homogeneous Parameters (Table 2-5, converted to J/mol)
-        # WGS: 参考 Fortran wgshift — ek=exp(-27760/(1.987*ts)) → E=27760*4.184≈116148 J/mol; rate4 前因子 2.877e5
+        # Homogeneous Parameters (Fortran: exp(-E_cal/(1.987*ts)) → E_J = E_cal × 4.184)
+        # WGS: wgshift L1271,1281  A=2.877e5 E=27760 cal/mol
+        # MSR: ch4ref L1355  A=312 E=30000 cal/mol, ts≤1000K rate=0
+        CAL2J = 4.184
         self.A_homo = {
             'CO_Ox':  2.23e12,
             'H2_Ox':  1.08e13,
-            'WGS':    2.88e5,   # Fortran 2.877e5
+            'WGS':    2.877e5,   # Fortran wgshift L1281
             'RWGS':   1.0e5,
             'CH4_Ox': 1.6e10,
-            'MSR':    4.4e11 
+            'MSR':    312.0      # Fortran ch4ref L1355
         }
         self.E_homo = {
             'CO_Ox':  1.25e8 / 1000.0,
             'H2_Ox':  8.37e7 / 1000.0,
-            'WGS':    116148.0,  # J/mol (Fortran 27760 cal/mol × 4.184)
+            'WGS':    27760.0 * CAL2J,   # 116.1 kJ/mol
             'RWGS':   6.27e7 / 1000.0,
-            'CH4_Ox': 1.256e8 / 1000.0, 
-            'MSR':    30000.0 * 4.184  # J/mol (Fortran ch4ref: 30000 cal/mol = 125.6 kJ/mol)
+            'CH4_Ox': 1.256e8 / 1000.0,
+            'MSR':    30000.0 * CAL2J    # 125.5 kJ/mol
         }
         
     def calc_heterogeneous_rates(self, state: StateVector, particle_diameter: float, 
@@ -143,7 +145,9 @@ class KineticsService:
     def calc_homogeneous_rates(self, state: StateVector, volume: float, 
                                 inlet_state: StateVector = None, gas_src: np.ndarray = None,
                                 Ts_particle: float = None, wgs_rat_factor: bool = False,
-                                msr_tmin_k: float = 1000.0) -> Dict[str, float]:
+                                msr_tmin_k: float = 1000.0,
+                                wgs_catalytic_factor: float = None,
+                                wgs_k_factor: float = None) -> Dict[str, float]:
         """
         Calculate Homogeneous Rates (mol/s) based on Table 2-5.
         
@@ -217,14 +221,16 @@ class KineticsService:
             rates['RWGS'] = 0.0
         else:
             k_fwd = self.A_homo['WGS'] * np.exp(-self.E_homo['WGS'] / (R_CONST * T))
-            # Fortran 催化因子 f=0.2 (validation_cases_OriginalPaper model_parameters)
-            WGS_CATALYTIC_FACTOR = 0.2
+            # 催化因子 f，可调 (op_conds['WGS_CatalyticFactor'])，Fortran=0.2
+            WGS_CATALYTIC_FACTOR = wgs_catalytic_factor if wgs_catalytic_factor is not None else 0.2
             # Fortran rat 因子：exp(-8.91+5553/ts)。启用时高温下压低约2个数量级
             # 物理预估：抑制 WGS → 少放热、少 CO→CO2，CO 可能略升；温度略降
             WGS_RAT_FACTOR = np.exp(-8.91 + 5553.0 / T_wgs_check) if wgs_rat_factor else 1.0
             k_eff = k_fwd * WGS_CATALYTIC_FACTOR * WGS_RAT_FACTOR
             K_eq = calculate_wgs_equilibrium(T)
-            r_net = k_eff * (C['CO'] * C['H2O'] - C['CO2'] * C['H2'] / (K_eq + 1e-12))
+            # WGS_K_Factor: <1 使有效 K 变小，强化逆向 WGS (CO2+H2→CO+H2O)，提高 CO
+            K_eff = K_eq * (wgs_k_factor if wgs_k_factor is not None else 1.0)
+            r_net = k_eff * (C['CO'] * C['H2O'] - C['CO2'] * C['H2'] / (K_eff + 1e-12))
             rates['WGS'] = r_net * volume * 1000.0  # mol/s
             rates['RWGS'] = 0.0
         

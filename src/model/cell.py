@@ -247,13 +247,17 @@ class Cell:
         phi = r_het.pop('phi', 1.0)
         wgs_rat = self.op_conds.get('WGS_RatFactor', False)
         msr_tmin = self.op_conds.get('MSR_Tmin_K', 1000.0)
+        wgs_cat = self.op_conds.get('WGS_CatalyticFactor')  # None 时用默认 0.2
+        wgs_k = self.op_conds.get('WGS_K_Factor')  # None 时用 1.0；<1 强化逆向 WGS
         r_homo = self.kinetics.calc_homogeneous_rates(
             current, self.V,
             inlet_state=self.inlet,
             gas_src=gas_src,
             Ts_particle=T_het,  # Fortran wgshift: ts<=1000K 时不计 WGS
             wgs_rat_factor=wgs_rat,
-            msr_tmin_k=msr_tmin
+            msr_tmin_k=msr_tmin,
+            wgs_catalytic_factor=wgs_cat,
+            wgs_k_factor=wgs_k
         )
 
         avail = {sp: max(self.inlet.gas_moles[i] + gas_src[i], 0.0) for i, sp in enumerate(SPECIES_NAMES)}
@@ -275,6 +279,12 @@ class Cell:
         if is_combustion_zone:
             # 燃烧区：挥发分瞬时燃烧（无动力学），CH4 > CO > H2 分配 O2
             r_CH4, r_CO, r_H2 = self._instant_volatile_combustion(avail)
+            # CO_OxidationFactor: 调参减弱 CO+0.5O2→CO2，缓解 CO 偏低、CO2 偏高
+            co_ox_factor = self.op_conds.get('CO_OxidationFactor', 1.0)
+            r_CO = r_CO * co_ox_factor
+            # H2_OxidationFactor: 调参减弱 H2+0.5O2→H2O，缓解 H2 偏低（Paper 工况）
+            h2_ox_factor = self.op_conds.get('H2_OxidationFactor', 1.0)
+            r_H2 = r_H2 * h2_ox_factor
             r_homo['CH4_Ox'] = r_CH4
             r_homo['CO_Ox'] = r_CO
             r_homo['H2_Ox'] = r_H2
@@ -363,7 +373,7 @@ class Cell:
         H_gas_out = MaterialService.get_gas_enthalpy(current)
         H_solid_out = MaterialService.get_solid_enthalpy(current, self.coal_props, T_solid_override=Ts_out)
         
-        # Heat Loss: 文献为入炉煤 HHV 的 2%，按 dz 比例摊分到各格
+        # Heat Loss: 文献为入炉煤 HHV 的 X%，按 dz 比例摊分到各格
         L_total = self.op_conds.get('L_reactor', 6.0)  # m
         loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
         
@@ -463,8 +473,9 @@ class Cell:
                 res_gas_sc.append(r / self.ref_flow)
         res_Ws_sc = res_Ws / self.ref_solid
         res_Xc_sc = res_Xc / max(self.char_Xc0, 0.1)
-        # 能量残差相对放大，避免被质量残差主导陷入低温解（temperature_diagnosis）
-        res_E_sc = res_E / 5.0e5
+        # 能量残差自适应缩放，使与质量残差量级一致（gasifier_fix_plan P2-5）
+        ref_energy = max(self.ref_flow * 35.0 * 200.0, 5.0e5)
+        res_E_sc = res_E / ref_energy
         
         return np.concatenate([res_gas_sc, [res_Ws_sc, res_Xc_sc, res_E_sc]])
 

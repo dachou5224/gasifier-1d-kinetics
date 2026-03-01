@@ -132,6 +132,10 @@ class GasifierSystem:
         
         # 6. Assemble Initial Gas State (mol/s)
         # Oxidant and any pre-vaporized steam enter as gas.
+        # [P2-6] 入口 H2O 焓基准确认：gas_moles[7]=F_steam 仅含外部蒸汽（已气化），
+        # 其焓由 MaterialService.get_gas_enthalpy 用 Shomate H_gas(T_inlet) 计算，正确。
+        # 浆液/煤中水分(tmp_W_liq_evap)由 EvaporationSource 单独加入，使用 H_LIQUID，
+        # 二者无重叠，无双重计算。
         gas_moles = np.zeros(8)
         gas_moles[0] = F_O2
         gas_moles[6] = F_N2_ox

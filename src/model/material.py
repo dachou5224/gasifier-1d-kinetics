@@ -30,27 +30,16 @@ class MaterialService:
     @staticmethod
     def get_solid_enthalpy(state: StateVector, coal_props: dict, T_solid_override: Optional[float] = None) -> float:
         """
-        Calculate Total Heat Flow of Solid Phase (J/s).
-        T_solid_override: 若提供则用此温度替代 state.T 计算固相焓（Fortran 式 Tg≠Ts）
+        固相焓（对齐 Fortran enthal L1142）。
+        Fortran: enths = cps*fcoal*(1+fash-wl/100)*(ts-298)，纯显热，不区分 coal/char。
+        为维持 Shomate 全焓框架基准一致性，加上 Hf_coal。
         """
         T_s = T_solid_override if T_solid_override is not None else state.T
-        # Get carbon fractions
-        Cd_raw = coal_props.get('Cd', 60.0) / 100.0  # Raw coal carbon fraction
-        Xc_current = state.carbon_fraction  # Current carbon fraction
-        
-        # Determine if solid is predominantly char or coal
-        is_char = Xc_current > Cd_raw * 1.05  # 5% tolerance
-        
-        if is_char:
-            cp_s = coal_props.get('cp_char', 1300.0)  # J/kgK (char ~1100-1500)
-            hf_coal = coal_props.get('Hf_coal', -3e6)
-            vol_frac = coal_props.get('VM', 30.0) / 100.0
-            hf_solid = coal_props.get('Hf_char', (1.0 - vol_frac * 0.7) * hf_coal)
-        else:
-            cp_s = coal_props.get('cp_coal', 1500.0)  # J/kgK (coal ~1300-1700)
-            hf_solid = coal_props.get('Hf_coal', -3e6)
-        
-        h_s = hf_solid + cp_s * (T_s - 298.15)
+        cp_s = coal_props.get('cp_char', 1300.0)  # J/kg/K，对应 Fortran cps
+        hf_coal = coal_props.get('Hf_coal', -3e6)  # J/kg
+        h_sensible = cp_s * (T_s - 298.15)
+        h_formation = hf_coal
+        h_s = h_sensible + h_formation
         return state.solid_mass * h_s
 
 

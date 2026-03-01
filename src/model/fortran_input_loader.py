@@ -67,7 +67,7 @@ def load_fortran_cases(
     假设:
       - yc,yoxy,yh,ys,yn,yash: as-received（不含水？）质量分数 + xmois 为水分。
       - foxy,fsteam: 以 tfcoal 为基的质量比 (g O2 / g 煤, g H2O / g 煤)。
-      - tfcoal: 近似认为是 t/h，映射为 FeedRate_kg_h = tfcoal * 1000.
+      - tfcoal: kg/h（input_副本.txt 为小试工况，56–187 kg/h）
       - 压力 pt ≈ 24 atm（在 Source1_副本.for 的 data 里给出）。
 
     验证工况默认水煤浆浓度 60%；若工况名含 "dry"/"干粉"/"pulverized" 则按干粉气化用 100。
@@ -131,9 +131,9 @@ def load_fortran_cases(
         # 质量比（g/g）近似为 O2/coal, steam/coal 质量比
         foxy = float(p.get("foxy", 0.0))
         fsteam = float(p.get("fsteam", 0.0))
-        tfcoal = float(p.get("tfcoal", 100.0))  # 近似 t/h
+        tfcoal = float(p.get("tfcoal", 100.0))  # kg/h（小试工况）
 
-        feed_rate_kg_h = tfcoal * 1000.0
+        feed_rate_kg_h = tfcoal
 
         # 入口温度：Fortran 有 ta(煤)、tsteam、toxy，这里简单用 ta 近似整体 T_in
         ta = float(p.get("ta", 500.0))  # K

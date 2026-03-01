@@ -52,7 +52,9 @@ def dry_mole_fraction_pct(gas_moles: np.ndarray) -> dict:
 
 
 def main():
-    json_path = os.path.join(ROOT, "data", "validation_cases_fortran.json")
+    # 小试工况已迁移至 validation_cases_pilot.json（FeedRate 修正为 kg/h）
+    pilot_path = os.path.join(ROOT, "data", "validation_cases_pilot.json")
+    json_path = pilot_path if os.path.isfile(pilot_path) else os.path.join(ROOT, "data", "validation_cases_fortran.json")
     if not os.path.isfile(json_path):
         print("Not found:", json_path)
         return
@@ -64,7 +66,7 @@ def main():
     results_list = []
 
     print("=" * 72)
-    print("  Fortran 工况 (validation_cases_fortran.json) — 当前模型计算结果")
+    print("  Fortran 小试工况 (validation_cases_pilot.json) — 当前模型计算结果")
     print(f"  几何尺寸: L = {geometry['L']:.3f} m, D = {geometry['D']:.3f} m (来自 OriginalPaper.json)")
     print("=" * 72)
 

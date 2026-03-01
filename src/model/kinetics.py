@@ -49,18 +49,20 @@ class PyrolysisModel:
 class HeterogeneousKinetics:
     """
     Heterogeneous Reaction Kinetics (Unreacted Core Shrinking Model - UCSM)
-    参数对齐 Fortran: A 单位 g_C/(cm²·s·atm)，E 单位 J/mol (由 cal/mol × 4.184)
+    参数对齐 Fortran: A 单位 g_C/(cm²·s·atm)，E 单位 J/mol。
+    Fortran 写法 exp(-E_over_R/ts)，E_over_R 单位 K，换算 E(J/mol)=E_over_R*R_cal*CAL2J。
     """
-    CAL2J = 4.184
+    R_CAL = 1.987   # cal/(mol·K)
+    CAL2J = 4.184   # J/cal
 
     def __init__(self):
-        # Fortran 压力驱动参数 (Source1: combus/cbstm/cbco2)
-        # A: g_C/(cm²·s·atm), E: J/mol
+        # Fortran 压力驱动参数 (Source1: combus L1173, cbstm L1215, cbco2 L1246, cbhym L1331)
+        # exp(-E_over_R/ts) → E(J/mol) = E_over_R * R_cal * CAL2J
         self.params = {
-            'C+O2':   {'A': 8710.0, 'E': 17967.0 * self.CAL2J},   # Fortran combus
-            'C+H2O':  {'A': 247.0,  'E': 21060.0 * self.CAL2J},   # Fortran cbstm
-            'C+CO2':  {'A': 247.0,  'E': 21060.0 * self.CAL2J},   # Fortran cbco2
-            'C+H2':   {'A': 0.12,   'E': 17921.0 * self.CAL2J}    # Fortran cbhym
+            'C+O2':   {'A': 8710.0, 'E': 17967.0 * self.R_CAL * self.CAL2J},   # 149.4 kJ/mol
+            'C+H2O':  {'A': 247.0,  'E': 21060.0 * self.R_CAL * self.CAL2J},   # 175.1 kJ/mol
+            'C+CO2':  {'A': 247.0,  'E': 21060.0 * self.R_CAL * self.CAL2J},   # 175.1 kJ/mol
+            'C+H2':   {'A': 0.12,   'E': 17921.0 * self.R_CAL * self.CAL2J}    # 149.0 kJ/mol
         }
         self.Xc0 = 0.8  # Default initial carbon fraction
 
@@ -141,7 +143,7 @@ class HeterogeneousKinetics:
 
 def calculate_wgs_equilibrium(T):
     """Water Gas Shift (WGS) Equilibrium Constant (Table 2-2)"""
-    # K = exp(4578/T - 4.33)
+    # K = exp(4578/T - 4.33)；Fortran exp(4019/T-3.69) 使 CO 更差，暂保留原式
     return np.exp(4578.0 / T - 4.33)
 
 def calculate_methanation_equilibrium(T):

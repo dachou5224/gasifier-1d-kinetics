@@ -3,9 +3,9 @@
 合并 data/ 下四个验证算例文件，查重去重后输出 validation_cases_merged.json。
 
 源文件:
-  - validation_cases.json          小规模验证算例 (Paper_Case_6)
+  - validation_cases.json          算例索引 (小试/工业已分离至 pilot/industrial)
   - validation_cases_OriginalPaper.json  Wen & Chaung (1979) 原始论文算例
-  - validation_cases_fortran.json   Fortran 对标算例 (与 OriginalPaper 重复)
+  - validation_cases_pilot.json    Fortran 小试工况 (与 OriginalPaper 重复，以 OriginalPaper 为准)
   - validation_cases_new.json       新增算例 (Illinois_No6, Australia_UBE, Fluid_Coke)
 
 查重规则:
@@ -46,9 +46,9 @@ def main():
             "source": "Merged from validation_cases.json, validation_cases_OriginalPaper.json, "
                      "validation_cases_fortran.json, validation_cases_new.json",
             "merged_from": [
-                "validation_cases.json (小规模)",
+                "validation_cases.json (索引)",
                 "validation_cases_OriginalPaper.json (原始论文)",
-                "validation_cases_fortran.json (Fortran 对标)",
+                "validation_cases_pilot.json (Fortran 小试)",
                 "validation_cases_new.json (新增)",
             ],
             "deduplication": "Fortran 算例与 OriginalPaper 重复，以 OriginalPaper 为准",

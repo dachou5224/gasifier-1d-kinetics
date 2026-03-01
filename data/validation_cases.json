@@ -1,22 +1,8 @@
 {
-    "cases": {
-        "Paper_Case_6": {
-            "description": "Validation against Liu Zhen's Paper Case 6",
-            "coal_type": "Paper_Base_Coal",
-            "inputs": {
-                "FeedRate_kg_h": 41670.0,
-                "Ratio_OC": 1.05,
-                "SteamRatio_SC": 0.0,
-                "SlurryConcentration": 62.0,
-                "P_Pa": 4.08e6,
-                "T_in_K": 300.0,
-                "L_reactor": 6.0,
-                "D_reactor": 2.0
-            },
-            "expected": {
-                "TOUT_K_approx": 1643.0,
-                "YCO_pct_approx": 61.7
-            }
-        }
-    }
+  "metadata": {
+    "description": "验证算例汇总：小试与工业工况已分离",
+    "pilot_cases": "validation_cases_pilot.json (Fortran 小试 56–187 kg/h)",
+    "industrial_cases": "validation_cases_industrial.json + run_gasifier_model_cases.py (工业 1.7–4.2 万 kg/h)"
+  },
+  "cases": {}
 }

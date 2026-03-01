@@ -1,7 +1,9 @@
 {
   "metadata": {
     "source": "工业规模气流床气化炉验证算例",
-    "description": "包含 gasifier-model Paper 工况及国内鲁南化肥厂 Texaco 气化炉案例"
+    "description": "包含 gasifier-model Paper 工况及国内鲁南化肥厂 Texaco 气化炉案例",
+    "scale": "industrial",
+    "note": "煤进料 1.7–4.2 万 kg/h"
   },
   "coal_database": {
     "LuNan_Coal": {
