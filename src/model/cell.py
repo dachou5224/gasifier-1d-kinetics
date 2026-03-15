@@ -143,7 +143,8 @@ class Cell:
                 condut = condut_coeff * ((Tg + ts) ** 0.75)
                 rad_term = ef * sigma * 4.0 * (Tg ** 3)
                 ct = -(3.0 / (dens * cps * r + 1e-12)) * (condut / r + rad_term) * deltim
-                ct = np.clip(ct, -25.0, 25.0)
+                if not np.isfinite(ct): ct = -25.0
+                ct = max(-25.0, min(float(ct), 25.0))
                 ect = np.exp(ct)
                 delts = (Tg - (Tg - ts) * ect) - ts
                 tsm = ts + delts / 2.0
@@ -188,7 +189,8 @@ class Cell:
             Q_rxn_per_area = Q_rxn / S_total
             coef = 3.0 / (dens * cps * r + 1e-12)
             val = coef * (conv_rad + Q_rxn_per_area)
-            return float(np.clip(val, -1e5, 1e5))
+            if not np.isfinite(val): val = 0.0
+            return max(-1e5, min(float(val), 1e5))
 
         tsolid = [ts]
         rk = [0.0] * 5
@@ -208,25 +210,35 @@ class Cell:
 
     def _instant_volatile_combustion(self, avail: dict) -> tuple:
         """
-        Fortran 式挥发分瞬时燃烧：仅用化学计量 + O2  availability，无动力学。
-        优先顺序（O2 不足时）: CH4 > CO > H2（文献 tar > CH4 > CO > H2，无 tar 时 CH4 优先）
+        Fortran 式挥发分瞬时燃烧：仅用化学计量 + O2 availability，无动力学。
+        引入 f_co2 对 CH4 和 CO 的氧化产物进行选择性分配 (高温 favoring CO)。
         """
+        f_co2 = self.op_conds.get('Combustion_CO2_Fraction', 1.0)
+        
         O2 = avail['O2']
         CH4 = avail['CH4'] * 0.99
         CO = avail['CO'] * 0.99
         H2 = avail['H2'] * 0.99
 
-        O2_demand_total = CH4 * 2.0 + CO * 0.5 + H2 * 0.5
+        # O2 Demand calculation based on f_co2
+        # CH4 + (1.5 + 0.5*f_co2) O2 -> (1-f_co2) CO + f_co2 CO2 + 2 H2O
+        # CO + 0.5*f_co2 O2 -> (1-f_co2) CO (unreacted) + f_co2 CO2
+        # H2 + 0.5 O2 -> H2O
+        dem_CH4 = 1.5 + 0.5 * f_co2
+        dem_CO = 0.5 * f_co2
+        dem_H2 = 0.5
+        
+        O2_demand_total = CH4 * dem_CH4 + CO * dem_CO + H2 * dem_H2
         if O2 >= O2_demand_total:
-            return CH4, CO, H2  # 完全燃烧
+            return CH4, CO, H2  # 完全反应（按 f_co2 定义的产物）
 
         # O2 不足：按优先级 CH4 > CO > H2 分配
         remaining_O2 = O2
-        r_CH4 = min(CH4, remaining_O2 / 2.0)
-        remaining_O2 -= r_CH4 * 2.0
-        r_CO = min(CO, max(remaining_O2, 0.0) / 0.5)
-        remaining_O2 -= r_CO * 0.5
-        r_H2 = min(H2, max(remaining_O2, 0.0) / 0.5)
+        r_CH4 = min(CH4, remaining_O2 / dem_CH4)
+        remaining_O2 -= r_CH4 * dem_CH4
+        r_CO = min(CO, max(remaining_O2, 0.0) / dem_CO) if dem_CO > 0 else 0.0
+        remaining_O2 -= r_CO * dem_CO
+        r_H2 = min(H2, max(remaining_O2, 0.0) / dem_H2)
         return r_CH4, r_CO, r_H2
 
     def _calc_rates(self, current, phys, gas_src, Ts_avg: float = None):
@@ -335,10 +347,22 @@ class Cell:
         rCOmb, rH2Og, rCO2g, rH2g = r_het['C+O2'], r_het['C+H2O'], r_het['C+CO2'], r_het['C+H2']
         
         # Gas Balances
-        res_O2 = current.gas_moles[0] - (self.inlet.gas_moles[0] + gas_src[0] - (rCOmb/phi + 0.5*r1 + 0.5*r2 + 2.0*r5))
+        f_co2 = self.op_conds.get('Combustion_CO2_Fraction', 1.0)
+        
+        # O2 consumption logic matches _instant_volatile_combustion
+        # CH4_Ox (r5) consumes (1.5 + 0.5*f_co2) O2
+        # CO_Ox (r1) consumes 0.5*f_co2 O2
+        # H2_Ox (r2) consumes 0.5 O2
+        res_O2 = current.gas_moles[0] - (self.inlet.gas_moles[0] + gas_src[0] - (rCOmb/phi + 0.5*f_co2*r1 + 0.5*r2 + (1.5 + 0.5*f_co2)*r5))
         res_CH4 = current.gas_moles[1] - (self.inlet.gas_moles[1] + gas_src[1] + rH2g - (r5 + r6))
-        res_CO = current.gas_moles[2] - (self.inlet.gas_moles[2] + gas_src[2] + (2.0-2.0/phi)*rCOmb + rH2Og + 2*rCO2g + r4 + r6 - (r1 + r3))
-        res_CO2 = current.gas_moles[3] - (self.inlet.gas_moles[3] + gas_src[3] + (2.0/phi-1.0)*rCOmb + r1 + r3 + r5 - (rCO2g + r4))
+        
+        # CO Production: (1-f_co2)*r5 from CH4_Ox, (2-2/phi)*rCOmb from char_Ox, plus RWGS/MSR
+        # CO Consumption: r1 (fraction f_co2 is CO->CO2, balance is unreacted), r3 (WGS)
+        res_CO = current.gas_moles[2] - (self.inlet.gas_moles[2] + gas_src[2] + (2.0-2.0/phi)*rCOmb + rH2Og + 2*rCO2g + r4 + r6 + (1.0-f_co2)*r5 - (f_co2*r1 + r3))
+        
+        # CO2 Production: f_co2*r1 from CO_Ox, f_co2*r5 from CH4_Ox, (2/phi-1)*rCOmb from char_Ox
+        res_CO2 = current.gas_moles[3] - (self.inlet.gas_moles[3] + gas_src[3] + (2.0/phi-1.0)*rCOmb + f_co2*r1 + r3 + f_co2*r5 - (rCO2g + r4))
+        
         res_H2S = current.gas_moles[4] - (self.inlet.gas_moles[4] + gas_src[4])
         res_H2 = current.gas_moles[5] - (self.inlet.gas_moles[5] + gas_src[5] + rH2Og + r3 + 3*r6 - (2*rH2g + r2 + r4))
         res_N2 = current.gas_moles[6] - (self.inlet.gas_moles[6] + gas_src[6])
@@ -557,6 +581,16 @@ class Cell:
         logger.error(f"  Expected:  {O2_in + O2_src - r_O2_consumed:.2f} mol/s")
         logger.error(f"  Residual:  {O2_out - (O2_in + O2_src - r_O2_consumed):.2e} mol/s")
         logger.error(f"  Consumption/Available Ratio: {r_O2_consumed / (O2_available + 1e-9):.2f}")
+        
+        # Calculate Scaled Residuals to find the Cost driver
+        sc_res = self.residuals(x_flat)
+        logger.error("=== Scaled Residuals (Cost Drivers) ===")
+        for i, sp in enumerate(SPECIES_NAMES):
+            logger.error(f"  Gas {sp:4}: {sc_res[i]:>12.4e}")
+        logger.error(f"  Solid Ws: {sc_res[8]:>12.4e}")
+        logger.error(f"  Solid Xc: {sc_res[9]:>12.4e}")
+        logger.error(f"  Energy E: {sc_res[10]:>12.4e}")
+        logger.error(f"  Total Cost Approx: {0.5 * np.sum(sc_res**2):>12.4e}")
         
         logger.error(f"==========================================")
 

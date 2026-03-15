@@ -68,12 +68,23 @@ class PyrolysisSource(SourceTerm):
     Handles Coal Pyrolysis (Devolatilization):
     - Gas Source: +Volatiles (CH4, CO, H2, etc.)
     - Solid Source: -Volatile Matter (kg/s)
-    - Energy Source: +/- Heat of Pyrolysis (Often neglected or lumped, set to 0 by default)
+    - Energy Source: Enthalpy of the produced volatiles.
     """
-    def __init__(self, volatile_fluxes_mol_s: np.ndarray, solid_loss_kg_s: float, target_cell_idx: int = 0):
+    def __init__(self, volatile_fluxes_mol_s: np.ndarray, solid_loss_kg_s: float, target_cell_idx: int = 0, T_pyro: float = 300.0):
         self.vol_fluxes = volatile_fluxes_mol_s
         self.solid_loss = solid_loss_kg_s
         self.target_idx = target_cell_idx
+        
+        # Calculate the energy carried by these volatiles (Enthalpy at Pyrolysis Temperature)
+        # We must include this energy_src so the system doesn't lose the formation enthalpy 
+        # of the volatiles when they suddenly appear in the gas phase.
+        from model.physics import get_enthalpy_molar
+        from model.material import SPECIES_NAMES
+        self.volatile_enthalpy_W = 0.0
+        for i, sp in enumerate(SPECIES_NAMES):
+            if self.vol_fluxes[i] > 0:
+                h_i = get_enthalpy_molar(sp, T_pyro)
+                self.volatile_enthalpy_W += self.vol_fluxes[i] * h_i
         
     def get_sources(self, cell_idx: int, z: float, dz: float) -> Tuple[np.ndarray, float, float]:
         gas_src = np.zeros(8)
@@ -85,5 +96,7 @@ class PyrolysisSource(SourceTerm):
             gas_src = self.vol_fluxes.copy()
             # Solid Consumption (Volatiles leaving solid phase)
             solid_src = -self.solid_loss
+            # Energy of volatiles injected into gas phase
+            energy_src = self.volatile_enthalpy_W
             
         return gas_src, solid_src, energy_src

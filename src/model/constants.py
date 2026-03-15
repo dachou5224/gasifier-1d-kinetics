@@ -37,6 +37,6 @@ class PhysicalConstants:
     # 颗粒瞬态传热 (Fortran Line 264-274, docs/fortran_temperature_analysis.md)
     EF_PARTICLE_TRANSIENT: float = 0.9  # ef (Fortran)
     CONDUT_COEFF: float = 7.7e-7 * 418.4  # 7.7e-7 cal/(cm·s·K) -> 3.22e-4 W/(m·K) per (Tg+Ts)^0.75
-    TS_MAX_FOR_RATES: float = 1250.0  # Fortran: if tsm>1250 then tsm=1250
+    TS_MAX_FOR_RATES: float = 3500.0  # Entrained-flow: particles reach near gas T.  Fortran `1250` was for fixed-bed; 3500 K allows proper EF modelling.
     TS_TRANSIENT_NC: int = 30  # 子步数 (Fortran nc=20-50)
     USE_RK_GILL_COMBUSTION: bool = False  # 燃烧区用 RK-Gill 含反应热 (Fortran 505)；开启后计算量约 4x

@@ -261,7 +261,7 @@ class GasifierSystem:
         
         # 2. Pyrolysis Source (Cell 0)
         # tmp_F_volatiles is mol/s array. tmp_W_vol_loss is kg/s.
-        pyro_src = PyrolysisSource(self.tmp_F_volatiles, self.tmp_W_vol_loss, target_cell_idx=0)
+        pyro_src = PyrolysisSource(self.tmp_F_volatiles, self.tmp_W_vol_loss, target_cell_idx=0, T_pyro=current_inlet.T)
 
 
         
@@ -462,8 +462,8 @@ class GasifierSystem:
                     for Tc in T_cands:
                         x0 = x0_base.copy()
                         x0[10] = Tc
-                        s = least_squares(func, x0, bounds=(lower, upper), method='trf',
-                                          xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                        ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                        s = ns.solve(func, x0, bounds=(lower, upper))
                         if s.success:
                             if s.cost < best_cost_down:
                                 best_cost_down = s.cost
@@ -472,23 +472,22 @@ class GasifierSystem:
                             elif abs(s.cost - best_cost_down) < best_cost_down * 0.2 and s.x[10] > best_down.x[10]:
                                 best_down = s
                                 best_cost_down = s.cost
-                    sol = best_down if best_down is not None else least_squares(
-                        func, x0_base, bounds=(lower, upper), method='trf',
-                        xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                    ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                    sol = best_down if best_down is not None else ns.solve(func, x0_base, bounds=(lower, upper))
                     # 异常降温检测：若 T_out 相对 T_in 骤降 >20%，重试更高初值（避免陷入低温解）
                     if sol.success and T_in > 1800 and sol.x[10] < T_in * 0.8:
                         for Tc in [min(T_in * 1.2, 3500.0), min(T_in * 1.1, 3400.0)]:
                             x0 = x0_base.copy()
                             x0[10] = Tc
-                            s = least_squares(func, x0, bounds=(lower, upper), method='trf',
-                                              xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                            ns2 = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                            s = ns2.solve(func, x0, bounds=(lower, upper))
                             if s.success and s.x[10] > sol.x[10] and s.cost < best_cost_down * 2.0:
                                 sol = s
                                 best_cost_down = s.cost
                                 break
                 else:
-                    sol = least_squares(func, x0_base, bounds=(lower, upper), method='trf',
-                                        xtol=1e-10, ftol=1e-10, max_nfev=1000)
+                    ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                    sol = ns.solve(func, x0_base, bounds=(lower, upper))
             
             if not sol.success or sol.cost > 1e-4:
                 logger.warning(f"Cell {i} convergence poor. Cost: {sol.cost:.2e}, Success: {sol.success}, T: {sol.x[10]:.1f}K")

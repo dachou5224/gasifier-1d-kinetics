@@ -105,10 +105,11 @@ class KineticsService:
                     P_eq = 0.0  # Fortran goto 5: pexc = psteam
                 else:
                     K_cstm = calculate_cstm_equilibrium(T_p)
-                    cts = 17.644 - 16811.0 / T_p
-                    if abs(cts) > 16.0 or K_cstm > 10000.0:
-                        r[rxn] = 0.0
-                        continue
+                    # Large K_cstm (>10000) means equilibrium overwhelmingly
+                    # favours products (CO+H₂) → P_eq ≈ 0. The reaction should
+                    # proceed at its full kinetic rate, NOT be disabled.
+                    # Original Fortran guard `K>10000 → rate=0` is physically
+                    # wrong for entrained-flow gasifiers (T>1600K).
                     P_eq = (P_H2 * P_CO) / (K_cstm * P_atm + 1e-12)
 
             # 4. Driving Force Correction (P_eq)

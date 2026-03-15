@@ -42,7 +42,8 @@ class NewtonSolver:
             
             # Check convergence
             if max_res < self.tol:
-                return SolverResult(x, True, f"Converged in {k} iterations", k, k*n)
+                cost = 0.5 * np.sum(F**2)
+                return SolverResult(x, True, f"Converged in {k} iterations", k, k*n, cost=cost)
                 
             # 2. Calculate Jacobian (Finite Difference)
             J = np.zeros((n, n))
@@ -66,7 +67,8 @@ class NewtonSolver:
                 # delta = np.linalg.solve(J, -F) # Faster but can fail
                 delta, _, _, _ = np.linalg.lstsq(J, -F, rcond=None) # More robust
             except np.linalg.LinAlgError:
-                return SolverResult(x, False, f"Singular Jacobian at iter {k}", k, k*n)
+                cost = 0.5 * np.sum(F**2)
+                return SolverResult(x, False, f"Singular Jacobian at iter {k}", k, k*n, cost=cost)
             
             # 4. Update with Damping
             x_new = x + self.damper * delta
@@ -79,20 +81,24 @@ class NewtonSolver:
             # Check step size for stagnation
             step_norm = np.linalg.norm(x_new - x)
             if step_norm < 1e-14:
-                 return SolverResult(x_new, True, f"Stagnation (step too small) at iter {k}", k, k*n)
+                 F_new = func(x_new)
+                 cost = 0.5 * np.sum(F_new**2)
+                 return SolverResult(x_new, True, f"Stagnation (step too small) at iter {k}", k, k*n, cost=cost)
 
             x = x_new
             
             # Optional: Log progress
             # logger.debug(f"Iter {k}: Max Res={max_res:.2e}, Step={step_norm:.2e}")
 
-        return SolverResult(x, False, "Max iterations reached", self.max_iter, self.max_iter*n)
+        F_final = func(x)
+        cost = 0.5 * np.sum(F_final**2)
+        return SolverResult(x, False, "Max iterations reached", self.max_iter, self.max_iter*n, cost=cost)
 
 class SolverResult:
-    def __init__(self, x, success, message, nit, nfev):
+    def __init__(self, x, success, message, nit, nfev, cost=None):
         self.x = x
         self.success = success
         self.message = message
         self.nit = nit      # Number of iterations
         self.nfev = nfev    # Number of function evaluations (approx)
-        self.cost = np.linalg.norm(x) # Placeholder, usu. norm(F)
+        self.cost = cost if cost is not None else 0.5 * np.sum(x**2) # Should not fallback to norm(x) roughly, but safe 
