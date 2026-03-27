@@ -52,6 +52,13 @@ INDUSTRIAL_CASES = {
     },
 }
 
+# 仅保留“输入合理 + 验证表现较好”的默认模板集合
+# 注：Paper_Case_2 温度偏差仍较大，默认不放在精选列表中，可通过“显示全部模板”查看。
+CURATED_CASE_KEYS = [
+    "Paper_Case_6",
+    "Paper_Case_1",
+    "LuNan_Texaco_Slurry",
+]
 
 
 
@@ -76,8 +83,18 @@ def run():
         *   **寻找极端点**：气化炉空间的一大看点是“火焰锋面”。计算完毕后请留意右侧的主图。图上**温度曲线的最高峰**通常对应着氧气($O_2$)浓度被彻底耗尽的位置（即气相氧化区结束，转入吸热气化区的拐点）。通过调整炉长或氧煤比，你能观测到这个驻点在管道内的推移！
         """)
 
-    # 预设工况：合并 VALIDATION_CASES 与 INDUSTRIAL_CASES
-    preset_names = ["自定义"] + list(VALIDATION_CASES.keys()) + list(INDUSTRIAL_CASES.keys())
+    # 预设工况：默认展示精选验证模板，避免重复与高偏差工况干扰
+    show_all_templates = st.toggle(
+        "显示全部模板（含偏差较大的工况）",
+        value=False,
+        help="默认仅显示已验证且结果较稳健的工况；打开后显示全部 VALIDATION_CASES 与工业模板。",
+    )
+
+    all_case_names = list(dict.fromkeys(list(VALIDATION_CASES.keys()) + list(INDUSTRIAL_CASES.keys())))
+    curated_case_names = [k for k in CURATED_CASE_KEYS if (k in VALIDATION_CASES or k in INDUSTRIAL_CASES)]
+    preset_pool = all_case_names if show_all_templates else curated_case_names
+    preset_names = ["自定义"] + preset_pool
+
     def _get_case(name):
         if name in VALIDATION_CASES:
             return VALIDATION_CASES[name]["inputs"]
@@ -92,7 +109,7 @@ def run():
 
         with st.container(border=True):
             st.markdown("#### 📂 步骤 1. 选择参考模板")
-            st.caption("加载实验或工业基准，隐藏底层几何代码直接起跑。")
+            st.caption("默认仅显示验证表现较好的模板；可切换“显示全部模板”。")
             case_name = st.selectbox("选择工况:", preset_names, label_visibility="collapsed")
             case = _get_case(case_name) if case_name != "自定义" else None
             
@@ -300,7 +317,7 @@ def run():
                 import traceback
                 st.code(traceback.format_exc())
         else:
-            st.info("💡 **提示**: 1D 动力学模型含燃烧区起燃、WGS 判据等。建议从 **Paper_Case_6** 或 **LuNan_Texaco** 预设开始。")
+            st.info("💡 **提示**: 1D 动力学模型含燃烧区起燃、WGS 判据等。建议从 **Paper_Case_6** 或 **LuNan_Texaco_Slurry** 预设开始。")
             with st.expander("📐 气化炉小室划分示意图", expanded=True):
                 st.components.v1.html(get_chamber_schematic_html(), height=500, scrolling=False)
 
