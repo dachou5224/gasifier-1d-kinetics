@@ -63,9 +63,9 @@ JAX_PURE_VALIDATED_CASE_KEYS = [
 # UI 展示层修正：网站体验优先，避免 Paper 干粉工况因高蒸汽比导致温度偏低。
 # 不修改 src/model/chemistry.py 的验证数据源，只在 UI 预填阶段覆盖。
 UI_CASE_INPUT_OVERRIDES = {
-    "Paper_Case_1": {"Ratio_SC": 0.08},
-    "Paper_Case_2": {"Ratio_SC": 0.08},
-    "Paper_Case_6": {"Ratio_SC": 0.08},
+    "Paper_Case_1": {"Ratio_SC": 0.08, "HeatLossPercent": 2.0},
+    "Paper_Case_2": {"Ratio_SC": 0.08, "HeatLossPercent": 2.0},
+    "Paper_Case_6": {"Ratio_SC": 0.08, "HeatLossPercent": 2.0},
 }
 
 
