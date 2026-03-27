@@ -126,6 +126,16 @@ def run():
         ratio_sc = st.session_state.get("ratio_sc_k", 0.08)
 
         st.markdown("#### 🎛️ 步骤 2. 核心操纵杆")
+        st.session_state.solver_method_k = st.selectbox(
+            "求解器",
+            options=["jax_pure", "jax_newton", "newton", "minimize"],
+            index=["jax_pure", "jax_newton", "newton", "minimize"].index(
+                st.session_state.get("solver_method_k", "jax_pure")
+            ),
+            help="默认 jax_pure：host FD Jacobian + 阻尼 Newton，速度更优；其余模式用于对照。",
+        )
+        st.caption("验证工况参数来自 model.chemistry.VALIDATION_CASES（含最新 O/C 复标定）。")
+
         c_feed, c_slurry = st.columns(2)
         st.session_state.feed_kg_h_k = c_feed.number_input("干煤投料 (kg/h)", value=float(feed_kg_h), step=100.0)
         st.session_state.SlurryConc_k = c_slurry.number_input("水煤浆浓度 (wt%)", value=float(st.session_state.get("SlurryConc_k", 60.0)), step=1.0)
@@ -185,11 +195,17 @@ def run():
                 "WGS_CatalyticFactor": st.session_state.get("WGS_CatalyticFactor_k", 1.5),
             }
             N_cells = st.session_state.get("N_cells_k", 40)
+            solver_method = st.session_state.get("solver_method_k", "jax_pure")
 
             try:
                 system = GasifierSystem(geometry, coal_props, op_conds)
-                with st.spinner("计算中... (逐 cell 求解非线性方程组)"):
-                    results_arr, z = system.solve(N_cells=N_cells)
+                with st.spinner(f"计算中... (solver={solver_method}, 逐 cell 求解非线性方程组)"):
+                    results_arr, z = system.solve(
+                        N_cells=N_cells,
+                        solver_method=solver_method,
+                        use_jax_jacobian=(solver_method == "jax_newton"),
+                        jax_warmup=True,
+                    )
 
                 st.success("收敛成功！")
 
