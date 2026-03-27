@@ -398,7 +398,9 @@ class Cell:
         H_solid_out = MaterialService.get_solid_enthalpy(current, self.coal_props, T_solid_override=Ts_out)
         
         # Heat Loss: 文献为入炉煤 HHV 的 X%，按 dz 比例摊分到各格
-        L_total = self.op_conds.get('L_reactor', 6.0)  # m
+        # L_heatloss_norm 默认为网格总长；未提供时退回几何总长 L_reactor
+        L_total = self.op_conds.get('L_heatloss_norm', self.op_conds.get('L_reactor', 6.0))  # m
+        L_total = max(float(L_total), 1e-9)
         loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
         
         coal_flow_kg_s = self.op_conds['coal_flow']  # kg/s

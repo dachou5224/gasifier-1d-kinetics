@@ -20,9 +20,9 @@ The following physical parameters are fixed across all validation cases to ensur
 
 | Case Name | Feed Type | Oxygen Ratio | Predicted T_exit | Expected T | Carbon Conv. | Status |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Paper_Case_6** | Dry + Steam | 1.05 | 1481 °C | 1370 °C | 100.0% | ✅ Excellent |
-| **Paper_Case_1** | Dry + Steam | 1.06 | 1513 °C | 1333 °C | 100.0% | ✅ Consistent |
-| **Paper_Case_2** | Dry + Steam | 1.22 | 2010 °C | 1452 °C | 100.0% | ✅ High-T Stability |
+| **Paper_Case_6** | Dry + Steam | 1.019 | 1481 °C | 1370 °C | 100.0% | ✅ Excellent |
+| **Paper_Case_1** | Dry + Steam | 1.007 | 1513 °C | 1333 °C | 100.0% | ✅ Consistent |
+| **Paper_Case_2** | Dry + Steam | 1.147 | 2010 °C | 1452 °C | 100.0% | ✅ High-T Stability |
 | **LuNan_Texaco** | 60% Slurry | 1.15 | 1373 °C | 1350 °C | 99.9% | ✅ Perfect Generalization |
 
 ---

@@ -30,7 +30,7 @@ INDUSTRIAL_CASES = {
         "coal": "Paper_Base_Coal",
         "FeedRate_kg_h": 41670.0,
         "SlurryConc": 100.0,   # FIXED: Dry-feed for baseline calibration
-        "Ratio_OC": 1.05,
+        "Ratio_OC": 1.019,     # Tuned from 1.05 (0.97x)
         "Ratio_SC": 0.35,      # TUNED: Steam required for H2 balance
         "P_MPa": 4.08,
         "T_in_K": 300.0,

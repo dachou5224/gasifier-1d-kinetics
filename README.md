@@ -43,6 +43,46 @@ gasifier-1d-kinetic/
 └── README.md
 ```
 
+## 🔢 JAX 求解器与传统 Newton-Raphson：区别说明
+
+本项目的「逐格稳态」在数值上都是解同一套 **非线性方程** \(F(x)=0\)（\(x\) 为 cell 状态：温度、气相摩尔流、固相量等）。差异主要在 **外层算法实现、Jacobian 近似方式与失败兜底**，而不是物理方程本身。
+
+### 本仓库里几种路径分别是什么
+
+| 模式 | 实现要点 | 典型用途 |
+|------|----------|----------|
+| **`minimize`（默认）** | `scipy.optimize.least_squares`，Trust Region Reflective (TRF) | 强鲁棒、对初值相对宽容，计算量通常较大 |
+| **`newton`** | `NewtonSolver`（`src/model/solver.py`）：有界变量 + 阻尼 Newton，Jacobian 为有限差分（默认前向，可选中心差分） | 与经典手写 Newton 最接近 |
+| **`jax_newton`** | `jax_solver.newton_solve_cell_numpy`：**仍在 host 上用 NumPy 调 `cell.residuals`**，Jacobian 为 **中心差分**，线性步用 `lstsq` 处理病态 | 与 `NewtonSolver` 同族但更统一地走 `jax_solver` 内核；失败回退 `least_squares` |
+| **`jax_pure`** | `newton_solve_cell_pure_jax_ad`：同样 **host NumPy 残差**，Jacobian 采用 **前向差分**（每列一次扰动，比中心差分少一半残差调用），每格迭代上限略收紧（如 45 步），失败仍由 multistart / `least_squares` 兜底 | **优先壁钟性能** 的验证与批跑路径 |
+
+补充：**残差函数 `cell.residuals` 当前仍是 Python/NumPy 实现**，并未整条编译进 XLA；名称里的 JAX 主要来自历史路线（导入预热、可选实验路径、与后续 `jnp` 迁移对齐），而不是「全程 GPU 自动微分」。
+
+### 与「教科书 Newton-Raphson」的异同
+
+**相同点：**
+
+- 迭代形式仍是 **Newton 型**：每步构造近似 Jacobian \(J\)，解 \(J\,\Delta x \approx -F\)，再阻尼更新并 **裁剪到上下界**。
+- 收敛判据以 **残差最大分量** `max|F|`（及停滞时复检残差）为主，并与 `0.5·‖F‖²` 形式的 cost 一起用于识别劣质解。
+
+**本代码相对经典 NR 的增强：**
+
+- **有界变量**：每步后对 `x` 做 clip，避免组分或温度跑出物理区间。
+- **阻尼因子**（如 0.8）：缩小步长，抑制振荡。
+- **线性子问题用 `lstsq`**：在 \(J\) 奇异或病态时仍给出一个最小二乘意义下的步长，而不是裸 `solve` 直接失败。
+- **多初值 / 起燃策略**：对 cell 0 与下游格尝试多组温度初值，按成功、起燃阈值与 cost 选优（见 `gasifier_system.py`）。
+- **兜底**：JAX 命名路径在判定未收敛或 cost 过大时，会 **回退到 `least_squares`**，与默认路径共享「最后要算出来」的工程目标。
+
+### 为何曾出现 `jacfwd` / `pure_callback`，生产却用 host 差分
+
+早期曾尝试用 JAX 的 `jacfwd` 对打包残差求导，但 `cell.residuals` 在 host 上执行时，会触发大量 **`pure_callback`**，壁钟时间往往不如在 **同一次 Python 循环里连续算前向/中心差分残差**。因此 **当前推荐的生产路径**是：`jax_pure` / `jax_newton` 内核中的 **host 有限差分 Jacobian + NumPy 阻尼 Newton**。仓库中仍保留 **「每步一次 callback、同时返回 F 与 J」** 的实验实现（`newton_solve_cell_pure_jax_packed_callback`），便于对照与未来外层 `jit` 化，但默认不走该路径。
+
+### 选型建议
+
+- 需要 **与旧行为最接近、最少意外**：`minimize` 或 `newton`。
+- 需要 **批量验证、尽量快**：`jax_pure`（必要时配合网格与 `IgnitionZoneStretchRatio` 调参）。
+- 需要 **略稳于 `jax_pure`、仍走 jax_solver 统一内核**：`jax_newton`（中心差分 Jacobian，残差次数更多）。
+
 ## 📝 深度物理调试与算法修复 (2026-03)
 
 | 改进项 | 说明 |
@@ -50,6 +90,26 @@ gasifier-1d-kinetic/
 | **NewtonSolver Cost 漏洞修复** | 修复了底层 `solver.py` 中将整个状态向量 $x$ 的二维范数误作全量方程 Target 残差 (`norm(x)`) 返回的致命 Bug，杜绝了求解器判据长期被温度数值尺度“绑架”的情况。 |
 | **消除极端失温现象** | 清除了系统多初值探索策略中由于受到错误 Cost 误导而被迫“强行挑选最低温度解”的系统性偏见，彻底打通了全轴网格反应放热到宏观温度抬升的合理物理传递链条。 |
 | **验证性能跨越** | 断绝了所有的假不收敛与失温报错。工业工况 `LuNan_Texaco` 出口温度精准修正至 **1363°C**（工业基准 1350°C），核心小试测点如 `texaco i-1` 自动恢复至合理的 **1414°C**。 |
+
+## 📝 Changelog (2026-03-27, O/C 复标定)
+
+针对 `Paper_Case_1/2/6` 温度系统性偏高的问题，进行了小幅氧煤比下调扫描（同时约束合成气精度不劣化），并将最优点固化为默认输入。
+
+| 工况 | 旧 Ratio_OC | 新 Ratio_OC | 调整幅度 |
+|------|-------------|-------------|----------|
+| `Paper_Case_1` | 1.06 | **1.007** | 0.95x |
+| `Paper_Case_2` | 1.22 | **1.147** | 0.94x |
+| `Paper_Case_6` | 1.05 | **1.019** | 0.97x |
+
+同步更新位置：
+- `src/model/chemistry.py`（`VALIDATION_CASES` 主数据源）
+- `scripts/run_gasifier_model_cases.py`（工业运行预设）
+- `gasifier_kinetic_ui.py`（UI 预设）
+
+复跑基准（`jax_pure`, `N=40`, `fixed_ignition_length`, `stretch=1.06`）：
+- `Paper_Case_1`: `dT` 由约 `+92.8°C` 降至 `+6.5°C`
+- `Paper_Case_2`: `dT` 由约 `+561.9°C` 降至 `+411.4°C`
+- `Paper_Case_6`: `dT` 由约 `+104.1°C` 降至 `+7.3°C`
 
 ## 📝 近期改进 (2026-02)
 
@@ -135,7 +195,7 @@ PYTHONPATH=src python tests/integration/compare_solvers.py
 ## 🔧 配置
 
 *   **验证数据**：`validation_cases_pilot.json`（小试 56–187 kg/h）、`validation_cases_industrial.json`（工业）、`validation_cases_merged.json`（合并）、`validation_cases_OriginalPaper.json`
-*   **求解器**：`GasifierSystem.solve(solver_method='newton')` 使用 Newton
+*   **求解器**：`GasifierSystem.solve(solver_method='newton')` 使用 `NewtonSolver`；`solver_method='jax_pure'` / `'jax_newton'` 见上文「JAX 求解器与传统 Newton-Raphson」
 *   **RK-Gill 颗粒温度**：`PhysicalConstants.USE_RK_GILL_COMBUSTION = True` 启用（计算量约 4×）
 *   **工况级 op_conds**：`AdaptiveFirstCellLength`（按进煤量自适应 Cell 0）、`FirstCellLength`（覆盖 dz_cell0）、`L_evap_m`（蒸发分散长度，0 表示全在 Cell 0）
 

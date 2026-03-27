@@ -5,11 +5,18 @@ from .cell import Cell
 from .material import MaterialService
 from .kinetics_service import KineticsService
 from .pyrolysis_service import PyrolysisService
-from .pyrolysis_service import PyrolysisService
 from .constants import PhysicalConstants
 from .grid_service import AdaptiveMeshGenerator, MeshConfig
 from .source_terms import EvaporationSource, PyrolysisSource
 from .solver import NewtonSolver
+from .jax_residual_adapter import make_jacobian_fn
+from .jax_solver import (
+    newton_solve_cell_numpy,
+    newton_solve_multistart_numpy,
+    newton_solve_cell_pure_jax_ad,
+    newton_solve_multistart_cell_pure_jax_ad,
+    warmup_jax,
+)
 import logging
 
 # Set up logging
@@ -61,6 +68,7 @@ class GasifierSystem:
         
         self.results = []
         self.cells = []
+        self.solve_stats = {"fallback_count": 0, "poor_convergence_count": 0}
 
     def _validate_inputs(self, geometry, coal_props, op_conds):
         """
@@ -189,8 +197,21 @@ class GasifierSystem:
         
         return inlet
 
-    def solve(self, N_cells=100, solver_method='minimize'):
-        """Sequential Solver"""
+    def solve(
+        self,
+        N_cells=100,
+        solver_method='minimize',
+        use_jax_jacobian=False,
+        jax_warmup=True,
+    ):
+        """
+        Sequential Solver.
+
+        use_jax_jacobian: True 时对 least_squares 注入中心差分 Jacobian，NewtonSolver 用 centered 模式。
+        solver_method='jax_newton': 使用 jax_solver 模块中的阻尼 Newton（NumPy 残差 + 中心差分 J），
+            失败时回退到带 Jacobian 的 least_squares。
+        jax_warmup: 首次求解前预热 JAX（摊销导入与轻量编译）。
+        """
         L = self.geometry['L']
         D = self.geometry['D']
         A = np.pi * (D/2)**2
@@ -209,11 +230,17 @@ class GasifierSystem:
         if dz_cell0 is None:
             dz_cell0 = PhysicalConstants.FIRST_CELL_LENGTH
         dz_ignition = self.op_conds.get('IgnitionZoneDz', PhysicalConstants.IGNITION_ZONE_DZ)
+        ignition_zone_total_length = self.op_conds.get('IgnitionZoneTotalLength')
+        ignition_zone_fine_start_z = self.op_conds.get('IgnitionZoneFineStartZ')
+        ignition_zone_stretch_ratio = self.op_conds.get('IgnitionZoneStretchRatio', 1.0)
         mesh_cfg = MeshConfig(
             total_length=L,
             n_cells=N_cells,
             ignition_zone_length=dz_cell0,
             ignition_zone_res=dz_ignition,
+            ignition_zone_total_length=ignition_zone_total_length,
+            ignition_zone_fine_start_z=ignition_zone_fine_start_z,
+            ignition_zone_stretch_ratio=ignition_zone_stretch_ratio,
             min_grid_size=PhysicalConstants.MIN_GRID_SIZE
         )
         generator = AdaptiveMeshGenerator(mesh_cfg)
@@ -233,6 +260,9 @@ class GasifierSystem:
         
         cell_ops = self.op_conds.copy()
         cell_ops['L_reactor'] = L
+        # 热损归一化长度：使用当前网格总长，避免 N_cells 改变时总热损预算漂移
+        # (当网格未铺满几何长度时，仍保证 ΣQ_loss = HeatLossPercent × 煤 HHV)
+        cell_ops['L_heatloss_norm'] = max(float(np.sum(dz_list)), 1e-9)
         cell_ops['pyrolysis_done'] = True # Pyrolysis already accounted for in inlet
         
         logger.info(f"Starting Solver (Instant Pyrolysis Mode) with {N_cells} cells.")
@@ -268,7 +298,55 @@ class GasifierSystem:
         sources = [evap_src, pyro_src]
         
         logger.info(f"Starting Solver (Source Term Mode) with {N_cells} cells.")
-        
+
+        if jax_warmup and (use_jax_jacobian or solver_method in ('jax_newton', 'jax_pure')):
+            warmup_jax()
+
+        # jax_pure：略减每格 Newton 内层迭代上限（失败仍由 multistart / least_squares 兜底）
+        jax_pure_n_iter = 45
+        fallback_cost_threshold = 1e-4
+
+        def _newton_solver():
+            return NewtonSolver(
+                tol=1e-8,
+                max_iter=100,
+                damper=0.8,
+                jacobian='centered' if use_jax_jacobian else 'finite_difference',
+            )
+
+        def _needs_fallback(sol):
+            return (sol is None) or (not sol.success) or (sol.cost > fallback_cost_threshold)
+
+        def _mark_fallback():
+            self.solve_stats["fallback_count"] = int(self.solve_stats.get("fallback_count", 0)) + 1
+
+        def _least_squares_with_optional_jac(func_local, x0, bounds):
+            if use_jax_jacobian:
+                jac_fn = make_jacobian_fn(func_local, n_vars=11, centered=True)
+                ls_max_nfev = 2000 if solver_method == "jax_newton" else 500
+                ls_ftol = 1e-10 if solver_method == "jax_newton" else 1e-8
+                return least_squares(
+                    func_local,
+                    x0,
+                    jac=jac_fn,
+                    bounds=bounds,
+                    method='trf',
+                    xtol=1e-12,
+                    ftol=ls_ftol,
+                    max_nfev=ls_max_nfev,
+                )
+            ls_max_nfev = 2000 if solver_method == "jax_newton" else 500
+            ls_ftol = 1e-10 if solver_method == "jax_newton" else 1e-8
+            return least_squares(
+                func_local,
+                x0,
+                bounds=bounds,
+                method='trf',
+                xtol=1e-12,
+                ftol=ls_ftol,
+                max_nfev=ls_max_nfev,
+            )
+
         for i in range(N_cells):
             z_curr = self.z_positions[i]
             dz_curr = dz_list[i]
@@ -276,6 +354,7 @@ class GasifierSystem:
             
             # Update ops for L reference
             cell_ops['L_reactor'] = L
+            cell_ops['L_heatloss_norm'] = max(float(np.sum(dz_list)), 1e-9)
             cell_ops['HeatLossPercent'] = self.op_conds.get('HeatLossPercent', PhysicalConstants.DEFAULT_HEAT_LOSS_PERCENT)
             
             # Pass sources instead of manual Q_source_term
@@ -306,152 +385,315 @@ class GasifierSystem:
                 # Multi-Guess ignition for first Active cell
                 # [IGNITION STRATEGY] Start with HIGH temperatures (2000K) to overcome evaporation
                 guesses_T = [3000.0, 2000.0, 1500.0, 1000.0, 400.0]  # 高温优先，避免低温冷态解
-                best_sol = None
-                best_cost = 1e9
-                
-                for t_start in guesses_T:
+
+                def make_cell0_x0(t_start):
                     x0 = current_inlet.to_array()
-                    x0[10] = t_start 
-                    
+                    x0[10] = t_start
                     if t_start > 900.0:
                         # [IGNITION HELPER] temperature_diagnosis.md: 必须先将挥发分加入 x0
-                        # 否则 n_CH4=0（入口无 CH4），起燃逻辑无效
                         x0[:8] += self.tmp_F_volatiles
-                        x0[8] -= self.tmp_W_vol_loss  # 固相损失（热解）
-                        x0[9] = self.char_Xc0  # 焦炭碳含量
-                        # Balanced Ignition Guess (Strict Atomic Conservation)
-                        # Step 1: Burn CH4 to CO + 2H2 (JL Partial Oxidation)
+                        x0[8] -= self.tmp_W_vol_loss
+                        x0[9] = self.char_Xc0
                         n_CH4 = x0[1]
                         n_O2 = x0[0]
                         xi_1 = min(n_CH4 * 0.999, n_O2 * 0.999 / 0.5)
-                        x0[1] -= xi_1          # -CH4
-                        x0[0] -= 0.5 * xi_1    # -0.5 O2
-                        x0[2] += xi_1          # +CO
-                        x0[5] += 2.0 * xi_1    # +2 H2
-                        
-                        # Step 2: Burn H2 to H2O (JL H2_Ox)
+                        x0[1] -= xi_1
+                        x0[0] -= 0.5 * xi_1
+                        x0[2] += xi_1
+                        x0[5] += 2.0 * xi_1
                         n_H2 = x0[5]
                         n_O2 = x0[0]
                         xi_2 = min(n_H2 * 0.999, n_O2 * 0.999 / 0.5)
-                        x0[5] -= xi_2          # -H2
-                        x0[0] -= 0.5 * xi_2    # -0.5 O2
-                        x0[7] += xi_2          # +H2O
-                        
-                        # Step 3: Burn CO to CO2 (Shift/Combustion proxy)
+                        x0[5] -= xi_2
+                        x0[0] -= 0.5 * xi_2
+                        x0[7] += xi_2
                         n_CO = x0[2]
                         n_O2 = x0[0]
                         xi_3 = min(n_CO * 0.999, n_O2 * 0.999 / 0.5)
-                        x0[2] -= xi_3          # -CO
-                        x0[0] -= 0.5 * xi_3    # -0.5 O2
-                        x0[3] += xi_3          # +CO2
+                        x0[2] -= xi_3
+                        x0[0] -= 0.5 * xi_3
+                        x0[3] += xi_3
+                    return x0
 
-                        # [DIAGNOSTIC REQUEST] Check Heat Release at this Initial Guess (T=2000K)
-                        try:
-                            diag_state = StateVector.from_array(x0, P=current_inlet.P, z=0.0)
-                            # Get Calc Volume
-                            diag_V = self.geometry['D']**2/4 * np.pi * dz_list[0]
-                            
-                            # Calc Rates
-                            r_homo_diag = self.kinetics.calc_homogeneous_rates(diag_state, diag_V)
-                            
-                            # Heats of Reaction (Approx J/mol)
-                            # H2+0.5O2->H2O: -241.8 kJ
-                            # CO+0.5O2->CO2: -283.0 kJ
-                            # CH4+2O2->... : -802.0 kJ
-                            Q_rxn_H2  = r_homo_diag['H2_Ox'] * 241800.0
-                            Q_rxn_CO  = r_homo_diag['CO_Ox'] * 283000.0
-                            Q_rxn_CH4 = r_homo_diag['CH4_Ox'] * 802000.0
-                            Q_total_diag = Q_rxn_H2 + Q_rxn_CO + Q_rxn_CH4
-                            
-                            
-                            # Residence Time Check
-                            velocity = (diag_state.total_gas_moles * 8.314 * t_start / current_inlet.P) / A
-                            residence_time = dz_list[0] / max(velocity, 0.001)
-                            
-                            logger.info(f"  [IGNITION DIAGNOSTIC] T_guess={t_start}K")
-                            logger.info(f"    Geometry: L_cell={dz_list[0]:.3f} m, D={D:.2f} m, Vol={diag_V:.3f} m3")
-                            logger.info(f"    Flow:     Vel={velocity:.2f} m/s, Tau={residence_time:.3f} s")
-                            logger.info(f"    R_H2_Ox:  {r_homo_diag['H2_Ox']:.2e} mol/s -> {Q_rxn_H2/1e6:.2f} MW")
-                            logger.info(f"    R_CO_Ox:  {r_homo_diag['CO_Ox']:.2e} mol/s -> {Q_rxn_CO/1e6:.2f} MW")
-                            logger.info(f"    R_CH4_Ox: {r_homo_diag['CH4_Ox']:.2e} mol/s -> {Q_rxn_CH4/1e6:.2f} MW")
-                            logger.info(f"    TOTAL REACT HEAT (Reacted State): {Q_total_diag/1e6:.2f} MW")
-
-                            
-                            # [DIAGNOSTIC EXTENSION] Potential Heat Release (Inlet + Pyrolysis Volatiles @ T_guess)
-                            x_pot = current_inlet.to_array() # Fresh inlet (Oxidant Only)
-                            
-                            # MANUALLY ADD PYROLYSIS VOLATILES to the check
-                            # self.tmp_F_volatiles: [O2, CH4, CO, CO2, H2S, H2, N2, H2O]
-                            x_pot[:8] += self.tmp_F_volatiles
-                            
-                            x_pot[10] = t_start # Force High T
-                            state_pot = StateVector.from_array(x_pot, P=current_inlet.P, z=0.0)
-                            
-                            r_pot = self.kinetics.calc_homogeneous_rates(state_pot, diag_V)
-                            Q_pot_H2  = r_pot['H2_Ox'] * 241800.0
-                            Q_pot_CO  = r_pot['CO_Ox'] * 283000.0
-                            Q_pot_CH4 = r_pot['CH4_Ox'] * 802000.0
-                            Q_total_pot = Q_pot_H2 + Q_pot_CO + Q_pot_CH4
-                            
-                            logger.info(f"    POTENTIAL RATE (Inlet+Volatiles @ {t_start}K):")
-                            logger.info(f"      R_CH4_Ox: {r_pot['CH4_Ox']:.2e} mol/s")
-                            logger.info(f"      Potential Heat Release: {Q_total_pot/1e6:.2f} MW (Target: >42 MW)")
-                        except Exception as e:
-                            logger.warning(f"Failed to run ignition diagnostic: {e}")
- 
-
-
-                    
-                    logger.info(f"  > Attempting Solver with Initial T = {x0[10]:.1f} K (Method: {solver_method})")
-                    
-                    if solver_method == 'newton':
-                        # Manual Newton-Raphson
-                        ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8) # Slightly damped
-                        sol = ns.solve(func, x0, bounds=(lower, upper))
+                if solver_method == 'jax_newton':
+                    x0_list = [make_cell0_x0(t) for t in guesses_T]
+                    best_mult, _ = newton_solve_multistart_numpy(
+                        x0_list,
+                        func,
+                        lower,
+                        upper,
+                        t_guesses=guesses_T,
+                    )
+                    if best_mult is not None and best_mult.success:
+                        sol = best_mult
                     else:
-                        # Default Scipy TRF (Newton-like)
-                        sol = least_squares(func, x0, bounds=(lower, upper), method='trf', 
-                                            xtol=1e-12, ftol=1e-8, max_nfev=500)
-                    
-                    # DEBUG Ignition
-                    logger.info(f"  [Ignition Guess] T: {t_start}K -> Res: {sol.x[10]:.1f}K, Cost: {sol.cost:.2e}, Success: {sol.success}")
-                    
-                    if sol.success:
-                        # Log detailed residuals if verified success
-                        final_res = cell.residuals(sol.x)
-                        logger.info(f"    Final Residuals (Max): {np.max(np.abs(final_res)):.4e}")
+                        _mark_fallback()
+                        sol = _least_squares_with_optional_jac(func, x0_list[0], (lower, upper))
+                elif solver_method == 'jax_pure':
+                    # 快路径：只用少量高温初值，减少多初值开销
+                    guesses_T_fast = [3000.0, 2000.0, 1500.0]
+                    x0_list_try = [make_cell0_x0(t) for t in guesses_T_fast]
+                    best_mult, _ = newton_solve_multistart_cell_pure_jax_ad(
+                        cell,
+                        x0_list_try,
+                        lower,
+                        upper,
+                        n_iter=jax_pure_n_iter,
+                        damper=0.8,
+                        tol_residual=1e-8,
+                        fd_epsilon=1e-6,
+                        reg=1e-8,
+                        t_guesses=guesses_T_fast,
+                    )
+                    sol = (
+                        best_mult
+                        if best_mult is not None
+                        else _least_squares_with_optional_jac(
+                            func, x0_list_try[0], (lower, upper)
+                        )
+                    )
+                    if best_mult is None:
+                        _mark_fallback()
 
-                        is_ignited = sol.x[10] > 1200.0  # temperature_diagnosis: 目标 1350-1400°C
-                        
-                        update_best = False
-                        if best_sol is None:
-                            update_best = True
+                    # 兜底：fast 候选失败/残差偏大时，再扩展回完整候选
+                    if _needs_fallback(sol):
+                        x0_list_full = [make_cell0_x0(t) for t in guesses_T]
+                        best_mult, _ = newton_solve_multistart_cell_pure_jax_ad(
+                            cell,
+                            x0_list_full,
+                            lower,
+                            upper,
+                            n_iter=jax_pure_n_iter,
+                            damper=0.8,
+                            tol_residual=1e-8,
+                            fd_epsilon=1e-6,
+                            reg=1e-8,
+                            t_guesses=guesses_T,
+                        )
+                        sol = (
+                            best_mult
+                            if best_mult is not None
+                            else _least_squares_with_optional_jac(
+                                func, x0_list_full[0], (lower, upper)
+                            )
+                        )
+                        if best_mult is None:
+                            _mark_fallback()
+
+                    # 最后仍保底：若当前解残差仍大，再跑一次 TRF
+                    if _needs_fallback(sol):
+                        x0_fb = x0_list_try[0] if len(x0_list_try) > 0 else make_cell0_x0(guesses_T[0])
+                        _mark_fallback()
+                        sol_fb = _least_squares_with_optional_jac(func, x0_fb, (lower, upper))
+                        if sol_fb.success and (not sol.success or sol_fb.cost < sol.cost):
+                            sol = sol_fb
+                else:
+                    best_sol = None
+                    best_cost = 1e9
+
+                    for t_start in guesses_T:
+                        x0 = make_cell0_x0(t_start)
+
+                        if t_start > 900.0:
+                            try:
+                                diag_state = StateVector.from_array(x0, P=current_inlet.P, z=0.0)
+                                diag_V = self.geometry['D']**2 / 4 * np.pi * dz_list[0]
+                                r_homo_diag = self.kinetics.calc_homogeneous_rates(diag_state, diag_V)
+                                Q_rxn_H2 = r_homo_diag['H2_Ox'] * 241800.0
+                                Q_rxn_CO = r_homo_diag['CO_Ox'] * 283000.0
+                                Q_rxn_CH4 = r_homo_diag['CH4_Ox'] * 802000.0
+                                Q_total_diag = Q_rxn_H2 + Q_rxn_CO + Q_rxn_CH4
+                                velocity = (diag_state.total_gas_moles * 8.314 * t_start / current_inlet.P) / A
+                                residence_time = dz_list[0] / max(velocity, 0.001)
+                                logger.info(f"  [IGNITION DIAGNOSTIC] T_guess={t_start}K")
+                                logger.info(f"    Geometry: L_cell={dz_list[0]:.3f} m, D={D:.2f} m, Vol={diag_V:.3f} m3")
+                                logger.info(f"    Flow:     Vel={velocity:.2f} m/s, Tau={residence_time:.3f} s")
+                                logger.info(f"    R_H2_Ox:  {r_homo_diag['H2_Ox']:.2e} mol/s -> {Q_rxn_H2/1e6:.2f} MW")
+                                logger.info(f"    R_CO_Ox:  {r_homo_diag['CO_Ox']:.2e} mol/s -> {Q_rxn_CO/1e6:.2f} MW")
+                                logger.info(f"    R_CH4_Ox: {r_homo_diag['CH4_Ox']:.2e} mol/s -> {Q_rxn_CH4/1e6:.2f} MW")
+                                logger.info(f"    TOTAL REACT HEAT (Reacted State): {Q_total_diag/1e6:.2f} MW")
+                                x_pot = current_inlet.to_array()
+                                x_pot[:8] += self.tmp_F_volatiles
+                                x_pot[10] = t_start
+                                state_pot = StateVector.from_array(x_pot, P=current_inlet.P, z=0.0)
+                                r_pot = self.kinetics.calc_homogeneous_rates(state_pot, diag_V)
+                                Q_pot_H2 = r_pot['H2_Ox'] * 241800.0
+                                Q_pot_CO = r_pot['CO_Ox'] * 283000.0
+                                Q_pot_CH4 = r_pot['CH4_Ox'] * 802000.0
+                                Q_total_pot = Q_pot_H2 + Q_pot_CO + Q_pot_CH4
+                                logger.info(f"    POTENTIAL RATE (Inlet+Volatiles @ {t_start}K):")
+                                logger.info(f"      R_CH4_Ox: {r_pot['CH4_Ox']:.2e} mol/s")
+                                logger.info(f"      Potential Heat Release: {Q_total_pot/1e6:.2f} MW (Target: >42 MW)")
+                            except Exception as e:
+                                logger.warning(f"Failed to run ignition diagnostic: {e}")
+
+                        logger.info(f"  > Attempting Solver with Initial T = {x0[10]:.1f} K (Method: {solver_method})")
+
+                        if solver_method == 'newton':
+                            sol = _newton_solver().solve(func, x0, bounds=(lower, upper))
                         else:
-                            best_ignited = best_sol.x[10] > 1200.0
-                            if is_ignited and not best_ignited:
-                                update_best = True # Always prefer ignited
-                            elif is_ignited == best_ignited:
-                                if sol.cost < best_cost:
+                            sol = _least_squares_with_optional_jac(func, x0, (lower, upper))
+
+                        logger.info(
+                            f"  [Ignition Guess] T: {t_start}K -> Res: {sol.x[10]:.1f}K, Cost: {sol.cost:.2e}, Success: {sol.success}"
+                        )
+
+                        if sol.success:
+                            final_res = cell.residuals(sol.x)
+                            logger.info(f"    Final Residuals (Max): {np.max(np.abs(final_res)):.4e}")
+                            is_ignited = sol.x[10] > 1200.0
+                            update_best = False
+                            if best_sol is None:
+                                update_best = True
+                            else:
+                                best_ignited = best_sol.x[10] > 1200.0
+                                if is_ignited and not best_ignited:
                                     update_best = True
-                                # 同 ignited 且 cost 接近时，优先更高温度
-                                elif abs(sol.cost - best_cost) < best_cost * 0.1 and sol.x[10] > best_sol.x[10]:
-                                    update_best = True
-                        
-                        if update_best:
-                            best_sol = sol
-                            best_cost = sol.cost
-                            
-                        # Early exit if we have a great ignited solution
-                        if is_ignited and sol.cost < 1e-6:
-                            break
-                                
-                sol = best_sol if best_sol is not None else sol
+                                elif is_ignited == best_ignited:
+                                    if sol.cost < best_cost:
+                                        update_best = True
+                                    elif abs(sol.cost - best_cost) < best_cost * 0.1 and sol.x[10] > best_sol.x[10]:
+                                        update_best = True
+                            if update_best:
+                                best_sol = sol
+                                best_cost = sol.cost
+                            if is_ignited and sol.cost < 1e-6:
+                                break
+
+                    sol = best_sol if best_sol is not None else sol
             else:
                 # 下游 cell：入口温度高时多初值猜测，避免陷入低温解
                 # (WGS 等吸热不应造成剧烈降温，温度下降会自我限制；用户诊断：多为 cell 初值/求解问题)
                 x0_base = current_inlet.to_array()
                 T_in = float(x0_base[10])
-                if T_in > 1200.0:
+                if solver_method == 'jax_newton':
+                    if T_in > 1200.0:
+                        T_cands = [
+                            T_in,
+                            min(T_in * 1.02, 3500.0),
+                            min(T_in * 1.08, 3200.0),
+                            min(T_in * 1.15, 3500.0),
+                            max(T_in * 0.98, 1100.0),
+                            max(T_in * 0.92, 1100.0),
+                        ]
+                        x0_list = []
+                        for Tc in T_cands:
+                            x0 = x0_base.copy()
+                            x0[10] = Tc
+                            x0_list.append(x0)
+                        best_down, _ = newton_solve_multistart_numpy(
+                            x0_list,
+                            func,
+                            lower,
+                            upper,
+                            t_guesses=T_cands,
+                        )
+                        sol = (
+                            best_down
+                            if best_down is not None and best_down.success
+                            else newton_solve_cell_numpy(func, x0_base, lower, upper)
+                        )
+                        best_cost_down = sol.cost if sol.success else 1e9
+                        if sol.success and T_in > 1800 and sol.x[10] < T_in * 0.8:
+                            for Tc in [min(T_in * 1.2, 3500.0), min(T_in * 1.1, 3400.0)]:
+                                x0 = x0_base.copy()
+                                x0[10] = Tc
+                                s = newton_solve_cell_numpy(func, x0, lower, upper)
+                                if s.success and s.x[10] > sol.x[10] and s.cost < best_cost_down * 2.0:
+                                    sol = s
+                                    best_cost_down = s.cost
+                                    break
+                    else:
+                        sol = newton_solve_cell_numpy(func, x0_base, lower, upper)
+                    if _needs_fallback(sol):
+                        _mark_fallback()
+                        sol_fb = _least_squares_with_optional_jac(func, x0_base, (lower, upper))
+                        if sol_fb.success and (not sol.success or sol_fb.cost < sol.cost):
+                            sol = sol_fb
+                elif solver_method == 'jax_pure':
+                    # jax_pure：host 前向差分 J + 阻尼 Newton（见 jax_solver.newton_solve_cell_pure_jax_ad）
+                    if T_in > 1200.0:
+                        T_cands_full = [
+                            T_in,
+                            min(T_in * 1.02, 3500.0),
+                            min(T_in * 1.08, 3200.0),
+                            min(T_in * 1.15, 3500.0),
+                            max(T_in * 0.98, 1100.0),
+                            max(T_in * 0.92, 1100.0),
+                        ]
+                        # 快路径：只保留少量“高温/近温”初值，显著减少多初值开销（3 个；失败再扩到 full）
+                        T_cands_fast = [
+                            T_in,
+                            min(T_in * 1.02, 3500.0),
+                            max(T_in * 0.98, 1100.0),
+                        ]
+
+                        def _pack_x0_list(T_cands_local):
+                            x0_list_local = []
+                            for Tc in T_cands_local:
+                                x0 = x0_base.copy()
+                                x0[10] = Tc
+                                x0_list_local.append(x0)
+                            return x0_list_local
+
+                        # 1) 先用 fast 候选
+                        x0_list_try = _pack_x0_list(T_cands_fast)
+                        best_down, _ = newton_solve_multistart_cell_pure_jax_ad(
+                            cell,
+                            x0_list_try,
+                            lower,
+                            upper,
+                            n_iter=jax_pure_n_iter,
+                            damper=0.8,
+                            tol_residual=1e-8,
+                            fd_epsilon=1e-6,
+                            reg=1e-8,
+                            t_guesses=T_cands_fast,
+                        )
+                        sol = best_down if best_down is not None else _least_squares_with_optional_jac(
+                            func, x0_list_try[0], (lower, upper)
+                        )
+                        if best_down is None:
+                            _mark_fallback()
+
+                        # 2) 若快路径失败，再用 full 候选兜底（避免稳定性回退）
+                        if _needs_fallback(sol):
+                            x0_list_full = _pack_x0_list(T_cands_full)
+                            best_down, _ = newton_solve_multistart_cell_pure_jax_ad(
+                                cell,
+                                x0_list_full,
+                                lower,
+                                upper,
+                                n_iter=jax_pure_n_iter,
+                                damper=0.8,
+                                tol_residual=1e-8,
+                                fd_epsilon=1e-6,
+                                reg=1e-8,
+                                t_guesses=T_cands_full,
+                            )
+                            sol = best_down if best_down is not None else _least_squares_with_optional_jac(
+                                func, x0_list_full[0], (lower, upper)
+                            )
+                            if best_down is None:
+                                _mark_fallback()
+                    else:
+                        sol = newton_solve_cell_pure_jax_ad(
+                            cell,
+                            x0_base,
+                            lower,
+                            upper,
+                            n_iter=jax_pure_n_iter,
+                            damper=0.8,
+                            tol_residual=1e-8,
+                        )
+
+                    # 未收敛或残差仍大（与 diagnose_failure 阈值同量级）时回退 TRF
+                    if _needs_fallback(sol):
+                        _mark_fallback()
+                        sol_fb = _least_squares_with_optional_jac(func, x0_base, (lower, upper))
+                        if sol_fb.success and (not sol.success or sol_fb.cost < sol.cost):
+                            sol = sol_fb
+                elif T_in > 1200.0:
                     # 温度初值探索：先在 T_in 附近精细搜索，再探索略高/略低
                     T_cands = [
                         T_in, min(T_in * 1.02, 3500.0), min(T_in * 1.08, 3200.0),
@@ -462,34 +704,33 @@ class GasifierSystem:
                     for Tc in T_cands:
                         x0 = x0_base.copy()
                         x0[10] = Tc
-                        ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                        ns = _newton_solver()
                         s = ns.solve(func, x0, bounds=(lower, upper))
                         if s.success:
                             if s.cost < best_cost_down:
                                 best_cost_down = s.cost
                                 best_down = s
-                            # 同 cost 接近时优先更高温度（避免气化吸热被过度放大导致的低温解）
                             elif abs(s.cost - best_cost_down) < best_cost_down * 0.2 and s.x[10] > best_down.x[10]:
                                 best_down = s
                                 best_cost_down = s.cost
-                    ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                    ns = _newton_solver()
                     sol = best_down if best_down is not None else ns.solve(func, x0_base, bounds=(lower, upper))
-                    # 异常降温检测：若 T_out 相对 T_in 骤降 >20%，重试更高初值（避免陷入低温解）
                     if sol.success and T_in > 1800 and sol.x[10] < T_in * 0.8:
                         for Tc in [min(T_in * 1.2, 3500.0), min(T_in * 1.1, 3400.0)]:
                             x0 = x0_base.copy()
                             x0[10] = Tc
-                            ns2 = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                            ns2 = _newton_solver()
                             s = ns2.solve(func, x0, bounds=(lower, upper))
                             if s.success and s.x[10] > sol.x[10] and s.cost < best_cost_down * 2.0:
                                 sol = s
                                 best_cost_down = s.cost
                                 break
                 else:
-                    ns = NewtonSolver(tol=1e-8, max_iter=100, damper=0.8)
+                    ns = _newton_solver()
                     sol = ns.solve(func, x0_base, bounds=(lower, upper))
             
-            if not sol.success or sol.cost > 1e-4:
+            if _needs_fallback(sol):
+                self.solve_stats["poor_convergence_count"] = int(self.solve_stats.get("poor_convergence_count", 0)) + 1
                 logger.warning(f"Cell {i} convergence poor. Cost: {sol.cost:.2e}, Success: {sol.success}, T: {sol.x[10]:.1f}K")
                 # [DIAGNOSTICS]
                 cell.diagnose_failure(sol.x)

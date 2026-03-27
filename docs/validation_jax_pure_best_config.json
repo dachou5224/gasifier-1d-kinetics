@@ -1,0 +1,121 @@
+{
+  "solver_method": "jax_pure",
+  "n_cells": 40,
+  "fixed_ignition_length": true,
+  "ignition_zone_dz": null,
+  "ignition_zone_stretch_ratio": 1.06,
+  "rows": [
+    {
+      "case": "LuNan_Texaco_Slurry",
+      "time_s": 13.887337682,
+      "mesh": {
+        "IgnitionZoneTotalLength_m": 1.72,
+        "cell0_len_m": 0.2,
+        "dz_ref_m": 0.08,
+        "n_fine_slots": 19
+      },
+      "sim": {
+        "T_out_C": 1357.9037906336866,
+        "yCO": 51.80609101158,
+        "yH2": 26.388145427382465,
+        "yCO2": 20.493906201420494
+      },
+      "expected": {
+        "T_out_C": 1335.0,
+        "yCO": 51.5,
+        "yH2": 26.5,
+        "yCO2": null
+      },
+      "diff": {
+        "dT": 22.90379063368664,
+        "dyCO": 0.3060910115800013,
+        "dyH2": -0.11185457261753484,
+        "dyCO2": null
+      }
+    },
+    {
+      "case": "Paper_Case_1",
+      "time_s": 13.113977872000001,
+      "mesh": {
+        "IgnitionZoneTotalLength_m": 1.72,
+        "cell0_len_m": 0.2,
+        "dz_ref_m": 0.08,
+        "n_fine_slots": 19
+      },
+      "sim": {
+        "T_out_C": 1425.773444036352,
+        "yCO": 62.6785289157023,
+        "yH2": 27.480247812074644,
+        "yCO2": 9.044303387050382
+      },
+      "expected": {
+        "T_out_C": 1333.0,
+        "yCO": 59.9,
+        "yH2": 29.5,
+        "yCO2": null
+      },
+      "diff": {
+        "dT": 92.77344403635198,
+        "dyCO": 2.778528915702303,
+        "dyH2": -2.0197521879253557,
+        "dyCO2": null
+      }
+    },
+    {
+      "case": "Paper_Case_2",
+      "time_s": 12.635725399999998,
+      "mesh": {
+        "IgnitionZoneTotalLength_m": 1.72,
+        "cell0_len_m": 0.2,
+        "dz_ref_m": 0.08,
+        "n_fine_slots": 19
+      },
+      "sim": {
+        "T_out_C": 2013.9458929206812,
+        "yCO": 68.64946393487858,
+        "yH2": 18.642488282966404,
+        "yCO2": 12.162316908832056
+      },
+      "expected": {
+        "T_out_C": 1452.0,
+        "yCO": 61.8,
+        "yH2": 29.7,
+        "yCO2": null
+      },
+      "diff": {
+        "dT": 561.9458929206812,
+        "dyCO": 6.849463934878585,
+        "dyH2": -11.057511717033595,
+        "dyCO2": null
+      }
+    },
+    {
+      "case": "Paper_Case_6",
+      "time_s": 14.425334858,
+      "mesh": {
+        "IgnitionZoneTotalLength_m": 1.72,
+        "cell0_len_m": 0.2,
+        "dz_ref_m": 0.08,
+        "n_fine_slots": 19
+      },
+      "sim": {
+        "T_out_C": 1474.0569912155843,
+        "yCO": 63.498062267696994,
+        "yH2": 27.046508326524066,
+        "yCO2": 8.920247831754253
+      },
+      "expected": {
+        "T_out_C": 1370.0,
+        "yCO": 61.7,
+        "yH2": 30.3,
+        "yCO2": 1.3
+      },
+      "diff": {
+        "dT": 104.05699121558428,
+        "dyCO": 1.7980622676969915,
+        "dyH2": -3.253491673475935,
+        "dyCO2": 7.620247831754253
+      }
+    }
+  ]
+}

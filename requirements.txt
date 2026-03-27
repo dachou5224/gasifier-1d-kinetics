@@ -1,5 +1,6 @@
 numpy
 scipy
+jax[cpu]>=0.4.28
 pandas
 plotly
 streamlit
