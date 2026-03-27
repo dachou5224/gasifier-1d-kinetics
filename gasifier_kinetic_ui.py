@@ -60,6 +60,14 @@ JAX_PURE_VALIDATED_CASE_KEYS = [
     "LuNan_Texaco_Slurry",
 ]
 
+# UI 展示层修正：网站体验优先，避免 Paper 干粉工况因高蒸汽比导致温度偏低。
+# 不修改 src/model/chemistry.py 的验证数据源，只在 UI 预填阶段覆盖。
+UI_CASE_INPUT_OVERRIDES = {
+    "Paper_Case_1": {"Ratio_SC": 0.08},
+    "Paper_Case_2": {"Ratio_SC": 0.08},
+    "Paper_Case_6": {"Ratio_SC": 0.08},
+}
+
 
 
 
@@ -97,7 +105,10 @@ def run():
 
     def _get_case(name):
         if name in VALIDATION_CASES:
-            return VALIDATION_CASES[name]["inputs"]
+            base = dict(VALIDATION_CASES[name]["inputs"])
+            if name in UI_CASE_INPUT_OVERRIDES:
+                base.update(UI_CASE_INPUT_OVERRIDES[name])
+            return base
         if name in INDUSTRIAL_CASES:
             return INDUSTRIAL_CASES[name]
         return None
