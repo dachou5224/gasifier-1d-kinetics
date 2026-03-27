@@ -52,11 +52,11 @@ INDUSTRIAL_CASES = {
     },
 }
 
-# 仅保留“输入合理 + 验证表现较好”的默认模板集合
-# 注：Paper_Case_2 温度偏差仍较大，默认不放在精选列表中，可通过“显示全部模板”查看。
-CURATED_CASE_KEYS = [
+# 仅使用已完成 jax_pure 验证的工况集合（对应 validation_jax_pure_* 报告）
+JAX_PURE_VALIDATED_CASE_KEYS = [
     "Paper_Case_6",
     "Paper_Case_1",
+    "Paper_Case_2",
     "LuNan_Texaco_Slurry",
 ]
 
@@ -83,15 +83,15 @@ def run():
         *   **寻找极端点**：气化炉空间的一大看点是“火焰锋面”。计算完毕后请留意右侧的主图。图上**温度曲线的最高峰**通常对应着氧气($O_2$)浓度被彻底耗尽的位置（即气相氧化区结束，转入吸热气化区的拐点）。通过调整炉长或氧煤比，你能观测到这个驻点在管道内的推移！
         """)
 
-    # 预设工况：默认展示精选验证模板，避免重复与高偏差工况干扰
+    # 预设工况：默认展示 jax_pure 已验证集合，避免混入其他来源参数口径
     show_all_templates = st.toggle(
-        "显示全部模板（含偏差较大的工况）",
+        "显示全部模板（超出 jax_pure 已验证集合）",
         value=False,
-        help="默认仅显示已验证且结果较稳健的工况；打开后显示全部 VALIDATION_CASES 与工业模板。",
+        help="默认只显示已做 jax_pure 验证的工况；打开后显示全部 VALIDATION_CASES 与工业模板。",
     )
 
     all_case_names = list(dict.fromkeys(list(VALIDATION_CASES.keys()) + list(INDUSTRIAL_CASES.keys())))
-    curated_case_names = [k for k in CURATED_CASE_KEYS if (k in VALIDATION_CASES or k in INDUSTRIAL_CASES)]
+    curated_case_names = [k for k in JAX_PURE_VALIDATED_CASE_KEYS if (k in VALIDATION_CASES or k in INDUSTRIAL_CASES)]
     preset_pool = all_case_names if show_all_templates else curated_case_names
     preset_names = ["自定义"] + preset_pool
 
@@ -109,11 +109,16 @@ def run():
 
         with st.container(border=True):
             st.markdown("#### 📂 步骤 1. 选择参考模板")
-            st.caption("默认仅显示验证表现较好的模板；可切换“显示全部模板”。")
+            st.caption("默认仅显示已做 jax_pure 验证的模板；可切换“显示全部模板”。")
             case_name = st.selectbox("选择工况:", preset_names, label_visibility="collapsed")
             case = _get_case(case_name) if case_name != "自定义" else None
-            
-            if case and st.button("预填该工况", type="secondary", use_container_width=True):
+
+            # 自动预填：只要切换到某个模板，就立刻把模板参数写入 session_state
+            # 避免“忘记点预填按钮”导致仍使用默认 S/C=0.08、HeatLoss=8% 从而出现异常低温。
+            last_loaded = st.session_state.get("_last_loaded_case_k")
+            should_autoload = case is not None and last_loaded != case_name
+
+            if case and (should_autoload or st.button("预填该工况", type="secondary", use_container_width=True)):
                 coal = COAL_DATABASE.get(case.get("coal", "Paper_Base_Coal"), {})
                 feed_kg_h = case.get("FeedRate", case.get("FeedRate_kg_h", 41670.0))
                 ratio_oc = case.get("Ratio_OC", 1.05)
@@ -134,7 +139,8 @@ def run():
                     "HeatLossPercent_k": float(case.get("HeatLossPercent", 3.0)),
                     "Combustion_CO2_Fraction_k": float(case.get("Combustion_CO2_Fraction", 0.15)),
                     "WGS_CatalyticFactor_k": float(case.get("WGS_CatalyticFactor", 1.5)),
-                    "N_cells_k": 40
+                    "N_cells_k": 40,
+                    "_last_loaded_case_k": case_name,
                 })
                 st.rerun()
 
