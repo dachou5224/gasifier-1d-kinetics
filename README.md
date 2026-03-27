@@ -192,6 +192,56 @@ PYTHONPATH=src python tests/unit/test_units.py
 PYTHONPATH=src python tests/integration/compare_solvers.py
 ```
 
+## 🚀 CI/CD（push 后自动更新 VPS）
+
+已新增 GitHub Actions 工作流：`.github/workflows/deploy-to-vps.yml`  
+触发条件：`push` 到 `main`（也支持手动 `workflow_dispatch`）。
+
+### 1) 在 GitHub 配置 Secrets
+
+仓库路径：`Settings -> Secrets and variables -> Actions`
+
+必填：
+
+- `VPS_HOST`：VPS 公网 IP 或域名
+- `VPS_USER`：SSH 用户名（如 `root`）
+- `VPS_KEY`：SSH 私钥全文（含 BEGIN/END 行）
+
+可选：
+
+- `VPS_REPO_PATH`：VPS 上项目目录（默认 `/root/gasifier-1d-kinetic`）
+- `VPS_POST_DEPLOY_CMD`：拉取代码后执行的命令（例如重启服务）
+
+### 2) VPS 首次准备
+
+```bash
+cd /root
+git clone https://github.com/dachou5224/gasifier-1d-kinetics.git gasifier-1d-kinetic
+```
+
+若目录已存在则跳过。确保该目录能被 `VPS_USER` 访问。
+
+### 3) 自动部署行为
+
+每次你 `push` 到 `main` 后，Action 会在 VPS 执行：
+
+```bash
+cd ${VPS_REPO_PATH:-/root/gasifier-1d-kinetic}
+git fetch origin
+git checkout main
+git pull --ff-only origin main
+```
+
+若设置了 `VPS_POST_DEPLOY_CMD`，还会继续执行该命令。
+
+### 4) 手动部署脚本（可选）
+
+仓库提供 `scripts/deploy_on_vps.sh`，可在 VPS 手动执行：
+
+```bash
+bash scripts/deploy_on_vps.sh /root/gasifier-1d-kinetic
+```
+
 ## 🔧 配置
 
 *   **验证数据**：`validation_cases_pilot.json`（小试 56–187 kg/h）、`validation_cases_industrial.json`（工业）、`validation_cases_merged.json`（合并）、`validation_cases_OriginalPaper.json`

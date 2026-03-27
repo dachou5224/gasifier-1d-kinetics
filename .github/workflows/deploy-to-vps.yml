@@ -1,0 +1,62 @@
+name: Deploy gasifier-1d-kinetic to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Check required secrets
+        run: |
+          if [ -z "${{ secrets.VPS_HOST }}" ]; then
+            echo "::error::缺少 VPS_HOST。请到 Settings -> Secrets and variables -> Actions 配置。"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VPS_USER }}" ]; then
+            echo "::error::缺少 VPS_USER。请到 Settings -> Secrets and variables -> Actions 配置。"
+            exit 1
+          fi
+          if [ -z "${{ secrets.VPS_KEY }}" ]; then
+            echo "::error::缺少 VPS_KEY（SSH 私钥全文）。请到 Settings -> Secrets and variables -> Actions 配置。"
+            exit 1
+          fi
+
+      - name: Pull latest code on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_KEY }}
+          port: 22
+          script: |
+            set -euo pipefail
+
+            REPO_PATH="${{ secrets.VPS_REPO_PATH }}"
+            if [ -z "$REPO_PATH" ]; then
+              REPO_PATH="/root/gasifier-1d-kinetic"
+            fi
+
+            echo "Deploy path: $REPO_PATH"
+            if [ ! -d "$REPO_PATH/.git" ]; then
+              echo "ERROR: $REPO_PATH 不是 Git 仓库目录"
+              exit 1
+            fi
+
+            cd "$REPO_PATH"
+            git fetch origin
+            git checkout main
+            git pull --ff-only origin main
+            echo "Current commit: $(git rev-parse --short HEAD)"
+
+            # 可选：例如重启服务、重建容器等
+            POST_CMD="${{ secrets.VPS_POST_DEPLOY_CMD }}"
+            if [ -n "$POST_CMD" ]; then
+              echo "Running VPS_POST_DEPLOY_CMD..."
+              bash -lc "$POST_CMD"
+            fi
