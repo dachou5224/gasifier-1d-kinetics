@@ -49,15 +49,13 @@ class GasifierSystem:
             self.coal_props['LHV_d_kJ'] = LHV_d_kJ
 
             # 2. Hf_coal (Formation Enthalpy)
-            # Must be consistent with simulator enthalpy basis (H2O is Gas)
-            # Hf_coal = LHV_d + Sum(Hf_products_gas)
-            # Products: CO2(g), H2O(g), SO2(g)
+            # Basis: Q_comb (LHV) = Sum(Hf_prod) - Hf_coal
+            # => Hf_coal = Sum(Hf_prod) - LHV_d
             H_prod_gas_kJ = (Cd/0.012011)*(-393.51) + \
                             (Hd/0.001008)*0.5*(-241.83) + \
                             (Sd/0.03206)*(-296.81)
             
             Hf_coal_kJ = H_prod_gas_kJ + LHV_d_kJ
-            self.coal_props['Hf_coal'] = Hf_coal_kJ * 1000.0 # J/kg
             self.coal_props['Hf_coal'] = Hf_coal_kJ * 1000.0 # J/kg
             logger.info(f"Consistent Hf_coal: {self.coal_props['Hf_coal']/1e6:.2f} MJ/kg (Basis: LHV_d={LHV_d_kJ/1000.0:.2f} MJ/kg)")
         
@@ -276,11 +274,12 @@ class GasifierSystem:
         # 1. Evaporation Source (distributed over first L_evap to avoid over-cooling Cell 0)
         # Only liquid water (coal moisture + slurry) consumes latent heat.
         F_H2O_liq_mol = (self.tmp_W_liq_evap / 18.015) * 1000.0
-        # Evaporation zone length (m). If 0, all evaporation is in Cell 0 (original behavior; can under-predict T).
+        # Evaporation zone length (m).
         L_evap_m = self.op_conds.get("L_evap_m", 0.0)
         if L_evap_m <= 0.0:
             L_evap_m = 1e-6  # effectively all in first cell
         evap_src = EvaporationSource(
+
             F_H2O_liq_mol,
             enthalpy_per_mol_J=EvaporationSource.H_LIQUID_J_MOL,
             L_evap_m=L_evap_m
@@ -415,24 +414,27 @@ class GasifierSystem:
                         x0[3] += xi_3
                     return x0
 
-                if solver_method == 'jax_newton':
+                if solver_method == "jax_newton":
                     x0_list = [make_cell0_x0(t) for t in guesses_T]
                     best_mult, _ = newton_solve_multistart_numpy(
                         x0_list,
                         func,
                         lower,
                         upper,
-                        t_guesses=guesses_T,
+                        n_iter=40,
+                        damper=0.5,
+                        tol_residual=1e-8
                     )
                     if best_mult is not None and best_mult.success:
                         sol = best_mult
                     else:
                         _mark_fallback()
                         sol = _least_squares_with_optional_jac(func, x0_list[0], (lower, upper))
-                elif solver_method == 'jax_pure':
+                elif solver_method == "jax_pure":
                     # 快路径：只用少量高温初值，减少多初值开销
                     guesses_T_fast = [3000.0, 2000.0, 1500.0]
                     x0_list_try = [make_cell0_x0(t) for t in guesses_T_fast]
+
                     best_mult, _ = newton_solve_multistart_cell_pure_jax_ad(
                         cell,
                         x0_list_try,
