@@ -79,7 +79,8 @@ def run_single_case(name, case_data, n_cells=30):
 
     P = cond.get('pressure_Pa', cond.get('pressure_atm', 1.0) * 101325.0)
 
-    op_conds = {
+    op_conds = cond.copy()
+    op_conds.update({
         'coal_flow': coal_flow,
         'o2_flow': coal_flow * ratio_oc,
         'steam_flow': coal_flow * ratio_sc,
@@ -88,9 +89,13 @@ def run_single_case(name, case_data, n_cells=30):
         'HeatLossPercent': cond.get('heat_loss_percent', 2.0),
         'SlurryConcentration': slurry_conc,
         'AdaptiveFirstCellLength': True,
-        'Combustion_CO2_Fraction': cond.get('Combustion_CO2_Fraction', 0.15),
-        'WGS_CatalyticFactor': cond.get('WGS_CatalyticFactor', 1.5)
-    }
+    })
+    
+    # Ensure backward compatibility for key tuning params
+    if 'Combustion_CO2_Fraction' not in op_conds:
+        op_conds['Combustion_CO2_Fraction'] = 0.15
+    if 'WGS_CatalyticFactor' not in op_conds:
+        op_conds['WGS_CatalyticFactor'] = 1.5
     
     print(f"  [Input Audit] {feed_type:10} | {orig_feedstock:15} | O2/C: {ratio_oc:.3f} | S/C: {ratio_sc:.3f} | Conc: {slurry_conc:4.1f}%")
 

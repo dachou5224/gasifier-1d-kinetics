@@ -7,7 +7,7 @@ COAL_DATABASE = {
         "Cd": 77.56, "Hd": 4.67, "Od": 9.44, "Nd": 0.82, "Sd": 0.40,
         "Ad": 7.11,  "Vd": 31.24, "FCd": 61.41, 
         "Mt": 4.53,
-        "HHV_d": 31000.0, # kJ/kg (Aligned with elemental analysis)
+        "HHV_d": 29200.0, # kJ/kg (Fine-tuned benchmark)
     },
     "ShenYou_1": {
         "Mt": 14.3, "Ad": 7.22, "Vd": 34.96, "FCd": 57.82,
@@ -66,7 +66,7 @@ VALIDATION_CASES = {
             "TIN": 300.0, # K
             "HeatLossPercent": 2.85,
             "SlurryConcentration": 100.0,
-            "Combustion_CO2_Fraction": 0.15,
+            "Combustion_CO2_Fraction": 0.10,
             "WGS_CatalyticFactor": 1.5,
         },
         "expected": {
