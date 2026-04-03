@@ -3,7 +3,7 @@
 
 目的：
 1) 用 `solver_method='minimize'` 得到基线单元解；
-2) 用 `solver_method='jax_newton'` 得到 JAX Newton（当前实现为 NumPy residual + 中心差分 Jacobian）的单元解；
+2) 用 `solver_method='newton_fd'` 得到有限差分 Newton 的单元解；
 3) 打印出口状态向量与 cell0 residuals（缩放后的残差向量），并做差值分析。
 """
 
@@ -96,16 +96,16 @@ def main() -> None:
     print(f"=== 单 Cell0 求解对比：case={args.case} ===")
 
     system_min = _build_system(args.case)
-    results_min, _ = system_min.solve(N_cells=1, solver_method="minimize", use_jax_jacobian=False)
+    results_min, _ = system_min.solve(N_cells=1, solver_method="minimize", jacobian_mode="scipy")
     x_min = np.asarray(results_min[0], dtype=np.float64)
     _print_state_and_residuals(system_min, x_min, "baseline=minimize")
 
     system_jax = _build_system(args.case)
-    results_jax, _ = system_jax.solve(N_cells=1, solver_method="jax_newton", jax_warmup=True)
+    results_jax, _ = system_jax.solve(N_cells=1, solver_method="newton_fd", jacobian_mode="centered_fd", jax_warmup=True)
     x_jax = np.asarray(results_jax[0], dtype=np.float64)
-    _print_state_and_residuals(system_jax, x_jax, "jax_newton")
+    _print_state_and_residuals(system_jax, x_jax, "newton_fd")
 
-    print("\n=== 差值分析（jax_newton - baseline）===")
+    print("\n=== 差值分析（newton_fd - baseline）===")
     print(f"  dT_g   : {x_jax[10] - x_min[10]: .6f} K")
     print(f"  dWs    : {x_jax[8] - x_min[8]: .6e} kg/s")
     print(f"  dXc    : {x_jax[9] - x_min[9]: .6e}")
@@ -116,9 +116,8 @@ def main() -> None:
     # quick ignition heuristic
     print("\n=== 起燃判据（T>1200K）===")
     print(f"  baseline: T={x_min[10]:.2f}K -> {'YES' if x_min[10] > 1200 else 'NO'}")
-    print(f"  jax_newton: T={x_jax[10]:.2f}K -> {'YES' if x_jax[10] > 1200 else 'NO'}")
+    print(f"  newton_fd: T={x_jax[10]:.2f}K -> {'YES' if x_jax[10] > 1200 else 'NO'}")
 
 
 if __name__ == "__main__":
     main()
-

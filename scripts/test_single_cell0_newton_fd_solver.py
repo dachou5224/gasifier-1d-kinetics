@@ -1,11 +1,10 @@
 """
 单 Cell0 求解对比（不使用 pytest）：
 baseline：solver_method='minimize'
-jax_newton：solver_method='jax_newton'
-jax_pure：solver_method='jax_pure'（host float64 残差 + 中心差分 Jacobian，见 jax_solver.newton_solve_cell_pure_jax_ad）
+newton_fd：solver_method='newton_fd'
 
 目的：
-- 快速验证 jax_pure 是否能正常工作
+- 快速验证 newton_fd 是否能正常工作
 - 观察输出状态向量（以及 cell0 residual 的缩放后残差）
 """
 
@@ -90,31 +89,25 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.INFO))
-    print(f"=== 单 Cell0 求解对比（含 jax_pure）：case={args.case} ===")
+    print(f"=== 单 Cell0 求解对比（含 newton_fd）：case={args.case} ===")
 
     system_min = _build_system(args.case)
-    results_min, _ = system_min.solve(N_cells=1, solver_method="minimize", use_jax_jacobian=False)
+    results_min, _ = system_min.solve(N_cells=1, solver_method="minimize", jacobian_mode="scipy")
     x_min = np.asarray(results_min[0], dtype=np.float64)
     _print_state_and_residuals(system_min, x_min, "baseline=minimize")
 
-    system_jax_newton = _build_system(args.case)
-    results_jax_newton, _ = system_jax_newton.solve(N_cells=1, solver_method="jax_newton", jax_warmup=True)
-    x_jax_newton = np.asarray(results_jax_newton[0], dtype=np.float64)
-    _print_state_and_residuals(system_jax_newton, x_jax_newton, "jax_newton")
+    system_fd = _build_system(args.case)
+    results_fd, _ = system_fd.solve(N_cells=1, solver_method="newton_fd", jacobian_mode="centered_fd", jax_warmup=True)
+    x_fd = np.asarray(results_fd[0], dtype=np.float64)
+    _print_state_and_residuals(system_fd, x_fd, "newton_fd")
 
-    system_jax_pure = _build_system(args.case)
-    results_jax_pure, _ = system_jax_pure.solve(N_cells=1, solver_method="jax_pure", jax_warmup=True)
-    x_jax_pure = np.asarray(results_jax_pure[0], dtype=np.float64)
-    _print_state_and_residuals(system_jax_pure, x_jax_pure, "jax_pure")
-
-    print("\n=== 差值分析（jax_pure - baseline）===")
-    print(f"  dT_g : {x_jax_pure[10] - x_min[10]: .6f} K")
-    print(f"  dWs  : {x_jax_pure[8] - x_min[8]: .6e} kg/s")
-    print(f"  dXc  : {x_jax_pure[9] - x_min[9]: .6e}")
+    print("\n=== 差值分析（newton_fd - baseline）===")
+    print(f"  dT_g : {x_fd[10] - x_min[10]: .6f} K")
+    print(f"  dWs  : {x_fd[8] - x_min[8]: .6e} kg/s")
+    print(f"  dXc  : {x_fd[9] - x_min[9]: .6e}")
     for i, sp in enumerate(["O2", "CH4", "CO", "CO2", "H2S", "H2", "N2", "H2O"]):
-        print(f"  d{sp:4}: {x_jax_pure[i] - x_min[i]: .6e} mol/s")
+        print(f"  d{sp:4}: {x_fd[i] - x_min[i]: .6e} mol/s")
 
 
 if __name__ == "__main__":
     main()
-

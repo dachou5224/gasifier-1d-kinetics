@@ -2,8 +2,8 @@
 对比 validation cases 的三种求解路径与 expected KPI 的差值：
 
 1) baseline：solver_method='minimize'（UI 默认）
-2) jax_trf_like：solver_method='minimize' 且 use_jax_jacobian=True（向 least_squares 注入中心差分 Jacobian）
-3) jax_newton：solver_method='jax_newton'
+2) trf_centered_fd：solver_method='minimize' 且 jacobian_mode='centered_fd'
+3) newton_fd：solver_method='newton_fd'
 
 输出：
 - 终端打印每个 case 的 expected KPI 与三种路径的输出 KPI
@@ -112,7 +112,7 @@ def main() -> None:
 
     rows = []
     lines = []
-    lines.append("# expected 对比：minimize vs jax_jac(trf) vs jax_newton")
+    lines.append("# expected 对比：minimize vs minimize(centered_fd) vs newton_fd")
     lines.append("")
     lines.append(f"- N_cells: {args.N_cells}")
     lines.append("")
@@ -127,23 +127,23 @@ def main() -> None:
 
         # 1) baseline minimize
         t0 = time.perf_counter()
-        prof_b, _z = sys0.solve(N_cells=args.N_cells, solver_method="minimize", use_jax_jacobian=False, jax_warmup=False)
+        prof_b, _z = sys0.solve(N_cells=args.N_cells, solver_method="minimize", jacobian_mode="scipy", jax_warmup=False)
         tb = time.perf_counter() - t0
         k_b = _compute_kpis(prof_b)
         d_b = _d_to_expected(k_b, expected)
 
-        # 2) jax_jac(trf) minimize + use_jax_jacobian
+        # 2) trf + centered_fd Jacobian
         sys1, _ = _build_system(case_name)
         t1 = time.perf_counter()
-        prof_jt, _z2 = sys1.solve(N_cells=args.N_cells, solver_method="minimize", use_jax_jacobian=True, jax_warmup=True)
+        prof_jt, _z2 = sys1.solve(N_cells=args.N_cells, solver_method="minimize", jacobian_mode="centered_fd", jax_warmup=True)
         tj = time.perf_counter() - t1
         k_jt = _compute_kpis(prof_jt)
         d_jt = _d_to_expected(k_jt, expected)
 
-        # 3) jax_newton
+        # 3) newton_fd
         sys2, _ = _build_system(case_name)
         t2 = time.perf_counter()
-        prof_n, _z3 = sys2.solve(N_cells=args.N_cells, solver_method="jax_newton", use_jax_jacobian=False, jax_warmup=True)
+        prof_n, _z3 = sys2.solve(N_cells=args.N_cells, solver_method="newton_fd", jacobian_mode="centered_fd", jax_warmup=True)
         tn = time.perf_counter() - t2
         k_n = _compute_kpis(prof_n)
         d_n = _d_to_expected(k_n, expected)
@@ -159,12 +159,12 @@ def main() -> None:
             )
 
         show("minimize", tb, k_b, d_b)
-        show("minimize(use_jax_jacobian=True)", tj, k_jt, d_jt)
-        show("jax_newton", tn, k_n, d_n)
+        show("minimize(centered_fd)", tj, k_jt, d_jt)
+        show("newton_fd", tn, k_n, d_n)
 
         rows.append((case_name, "minimize", tb, k_b, d_b))
-        rows.append((case_name, "minimize+jax_jac", tj, k_jt, d_jt))
-        rows.append((case_name, "jax_newton", tn, k_n, d_n))
+        rows.append((case_name, "minimize+centered_fd", tj, k_jt, d_jt))
+        rows.append((case_name, "newton_fd", tn, k_n, d_n))
 
     for case_name, solver, t_s, k, d in rows:
         lines.append(
@@ -195,4 +195,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

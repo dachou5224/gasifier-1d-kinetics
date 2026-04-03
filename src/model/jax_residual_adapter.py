@@ -56,7 +56,7 @@ def finite_difference_jacobian_centered(
 def make_jacobian_fn(residuals_fn, n_vars: int = 11, centered: bool = True):
     """
     返回 SciPy least_squares 可用的 jac(x) -> (m, n) ndarray。
-    centered=True 时使用中心差分（推荐配合 use_jax_jacobian）。
+    centered=True 时使用中心差分（推荐配合 `jacobian_mode="centered_fd"`）。
     """
 
     def jac(x):

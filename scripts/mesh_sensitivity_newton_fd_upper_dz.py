@@ -2,7 +2,7 @@
 """
 网格敏感性：只研究上部（起燃/点火区）网格步长 IgnitionZoneDz 对出口结果影响。
 
-- 固定 solver_method='jax_pure'
+- 固定 solver_method='newton_fd'
 - 固定 Paper_Case_1 工况其它参数
 - 仅改变 IgnitionZoneDz（MeshConfig.ignition_zone_res）
 """
@@ -78,7 +78,7 @@ def main() -> None:
     args = p.parse_args()
 
     dz_list = [float(x) for x in args.dz_list]
-    print(f"Paper_Case_1, solver_method=jax_pure, N_cells={args.n_cells}")
+    print(f"Paper_Case_1, solver_method=newton_fd, N_cells={args.n_cells}")
     print(f"IgnitionZoneDz list: {dz_list}\n")
 
     baseline_dz = dz_list[len(dz_list) // 2]  # 经验：把中间值当 baseline
@@ -91,7 +91,8 @@ def main() -> None:
         t0 = time.perf_counter()
         prof, _z = sys_g.solve(
             N_cells=args.n_cells,
-            solver_method="jax_pure",
+            solver_method="newton_fd",
+            jacobian_mode="centered_fd",
             jax_warmup=True,
         )
         elapsed = time.perf_counter() - t0
@@ -129,4 +130,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

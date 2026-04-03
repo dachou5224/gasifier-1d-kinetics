@@ -4,10 +4,10 @@ from model.state import StateVector
 from model.physics import calculate_enthalpy, calculate_cp, calculate_gas_density
 from model.physics import MOLAR_MASS
 from model.constants import PhysicalConstants
+from model.species_bridge import MAINLINE_SPECIES_NAMES
 
-# Global Species Order Definition
-# MUST MATCH StateVector comments and Solver logic
-SPECIES_NAMES = ['O2', 'CH4', 'CO', 'CO2', 'H2S', 'H2', 'N2', 'H2O']
+# 全局物种顺序：与 species_bridge.MAINLINE_SPECIES_NAMES / StateVector 一致
+SPECIES_NAMES = list(MAINLINE_SPECIES_NAMES)
 
 class MaterialService:
     """

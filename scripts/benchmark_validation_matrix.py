@@ -12,7 +12,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from run_validation_jax_pure_vs_expected import _build_system, _kpis, VALIDATION_CASES
+from run_validation_newton_fd_vs_expected import _build_system, _kpis, VALIDATION_CASES
 
 
 def _parse_int_list(s: str) -> list[int]:
@@ -23,23 +23,21 @@ def _parse_float_list(s: str) -> list[float]:
     return [float(x.strip()) for x in s.split(",") if x.strip()]
 
 
-def _parse_bool_list(s: str) -> list[bool]:
+def _parse_jacobian_mode_list(s: str) -> list[str]:
     vals = []
     for x in s.split(","):
-        t = x.strip().lower()
-        if t in ("1", "true", "t", "yes", "y"):
-            vals.append(True)
-        elif t in ("0", "false", "f", "no", "n"):
-            vals.append(False)
+        t = x.strip()
+        if t:
+            vals.append(t)
     return vals
 
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--solver-method", type=str, default="jax_newton")
+    p.add_argument("--solver-method", type=str, default="newton_fd")
     p.add_argument("--n-cells-list", type=str, default="20,40")
     p.add_argument("--stretch-list", type=str, default="1.0,1.02,1.06")
-    p.add_argument("--use-jax-jacobian-list", type=str, default="0,1")
+    p.add_argument("--jacobian-mode-list", type=str, default="scipy,centered_fd")
     p.add_argument("--fixed-ignition-length", action="store_true", default=True)
     p.add_argument("--json-out", type=str, default="docs/validation_matrix_report.json")
     p.add_argument("--md-out", type=str, default="docs/validation_matrix_report.md")
@@ -47,18 +45,18 @@ def main() -> None:
 
     n_cells_list = _parse_int_list(args.n_cells_list)
     stretch_list = _parse_float_list(args.stretch_list)
-    jacobian_list = _parse_bool_list(args.use_jax_jacobian_list)
+    jacobian_list = _parse_jacobian_mode_list(args.jacobian_mode_list)
     case_names = sorted(VALIDATION_CASES.keys())
 
     rows = []
     for n_cells in n_cells_list:
         for stretch in stretch_list:
-            for use_jax_jacobian in jacobian_list:
+            for jacobian_mode in jacobian_list:
                 combo = {
                     "solver_method": args.solver_method,
                     "n_cells": n_cells,
                     "stretch": stretch,
-                    "use_jax_jacobian": use_jax_jacobian,
+                    "jacobian_mode": jacobian_mode,
                     "cases": [],
                 }
                 abs_dt_sum = 0.0
@@ -77,7 +75,7 @@ def main() -> None:
                     prof, _ = sys_g.solve(
                         N_cells=n_cells,
                         solver_method=args.solver_method,
-                        use_jax_jacobian=use_jax_jacobian,
+                        jacobian_mode=jacobian_mode,
                         jax_warmup=True,
                     )
                     elapsed = time.perf_counter() - t0
@@ -113,7 +111,7 @@ def main() -> None:
                 "solver_method": args.solver_method,
                 "n_cells_list": n_cells_list,
                 "stretch_list": stretch_list,
-                "use_jax_jacobian_list": jacobian_list,
+                "jacobian_mode_list": jacobian_list,
                 "rows": rows_sorted,
             },
             ensure_ascii=False,
@@ -130,13 +128,13 @@ def main() -> None:
         f"- solver_method: `{args.solver_method}`\n"
         f"- n_cells: `{n_cells_list}`\n"
         f"- stretch: `{stretch_list}`\n"
-        f"- use_jax_jacobian: `{jacobian_list}`\n"
+        f"- jacobian_mode: `{jacobian_list}`\n"
     )
-    lines.append("| rank | n_cells | stretch | use_jax_jacobian | abs_dT_sum | time_sum(s) | fallback | poor_conv |\n")
-    lines.append("|---:|---:|---:|---:|---:|---:|---:|---:|\n")
+    lines.append("| rank | n_cells | stretch | jacobian_mode | abs_dT_sum | time_sum(s) | fallback | poor_conv |\n")
+    lines.append("|---:|---:|---:|---|---:|---:|---:|---:|\n")
     for i, r in enumerate(rows_sorted, 1):
         lines.append(
-            f"| {i} | {r['n_cells']} | {r['stretch']:.2f} | {int(r['use_jax_jacobian'])} | "
+            f"| {i} | {r['n_cells']} | {r['stretch']:.2f} | {r['jacobian_mode']} | "
             f"{r['abs_dT_sum']:.2f} | {r['time_sum_s']:.2f} | {r['fallback_count']} | {r['poor_convergence_count']} |\n"
         )
     md_out.write_text("".join(lines), encoding="utf-8")
@@ -148,11 +146,10 @@ def main() -> None:
         print(
             "BEST:",
             f"n_cells={best['n_cells']}, stretch={best['stretch']:.2f}, "
-            f"use_jax_jacobian={best['use_jax_jacobian']}, abs_dT_sum={best['abs_dT_sum']:.2f}, "
+            f"jacobian_mode={best['jacobian_mode']}, abs_dT_sum={best['abs_dT_sum']:.2f}, "
             f"time_sum={best['time_sum_s']:.2f}",
         )
 
 
 if __name__ == "__main__":
     main()
-

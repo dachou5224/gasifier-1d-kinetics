@@ -12,8 +12,8 @@ class StateVector:
     T: 气相温度 Tg [K]
     T_solid: 固相颗粒温度 Ts [K]，若为 None 则用 T（向后兼容）
     """
-    # Gas Phase (mol/s)
-    # Order: [O2, CH4, CO, CO2, H2S, H2, N2, H2O]
+    # Gas Phase (mol/s)；顺序真源：species_bridge.MAINLINE_SPECIES_NAMES
+    # [O2, CH4, CO, CO2, H2S, H2, N2, H2O]
     gas_moles: np.ndarray 
     
     # Solid Phase

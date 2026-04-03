@@ -2,6 +2,7 @@ import numpy as np
 import logging
 from model.state import StateVector
 from model.material import MaterialService, SPECIES_NAMES
+from model.input_contract import ash_mass_fraction_dry
 from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
 
@@ -42,7 +43,7 @@ class Cell:
         
         # 2. Particle Diameter (Shrinking Core vs Ash skeleton)
         d_p0 = self.op_conds.get('particle_diameter', 100e-6)
-        Ash_d = self.coal_props.get('Ashd', 6.0) / 100.0
+        Ash_d = ash_mass_fraction_dry(self.coal_props)
         Cd_total = self.coal_props.get('Cd', 60.0) / 100.0
         f_ash_coal = Ash_d / (Cd_total + Ash_d + 1e-9)
         d_p = d_p0 * (f_ash_coal + (1.0 - f_ash_coal) * (1.0 - X_total))**(1/3.0)

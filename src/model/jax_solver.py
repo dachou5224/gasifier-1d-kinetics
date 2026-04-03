@@ -1,7 +1,5 @@
 """
-JAX 辅助的 Newton 外层：在 NumPy 残差上配合中心差分 Jacobian 与可选 vmap 多初值。
-
-完整 lax.scan + 可微残差见后续 jax_cell；此处 focus 工程可用性与 fallback。
+JAX 求解器实现 (Phase 4: 统一 9 组分 12 维状态 + 硫平衡修复版)。
 """
 from __future__ import annotations
 
@@ -9,6 +7,39 @@ import logging
 from typing import Callable, List, Optional, Sequence, Tuple
 
 import numpy as np
+from functools import partial
+
+try:
+    import jax
+
+    # 全炉工业工况摩尔流量与焓量级大，float32 易溢出为 NaN；必须在首次 import jax.numpy 前开启
+    jax.config.update("jax_enable_x64", True)
+
+    import jax.numpy as jnp
+    from jax import jit, jacfwd, lax, vmap
+
+    JAX_AVAILABLE = True
+except Exception:
+    jax = None
+    jnp = np
+    JAX_AVAILABLE = False
+
+    def jit(fn=None, **_kwargs):
+        if fn is None:
+            return lambda real_fn: real_fn
+        return fn
+
+    def jacfwd(_fn):
+        raise RuntimeError("JAX is unavailable")
+
+    class _UnavailableLax:
+        def __getattr__(self, _name):
+            raise RuntimeError("JAX is unavailable")
+
+    lax = _UnavailableLax()
+
+    def vmap(_fn):
+        raise RuntimeError("JAX is unavailable")
 
 from .jax_residual_adapter import (
     finite_difference_jacobian_centered,
@@ -16,203 +47,30 @@ from .jax_residual_adapter import (
 )
 from .solver import SolverResult
 
+if JAX_AVAILABLE:
+    from .jax_residuals import (
+        cell_residuals_jax_flat,
+        _calc_particle_temperature_jax,
+        PARTICLE_DENSITY,
+        EF_PARTICLE_TRANSIENT,
+        STEFAN_BOLTZMANN,
+        CONDUT_COEFF,
+        TS_TRANSIENT_NC,
+    )
+
 logger = logging.getLogger(__name__)
 
-# 默认与 GasifierSystem 中 jax_pure 分支一致
 _JAX_PURE_N_VARS = 11
 
 
 def _cell_residual_fn_f64(cell):
-    """cell.residuals 统一在 float64 上求值（与 NewtonSolver / FD 一致）。"""
+    """cell.residuals 统一在 float64 上求值。"""
 
     def residual_fn(x: np.ndarray) -> np.ndarray:
         x = np.asarray(x, dtype=np.float64)
         return np.asarray(cell.residuals(x), dtype=np.float64)
 
     return residual_fn
-
-
-def newton_solve_cell_pure_jax_ad(
-    cell,
-    x0: np.ndarray,
-    lower: np.ndarray,
-    upper: np.ndarray,
-    *,
-    n_iter: int = 60,
-    damper: float = 0.8,
-    tol_residual: float = 1e-8,
-    fd_epsilon: float = 1e-6,
-    reg: float = 1e-8,
-):
-    """
-    solver_method=`jax_pure`：在 **host NumPy** 上对 `cell.residuals` 做中心差分 Jacobian +
-    阻尼 Newton（与 `newton_solve_cell_numpy` / `jax_newton` 内核一致）。
-
-    说明：此前用 `make_cell_residuals_jax` + `jax.jacfwd` 会在每个变量上触发多次 `pure_callback`，
-    壁钟时间往往比「同一 Python 循环里连续算残差」更慢；因此生产路径改为 host FD + `lstsq`。
-
-    自动微分 / 可微残差接口仍保留在 `jax_cell.make_cell_residuals_jax`（测试与后续 jnp 迁移用）。
-    """
-    residual_fn = _cell_residual_fn_f64(cell)
-    sol = newton_solve_cell_numpy(
-        residual_fn,
-        x0,
-        lower,
-        upper,
-        n_iter=n_iter,
-        damper=damper,
-        reg=reg,
-        tol_residual=tol_residual,
-        epsilon=fd_epsilon,
-        jacobian_centered=False,
-    )
-    msg = sol.message.replace("(jax_solver numpy)", "(jax_pure host FD)")
-    return SolverResult(
-        sol.x,
-        sol.success,
-        msg,
-        sol.nit,
-        sol.nfev,
-        cost=sol.cost,
-        njev=sol.njev,
-    )
-
-
-def newton_solve_cell_pure_jax_packed_callback(
-    cell,
-    x0: np.ndarray,
-    lower: np.ndarray,
-    upper: np.ndarray,
-    *,
-    n_iter: int = 60,
-    damper: float = 0.8,
-    tol_residual: float = 1e-8,
-    fd_epsilon: float = 1e-6,
-    reg: float = 1e-8,
-    n_vars: int = _JAX_PURE_N_VARS,
-):
-    """
-    备选路径：每步 **一次** `pure_callback`，在 host 上同时返回 F 与 J（打包为一维向量），
-    再在 JAX 上解 `(J+reg I)Δ=-F`。用于对照/未来 `jit` 化外层；默认生产用 `newton_solve_cell_pure_jax_ad`。
-    """
-    import jax
-    import jax.numpy as jnp
-
-    n = int(n_vars)
-
-    def host_fj(x_flat: np.ndarray) -> np.ndarray:
-        x_np = np.asarray(x_flat, dtype=np.float64)
-        F = np.asarray(cell.residuals(x_np), dtype=np.float64)
-        J = finite_difference_jacobian_centered(
-            _cell_residual_fn_f64(cell),
-            x_np,
-            n_vars=n,
-            epsilon=fd_epsilon,
-        )
-        return np.concatenate([F.ravel(), J.ravel()])
-
-    out_len = n + n * n
-    out_shape = jax.ShapeDtypeStruct((out_len,), jnp.float64)
-    lower_np = np.asarray(lower, dtype=np.float64)
-    upper_np = np.asarray(upper, dtype=np.float64)
-    lower_j = jnp.asarray(lower_np, dtype=jnp.float64)
-    upper_j = jnp.asarray(upper_np, dtype=jnp.float64)
-    x = jnp.asarray(np.asarray(x0, dtype=np.float64), dtype=jnp.float64)
-
-    nfev = 0
-    for k in range(n_iter):
-        x = jnp.clip(x, lower_j, upper_j)
-        packed = jax.pure_callback(host_fj, out_shape, x)
-        F = packed[:n]
-        J = packed[n:].reshape(n, n)
-        nfev += 1 + 2 * n
-        max_res = float(jnp.max(jnp.abs(F)))
-        cost = float(0.5 * jnp.sum(F * F))
-        if max_res < tol_residual:
-            x_np = np.asarray(jax.device_get(x), dtype=np.float64)
-            return SolverResult(
-                x_np,
-                True,
-                f"Converged in {k} iterations (jax_pure packed callback)",
-                k,
-                nfev,
-                cost=cost,
-                njev=k,
-            )
-        A = J + reg * jnp.eye(n, dtype=J.dtype)
-        delta = jnp.linalg.solve(A, -F)
-        x_new = jnp.clip(x + damper * delta, lower_j, upper_j)
-        step = float(jnp.linalg.norm(x_new - x))
-        if step < 1e-14:
-            x_np = np.asarray(jax.device_get(x_new), dtype=np.float64)
-            F2 = np.asarray(cell.residuals(x_np), dtype=np.float64)
-            max_res2 = float(np.max(np.abs(F2)))
-            success = max_res2 < tol_residual
-            return SolverResult(
-                x_np,
-                success,
-                (
-                    f"Stagnation at iter {k} (jax_pure packed callback)"
-                    if success
-                    else f"Stagnation at iter {k} with residual max|F|={max_res2:.3e} (jax_pure packed callback)"
-                ),
-                k,
-                nfev + 1,
-                cost=float(0.5 * np.sum(F2**2)),
-                njev=k + 1,
-            )
-        x = x_new
-
-    x = jnp.clip(x, lower_j, upper_j)
-    x_np = np.asarray(jax.device_get(x), dtype=np.float64)
-    F_final = np.asarray(cell.residuals(x_np), dtype=np.float64)
-    cost = float(0.5 * np.sum(F_final**2))
-    return SolverResult(
-        x_np,
-        False,
-        "Max iterations reached (jax_pure packed callback)",
-        n_iter,
-        nfev,
-        cost=cost,
-        njev=n_iter,
-    )
-
-
-def newton_solve_multistart_cell_pure_jax_ad(
-    cell,
-    x0_list: Sequence[np.ndarray],
-    lower: np.ndarray,
-    upper: np.ndarray,
-    *,
-    n_iter: int = 60,
-    damper: float = 0.8,
-    tol_residual: float = 1e-8,
-    fd_epsilon: float = 1e-6,
-    reg: float = 1e-8,
-    ignited_T_threshold: float = 1200.0,
-    t_guesses: Optional[Sequence[float]] = None,
-):
-    """
-    对同一个 cell 做多初值 jax_pure（host FD Newton），并选最优。
-    """
-    # 复用已有选择策略：success 优先 + 已起燃优先 + cost 最小
-    candidates: List[Tuple[SolverResult, float]] = []
-    for i, x0 in enumerate(x0_list):
-        tg = float(t_guesses[i]) if t_guesses is not None and i < len(t_guesses) else float(x0[10])
-        sol = newton_solve_cell_pure_jax_ad(
-            cell,
-            x0,
-            lower,
-            upper,
-            n_iter=n_iter,
-            damper=damper,
-            tol_residual=tol_residual,
-            fd_epsilon=fd_epsilon,
-            reg=reg,
-        )
-        candidates.append((sol, tg))
-    best = _select_best_multistart(candidates, ignited_T_threshold=ignited_T_threshold)
-    return best, [sol for (sol, _tg) in candidates]
 
 
 def newton_solve_cell_numpy(
@@ -228,9 +86,7 @@ def newton_solve_cell_numpy(
     epsilon: float = 1e-8,
     jacobian_centered: bool = True,
 ) -> SolverResult:
-    """
-    阻尼 Newton（NumPy），Jacobian 为中心差分；线性步用 lstsq 与 NewtonSolver 一致。
-    """
+    """阻尼 Newton（NumPy），作为当前 `newton_fd` 路径的核心实现。"""
     x = np.asarray(x0, dtype=np.float64).copy()
     lower = np.asarray(lower, dtype=np.float64)
     upper = np.asarray(upper, dtype=np.float64)
@@ -253,34 +109,19 @@ def newton_solve_cell_numpy(
                 njev=k,
             )
         if jacobian_centered:
-            J = finite_difference_jacobian_centered(
-                residual_fn, x, n_vars=n, epsilon=epsilon
-            )
+            J = finite_difference_jacobian_centered(residual_fn, x, n_vars=n, epsilon=epsilon)
         else:
-            J = finite_difference_jacobian_forward(
-                residual_fn, x, n_vars=n, epsilon=epsilon
-            )
+            J = finite_difference_jacobian_forward(residual_fn, x, n_vars=n, epsilon=epsilon)
         try:
-            # 对齐 NewtonSolver：解 J * delta = -F（用 lstsq 处理奇异/病态）
-            # reg 主要用于极端病态时的后备策略
             delta, _, _, _ = np.linalg.lstsq(J, -F, rcond=None)
         except np.linalg.LinAlgError:
             if reg > 0.0:
-                # 后备：用正则化法方程做一次稳定求解
                 JTJ = J.T @ J
                 rhs = -J.T @ F
                 delta, _, _, _ = np.linalg.lstsq(JTJ + reg * np.eye(n), rhs, rcond=None)
             else:
-                return SolverResult(
-                    x,
-                    False,
-                    f"Singular Jacobian at iter {k}",
-                    k,
-                    nfev,
-                    cost=cost,
-                    njev=k,
-                )
-        nfev += 2 * n  # centered: 2 evals per column, counted approximately in njev as 1
+                return SolverResult(x, False, f"Singular Jacobian at iter {k}", k, nfev, cost=cost, njev=k)
+        nfev += 2 * n
         x_new = np.clip(x + damper * delta, lower, upper)
         if np.linalg.norm(x_new - x) < 1e-14:
             F_new = np.asarray(residual_fn(x_new), dtype=np.float64)
@@ -288,15 +129,7 @@ def newton_solve_cell_numpy(
             max_res_new = float(np.max(np.abs(F_new)))
             cost_new = float(0.5 * np.sum(F_new**2))
             if max_res_new < tol_residual:
-                return SolverResult(
-                    x_new,
-                    True,
-                    f"Stagnation at iter {k}",
-                    k,
-                    nfev,
-                    cost=cost_new,
-                    njev=k + 1,
-                )
+                return SolverResult(x_new, True, f"Stagnation at iter {k}", k, nfev, cost=cost_new, njev=k + 1)
             return SolverResult(
                 x_new,
                 False,
@@ -311,22 +144,13 @@ def newton_solve_cell_numpy(
     F_final = np.asarray(residual_fn(x), dtype=np.float64)
     nfev += 1
     cost = float(0.5 * np.sum(F_final**2))
-    return SolverResult(
-        x,
-        False,
-        "Max iterations reached (jax_solver numpy)",
-        n_iter,
-        nfev,
-        cost=cost,
-        njev=n_iter,
-    )
+    return SolverResult(x, False, "Max iterations reached (jax_solver numpy)", n_iter, nfev, cost=cost, njev=n_iter)
 
 
 def _select_best_multistart(
     candidates: Sequence[Tuple[SolverResult, float]],
     ignited_T_threshold: float = 1200.0,
 ) -> Optional[SolverResult]:
-    """与 gasifier_system Cell0 逻辑对齐：优先已起燃，其次 cost，略高温度优先。"""
     best: Optional[SolverResult] = None
     best_cost = 1e30
     best_success = False
@@ -341,13 +165,11 @@ def _select_best_multistart(
             continue
         best_ignited = float(best.x[10]) > ignited_T_threshold
         sol_success = bool(sol.success)
-        # 1) 总体优先 success=true
         if sol_success and not best_success:
             best = sol
             best_cost = sol.cost
             best_success = sol_success
             continue
-        # 2) 同 success 状态下：优先已起燃，再比 cost
         if is_ignited and not best_ignited:
             best = sol
             best_cost = sol.cost
@@ -376,9 +198,6 @@ def newton_solve_multistart_numpy(
     ignited_T_threshold: float = 1200.0,
     t_guesses: Optional[Sequence[float]] = None,
 ) -> Tuple[Optional[SolverResult], List[SolverResult]]:
-    """
-    对多个初值顺序求解并选最优。返回 (best, all_results)。
-    """
     results: List[SolverResult] = []
     meta: List[Tuple[SolverResult, float]] = []
     for i, x0 in enumerate(x0_list):
@@ -401,76 +220,222 @@ def newton_solve_multistart_numpy(
     return best, results
 
 
-def newton_solve_cell_lax_scan(
-    residual_fn: Callable[[np.ndarray], np.ndarray],
+def newton_solve_cell_pure_jax_ad(
+    cell,
     x0: np.ndarray,
     lower: np.ndarray,
     upper: np.ndarray,
     *,
-    n_iter: int = 100,
+    n_iter: int = 60,
     damper: float = 0.8,
-    reg: float = 1e-10,
-    tol_residual: float = 1e-9,
-    epsilon: float = 1e-8,
-) -> SolverResult:
-    """
-    lax.scan 包装的阻尼 Newton：每步在 host 上算 F 与中心差分 J（与纯 NumPy 路径一致）。
-    用于验证 XLA 外层 + pure_callback 组合；默认求解仍用 newton_solve_cell_numpy。
-    """
-    import jax
-    import jax.numpy as jnp
-    from jax import lax
+    tol_residual: float = 1e-8,
+    fd_epsilon: float = 1e-6,
+    reg: float = 1e-8,
+):
+    residual_fn = _cell_residual_fn_f64(cell)
+    sol = newton_solve_cell_numpy(
+        residual_fn,
+        x0,
+        lower,
+        upper,
+        n_iter=n_iter,
+        damper=damper,
+        reg=reg,
+        tol_residual=tol_residual,
+        epsilon=fd_epsilon,
+        jacobian_centered=False,
+    )
+    msg = sol.message.replace("(jax_solver numpy)", "(newton_fd host FD)")
+    return SolverResult(sol.x, sol.success, msg, sol.nit, sol.nfev, cost=sol.cost, njev=sol.njev)
 
-    lower_np = np.asarray(lower, dtype=np.float64)
-    upper_np = np.asarray(upper, dtype=np.float64)
-    x0 = np.asarray(x0, dtype=np.float64)
-    n = x0.shape[0]
 
-    def host_step(x_flat: np.ndarray) -> np.ndarray:
-        x_np = np.asarray(x_flat, dtype=np.float64)
-        F = np.asarray(residual_fn(x_np), dtype=np.float64)
-        J = finite_difference_jacobian_centered(
-            residual_fn, x_np, n_vars=n, epsilon=epsilon
+def newton_solve_multistart_cell_pure_jax_ad(
+    cell,
+    x0_list: Sequence[np.ndarray],
+    lower: np.ndarray,
+    upper: np.ndarray,
+    *,
+    n_iter: int = 60,
+    damper: float = 0.8,
+    tol_residual: float = 1e-8,
+    fd_epsilon: float = 1e-6,
+    reg: float = 1e-8,
+    ignited_T_threshold: float = 1200.0,
+    t_guesses: Optional[Sequence[float]] = None,
+):
+    candidates: List[Tuple[SolverResult, float]] = []
+    for i, x0 in enumerate(x0_list):
+        tg = float(t_guesses[i]) if t_guesses is not None and i < len(t_guesses) else float(x0[10])
+        sol = newton_solve_cell_pure_jax_ad(
+            cell,
+            x0,
+            lower,
+            upper,
+            n_iter=n_iter,
+            damper=damper,
+            tol_residual=tol_residual,
+            fd_epsilon=fd_epsilon,
+            reg=reg,
         )
-        # 对齐 NewtonSolver：解 J * delta = -F
-        delta, _, _, _ = np.linalg.lstsq(J, -F, rcond=None)
-        x_new = np.clip(x_np + damper * delta, lower_np, upper_np)
-        mx = float(np.max(np.abs(F)))
-        return np.concatenate([x_new, np.array([mx], dtype=np.float64)])
+        candidates.append((sol, tg))
+    best = _select_best_multistart(candidates, ignited_T_threshold=ignited_T_threshold)
+    return best, [sol for (sol, _tg) in candidates]
 
-    def body(carry, _):
-        out = jax.pure_callback(
-            host_step,
-            jax.ShapeDtypeStruct((n + 1,), jnp.float64),
-            carry,
-        )
-        return out[:n], out[n]
+def _newton_loop_12(res_fn, x0, n_iter, damper, tol, reg):
+    jac_fn = jacfwd(res_fn)
+    lower = jnp.concatenate([jnp.zeros(11), jnp.array([300.0])])
+    upper = jnp.concatenate([jnp.ones(9)*1e6, jnp.array([1e6, 1.0, 4000.0])])
+    
+    def body_fn(carry, _):
+        x, _, converged = carry
+        F = res_fn(x); J = jac_fn(x)
+        J_reg = J + reg * jnp.eye(12)
+        delta = jnp.linalg.solve(J_reg, -F)
+        x_new = jnp.clip(x + damper * delta, lower, upper)
+        max_res = jnp.max(jnp.abs(F))
+        return (x_new, max_res, max_res < tol), max_res
 
-    x0_j = jnp.asarray(x0, dtype=jnp.float64)
-    x_final, _mx_stack = lax.scan(body, x0_j, None, length=n_iter)
-    x_out = np.asarray(jax.device_get(x_final), dtype=np.float64)
-    F = np.asarray(residual_fn(x_out), dtype=np.float64)
-    mx = float(np.max(np.abs(F)))
-    cost = float(0.5 * np.sum(F**2))
-    success = mx < tol_residual
-    return SolverResult(
-        x_out,
-        success,
-        "lax_scan newton (jax_solver)",
-        n_iter,
-        n_iter * (1 + 2 * n),
-        cost=cost,
-        njev=n_iter,
+    initial_carry = (x0, 1e10, False)
+    (x_final, final_res, converged), _ = lax.scan(body_fn, initial_carry, None, length=n_iter)
+    return x_final, converged, final_res
+
+def _solve_vmap_12(res_fn, x0_list, n_iter, damper, tol, reg):
+    def solve_one(x):
+        return _newton_loop_12(res_fn, x, n_iter, damper, tol, reg)
+
+    x_sols, converged, res_norms = vmap(solve_one)(x0_list)
+    T_vals = x_sols[:, 11]
+    # 气化炉物理：优先「已点燃」支路（T>1200）中残差最小者；避免冷态假收敛因残差更小胜出
+    ignited = T_vals > 1200.0
+    score = jnp.where(ignited, res_norms, 1e6 + res_norms)
+    best_idx = jnp.argmin(score)
+    return x_sols[best_idx], converged[best_idx], res_norms[best_idx]
+
+
+def _solve_cell0_preferring_seed(res_fn, cell0_guesses, n_iter, damper, tol, reg):
+    """
+    首格优先使用 minimize 派生 seed（若调用方已将其放在 guesses[0]）；
+    仅当该 seed 未收敛时，才回退到多起点扫描。
+    """
+    seed_sol, seed_conv, seed_res = _newton_loop_12(res_fn, cell0_guesses[0], n_iter, damper, tol, reg)
+    multi_sol, multi_conv, multi_res = _solve_vmap_12(res_fn, cell0_guesses, n_iter, damper, tol, reg)
+    use_seed = seed_conv | (seed_res <= multi_res + 1e-12)
+    return (
+        jnp.where(use_seed, seed_sol, multi_sol),
+        jnp.where(use_seed, seed_conv, multi_conv),
+        jnp.where(use_seed, seed_res, multi_res),
     )
 
+@jit
+def reactor_solve_v4(
+    inlet_12,
+    dz_list,
+    g_src_9_list,
+    s_src_list,
+    e_src_list,
+    mesh_z,
+    A,
+    cell0_guesses,
+    P,
+    C_fed,
+    coal_flow,
+    d_p0,
+    eps,
+    hl_pct,
+    L,
+    char_comb,
+    wgs_cat,
+    c_co2,
+    p_o2_c,
+    hl_norm,
+    heat_loss_ref_temp,
+    hf,
+    cp,
+    hhv,
+    ts_in_0,
+    f_ash,
+    ref_f,
+    ref_e,
+    xc0,
+    f_s_coal,
+):
+    def scan_body(carry, inputs):
+        prev_x, prev_ts = carry
+        dz, g9, s, e, z, idx = inputs
+        def res_fn(x):
+            return cell_residuals_jax_flat(
+                x,
+                prev_x,
+                g9,
+                s,
+                e,
+                dz,
+                A,
+                P,
+                C_fed,
+                prev_ts,
+                coal_flow,
+                d_p0,
+                eps,
+                hl_pct,
+                L,
+                char_comb,
+                wgs_cat,
+                c_co2,
+                p_o2_c,
+                hl_norm,
+                heat_loss_ref_temp,
+                hf,
+                cp,
+                hhv,
+                f_ash,
+                ref_f,
+                ref_e,
+                xc0,
+                f_s_coal,
+            )
+        # reg：略增大以减轻病态 J 导致 jnp.linalg.solve 出 NaN（工业大流量工况）
+        x_sol, conv, _ = lax.cond(
+            idx == 0,
+            lambda _: _solve_cell0_preferring_seed(res_fn, cell0_guesses, 80, 0.8, 1e-8, 1e-8),
+            lambda _: _newton_loop_12(res_fn, prev_x, 80, 0.8, 1e-8, 1e-8),
+            None,
+        )
+        # 下一格入口颗粒温度：与残差内 ``_calc_particle_temperature_jax`` 同一模型，避免 march 与残差不一致
+        F = jnp.maximum(jnp.sum(x_sol[:9]), 1e-9)
+        v = (F * 8.314 * x_sol[11]) / (P * A * eps + 1e-9)
+        tau = dz / jnp.maximum(v, 0.1)
+        Xt = jnp.clip(1.0 - (x_sol[9] * x_sol[10] / (C_fed + 1e-12)), 0.0, 1.0)
+        dp = d_p0 * (f_ash + (1.0 - f_ash) * (1.0 - Xt)) ** (1 / 3.0)
+        _, Ts_out = _calc_particle_temperature_jax(
+            x_sol[11],
+            prev_ts,
+            tau,
+            dp,
+            PARTICLE_DENSITY,
+            cp,
+            EF_PARTICLE_TRANSIENT,
+            STEFAN_BOLTZMANN,
+            CONDUT_COEFF,
+            nc=TS_TRANSIENT_NC,
+        )
+        return (x_sol, Ts_out), x_sol
+
+    return lax.scan(scan_body, (inlet_12, ts_in_0), (dz_list, g_src_9_list, s_src_list, e_src_list, mesh_z, jnp.arange(dz_list.shape[0])))[1]
+
+def jax_solve_cell_bridge(cell, x0, lower, upper, x0_list=None, **kwargs):
+    if x0_list:
+        best, _ = newton_solve_multistart_cell_pure_jax_ad(cell, x0_list, lower, upper, **kwargs)
+        if best is not None:
+            return best
+    return newton_solve_cell_pure_jax_ad(cell, x0, lower, upper, **kwargs)
 
 def warmup_jax() -> None:
-    """触发 JAX 导入与一次轻量计算，摊销首次编译。"""
     try:
         import jax
+        jax.config.update("jax_enable_x64", True)
         import jax.numpy as jnp
-
         jax.numpy.ones((2, 2))
-        _ = jnp.sum(jnp.arange(4.0).reshape(2, 2))
+        _ = jnp.sum(jnp.arange(4.0, dtype=jnp.float64).reshape(2, 2))
     except Exception as e:
         logger.debug("JAX warmup skipped: %s", e)

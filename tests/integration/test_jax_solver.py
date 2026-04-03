@@ -8,23 +8,19 @@ import sys
 
 import numpy as np
 import pytest
+import warnings
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
 
 from model.chemistry import COAL_DATABASE
 from model.gasifier_system import GasifierSystem
+from model.validation_loader import load_case_from_repo
 
 logging.basicConfig(level=logging.ERROR)
 
 
 def _load_case(case_name: str):
-    json_path = os.path.join(os.path.dirname(__file__), "../../data/validation_cases.json")
-    with open(json_path, "r") as f:
-        config = json.load(f)
-    if "cases" in config and case_name in config["cases"]:
-        return config["cases"][case_name]
-    from model.chemistry import VALIDATION_CASES
-    return VALIDATION_CASES[case_name]
+    return load_case_from_repo(case_name)
 
 
 def _build_system(case_name: str) -> GasifierSystem:
@@ -57,31 +53,22 @@ def _build_system(case_name: str) -> GasifierSystem:
 
 def test_jax_jacobian_matches_baseline_minimize():
     sys_b = _build_system("Paper_Case_6")
-    res_base, z_b = sys_b.solve(N_cells=20, solver_method="minimize", use_jax_jacobian=False)
+    res_base, z_b = sys_b.solve(N_cells=20, solver_method="minimize", jacobian_mode="scipy")
     sys_j = _build_system("Paper_Case_6")
-    res_j, z_j = sys_j.solve(N_cells=20, solver_method="minimize", use_jax_jacobian=True)
+    res_j, z_j = sys_j.solve(N_cells=20, solver_method="minimize", jacobian_mode="centered_fd")
     assert z_b.shape == z_j.shape
     assert np.max(np.abs(res_base[:, 10] - res_j[:, 10])) < 5.0
     assert np.max(np.abs(res_base[:, :8] - res_j[:, :8])) < 0.15
 
 
-def test_jax_pure_reasonable_vs_minimize():
-    """jax_pure（host FD Newton）应与 minimize 全炉温度/流量同量级。"""
+def test_newton_fd_reasonable_vs_minimize():
+    """newton_fd 应与 minimize 全炉温度/流量同量级。"""
     sys_m = _build_system("Paper_Case_6")
-    res_m, _ = sys_m.solve(N_cells=20, solver_method="minimize", use_jax_jacobian=False)
+    res_m, _ = sys_m.solve(N_cells=20, solver_method="minimize", jacobian_mode="scipy")
     sys_p = _build_system("Paper_Case_6")
-    res_p, _ = sys_p.solve(N_cells=20, solver_method="jax_pure", jax_warmup=True)
+    res_p, _ = sys_p.solve(N_cells=20, solver_method="newton_fd", jacobian_mode="centered_fd", jax_warmup=True)
     assert np.max(np.abs(res_m[:, 10] - res_p[:, 10])) < 20.0
     assert np.max(np.abs(res_m[:, :8] - res_p[:, :8])) < 0.6
-
-
-def test_jax_newton_reasonable_vs_minimize():
-    sys_m = _build_system("Paper_Case_6")
-    res_m, _ = sys_m.solve(N_cells=20, solver_method="minimize", use_jax_jacobian=False)
-    sys_x = _build_system("Paper_Case_6")
-    res_x, _ = sys_x.solve(N_cells=20, solver_method="jax_newton", jax_warmup=True)
-    assert np.max(np.abs(res_m[:, 10] - res_x[:, 10])) < 15.0
-    assert np.max(np.abs(res_m[:, :8] - res_x[:, :8])) < 0.5
 
 
 def test_jax_kinetics_wgs_matches_numpy():
@@ -101,14 +88,14 @@ def test_jax_cell_residuals_jacfwd_matches_fd():
     验证 `jax.jacfwd`（custom_jvp 提供 JVP）与基于 `cell.residuals` 的中心差分 Jacobian 一致性。
     只跑 N_cells=1 保持测试开销可控。
     """
-    import jax
-    import jax.numpy as jnp
+    jax = pytest.importorskip("jax")
+    jnp = pytest.importorskip("jax.numpy")
 
     from model.jax_cell import make_cell_residuals_jax
 
     sys = _build_system("Paper_Case_6")
     # 先用原 solve 得到一个收敛的 cell 状态（避免在未收敛区域比较导数误差）。
-    res, _ = sys.solve(N_cells=1, solver_method="minimize", use_jax_jacobian=False)
+    res, _ = sys.solve(N_cells=1, solver_method="minimize", jacobian_mode="scipy")
     cell = sys.cells[0]
 
     x0 = np.asarray(res[0], dtype=np.float64)
@@ -138,3 +125,21 @@ def test_jax_cell_residuals_jacfwd_matches_fd():
     # 允许一定误差（导数本就对扰动步长敏感）
     max_abs_diff = float(np.max(np.abs(J_jax - J_fd)))
     assert max_abs_diff < 5e-2
+
+
+def test_legacy_solver_aliases_emit_deprecation_warning():
+    sys_old = _build_system("Paper_Case_6")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        res_old, _ = sys_old.solve(N_cells=1, solver_method="jax_newton", jax_warmup=False)
+    assert res_old.shape[1] == 11
+    assert any("已弃用" in str(w.message) for w in caught)
+
+
+def test_use_jax_jacobian_emits_deprecation_warning():
+    sys_old = _build_system("Paper_Case_6")
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        res_old, _ = sys_old.solve(N_cells=1, solver_method="minimize", use_jax_jacobian=True, jax_warmup=False)
+    assert res_old.shape[1] == 11
+    assert any("use_jax_jacobian" in str(w.message) for w in caught)

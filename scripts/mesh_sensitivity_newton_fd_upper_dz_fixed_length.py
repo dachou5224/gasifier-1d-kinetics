@@ -100,7 +100,7 @@ def main() -> None:
     target_total = cell0_len + fine_cells_count * dz_ref
 
     print(
-        f"Paper_Case_1, solver_method=jax_pure, N_cells={args.n_cells}\n"
+        f"Paper_Case_1, solver_method=newton_fd, N_cells={args.n_cells}\n"
         f"固定点火区总物理长度：IgnitionZoneTotalLength={target_total:.4f} m\n"
         f"引用 dz_ref={dz_ref:.4f} m，cell0_len={cell0_len:.4f} m，fine_cells_count={fine_cells_count}\n"
         f"IgnitionZoneDz list: {args.dz_list}\n"
@@ -118,7 +118,8 @@ def main() -> None:
         t0 = time.perf_counter()
         prof, _z = sys_g.solve(
             N_cells=args.n_cells,
-            solver_method="jax_pure",
+            solver_method="newton_fd",
+            jacobian_mode="centered_fd",
             jax_warmup=True,
         )
         elapsed = time.perf_counter() - t0
@@ -155,4 +156,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

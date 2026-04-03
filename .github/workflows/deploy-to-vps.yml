@@ -54,6 +54,15 @@ jobs:
             git pull --ff-only origin main
             echo "Current commit: $(git rev-parse --short HEAD)"
 
+            echo "Installing requirements for precompile"
+            if [ -f ".venv/bin/activate" ]; then
+              . .venv/bin/activate
+            fi
+            python -m pip install --upgrade pip
+            python -m pip install -r requirements.txt
+            echo "Running jax precompile"
+            JAX_ENABLE_X64=1 python scripts/precompile_jax_solver.py --cases Paper_Case_6 Texaco_I-2 --n-cells 20
+
             # 可选：例如重启服务、重建容器等
             POST_CMD="${{ secrets.VPS_POST_DEPLOY_CMD }}"
             if [ -n "$POST_CMD" ]; then

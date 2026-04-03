@@ -114,7 +114,7 @@ def run_single_case(name, case_data, n_cells=30):
     try:
         system = GasifierSystem(geometry, coal_props, op_conds)
         start_t = time.time()
-        profile, info = system.solve(N_cells=n_cells, solver_method='jax_pure')
+        profile, info = system.solve(N_cells=n_cells, solver_method='newton_fd', jacobian_mode='centered_fd')
         res["time"] = time.time() - start_t
         last = profile[-1]
         res["T_out"] = last[10] - 273.15
