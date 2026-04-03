@@ -4,11 +4,13 @@ import os
 import sys
 import numpy as np
 import logging
+import json
 
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from model.gasifier_system import GasifierSystem
+from model.validation_loader import get_validation_cases_final_path, iter_validation_cases_final, normalize_final_case_to_legacy
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -20,10 +22,13 @@ class TestValidationCases(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        # Load JSON
-        json_path = os.path.join(os.path.dirname(__file__), '../../data/validation_cases.json')
-        with open(json_path, 'r') as f:
-            cls.config = json.load(f)
+        json_path = get_validation_cases_final_path()
+        with open(json_path, 'r', encoding='utf-8') as f:
+            raw = json.load(f)
+        cases = {}
+        for name, case_data in iter_validation_cases_final(raw):
+            cases[name] = normalize_final_case_to_legacy(name, case_data)
+        cls.config = {"cases": cases}
             
         # Use Centralized Coal Database
         cls.coals = COAL_DATABASE

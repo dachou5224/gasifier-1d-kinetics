@@ -52,8 +52,8 @@ INDUSTRIAL_CASES = {
     },
 }
 
-# 仅使用已完成 jax_pure 验证的工况集合（对应 validation_jax_pure_* 报告）
-JAX_PURE_VALIDATED_CASE_KEYS = [
+# 仅使用已完成有限差分/newton_fd 验证的工况集合
+NEWTON_FD_VALIDATED_CASE_KEYS = [
     "Paper_Case_6",
     "Paper_Case_1",
     "Paper_Case_2",
@@ -91,15 +91,15 @@ def run():
         *   **寻找极端点**：气化炉空间的一大看点是“火焰锋面”。计算完毕后请留意右侧的主图。图上**温度曲线的最高峰**通常对应着氧气($O_2$)浓度被彻底耗尽的位置（即气相氧化区结束，转入吸热气化区的拐点）。通过调整炉长或氧煤比，你能观测到这个驻点在管道内的推移！
         """)
 
-    # 预设工况：默认展示 jax_pure 已验证集合，避免混入其他来源参数口径
+    # 预设工况：默认展示 newton_fd 已验证集合，避免混入其他来源参数口径
     show_all_templates = st.toggle(
-        "显示全部模板（超出 jax_pure 已验证集合）",
+        "显示全部模板（超出 newton_fd 已验证集合）",
         value=False,
-        help="默认只显示已做 jax_pure 验证的工况；打开后显示全部 VALIDATION_CASES 与工业模板。",
+        help="默认只显示已做 newton_fd 验证的工况；打开后显示全部 VALIDATION_CASES 与工业模板。",
     )
 
     all_case_names = list(dict.fromkeys(list(VALIDATION_CASES.keys()) + list(INDUSTRIAL_CASES.keys())))
-    curated_case_names = [k for k in JAX_PURE_VALIDATED_CASE_KEYS if (k in VALIDATION_CASES or k in INDUSTRIAL_CASES)]
+    curated_case_names = [k for k in NEWTON_FD_VALIDATED_CASE_KEYS if (k in VALIDATION_CASES or k in INDUSTRIAL_CASES)]
     preset_pool = all_case_names if show_all_templates else curated_case_names
     preset_names = ["自定义"] + preset_pool
 
@@ -120,7 +120,7 @@ def run():
 
         with st.container(border=True):
             st.markdown("#### 📂 步骤 1. 选择参考模板")
-            st.caption("默认仅显示已做 jax_pure 验证的模板；可切换“显示全部模板”。")
+            st.caption("默认仅显示已做 newton_fd 验证的模板；可切换“显示全部模板”。")
             case_name = st.selectbox("选择工况:", preset_names, label_visibility="collapsed")
             case = _get_case(case_name) if case_name != "自定义" else None
 
@@ -162,11 +162,11 @@ def run():
         st.markdown("#### 🎛️ 步骤 2. 核心操纵杆")
         st.session_state.solver_method_k = st.selectbox(
             "求解器",
-            options=["jax_pure", "jax_newton", "newton", "minimize"],
-            index=["jax_pure", "jax_newton", "newton", "minimize"].index(
-                st.session_state.get("solver_method_k", "jax_pure")
+            options=["newton_fd", "minimize", "jax_jit"],
+            index=["newton_fd", "minimize", "jax_jit"].index(
+                st.session_state.get("solver_method_k", "newton_fd")
             ),
-            help="默认 jax_pure：host FD Jacobian + 阻尼 Newton，速度更优；其余模式用于对照。",
+            help="默认 newton_fd：有限差分 Jacobian + 阻尼 Newton；minimize 用于稳健基线对照；jax_jit 为新的全 JAX/JIT 路径。",
         )
         st.caption("验证工况参数来自 model.chemistry.VALIDATION_CASES（含最新 O/C 复标定）。")
 
@@ -229,7 +229,7 @@ def run():
                 "WGS_CatalyticFactor": st.session_state.get("WGS_CatalyticFactor_k", 1.5),
             }
             N_cells = st.session_state.get("N_cells_k", 40)
-            solver_method = st.session_state.get("solver_method_k", "jax_pure")
+            solver_method = st.session_state.get("solver_method_k", "newton_fd")
 
             try:
                 system = GasifierSystem(geometry, coal_props, op_conds)
@@ -237,7 +237,7 @@ def run():
                     results_arr, z = system.solve(
                         N_cells=N_cells,
                         solver_method=solver_method,
-                        use_jax_jacobian=(solver_method == "jax_newton"),
+                        jacobian_mode=("centered_fd" if solver_method == "newton_fd" else "scipy"),
                         jax_warmup=True,
                     )
 

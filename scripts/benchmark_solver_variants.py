@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-固化基准：同一工况下对比 solver_method=newton / jax_pure / jax_newton 的壁钟时间与出口 KPI。
+固化基准：同一工况下对比 solver_method=minimize / newton_fd / jax_jit 的壁钟时间与出口 KPI。
 
 示例：
-  PYTHONPATH=src python3 scripts/benchmark_jax_pure_solvers.py --case Paper_Case_1 --n-cells 10 20
+  PYTHONPATH=src python3 scripts/benchmark_solver_variants.py --case Paper_Case_1 --n-cells 10 20
 """
 from __future__ import annotations
 
@@ -68,10 +68,15 @@ def main() -> None:
 
     for n in args.n_cells:
         print(f"\n=== N_cells={n} ===")
-        for method in ("newton", "jax_pure", "jax_newton"):
+        for method in ("minimize", "newton_fd", "jax_jit"):
             sys_g = _build(args.case)
             t0 = time.perf_counter()
-            prof, _z = sys_g.solve(N_cells=n, solver_method=method, jax_warmup=True)
+            solve_kwargs = {"solver_method": method, "jax_warmup": True}
+            if method == "minimize":
+                solve_kwargs["jacobian_mode"] = "scipy"
+            elif method == "newton_fd":
+                solve_kwargs["jacobian_mode"] = "centered_fd"
+            prof, _z = sys_g.solve(N_cells=n, **solve_kwargs)
             elapsed = time.perf_counter() - t0
             k = _kpis(prof)
             print(f"{method:10} time(s) {elapsed:.4f}  kpi {k}")

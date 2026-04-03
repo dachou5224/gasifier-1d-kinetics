@@ -1,6 +1,6 @@
 # `cell.residuals` 纯 jnp 化路线图（阶段 C）
 
-目标：让热路径可在 JAX/XLA 上 trace，从而支持 `jit`/`vmap`、GPU 与更少 Python 开销。当前生产路径 `solver_method=jax_pure` 已改为 **host float64 残差 + 中心差分 Jacobian**（见 `jax_solver.newton_solve_cell_pure_jax_ad`），本文件描述后续迁移优先级。
+目标：让热路径可在 JAX/XLA 上 trace，从而支持 `jit`/`vmap`、GPU 与更少 Python 开销。当前生产路径 `solver_method=newton_fd` 仍是 **host float64 残差 + 中心差分 Jacobian** 的 CPU 路线，本文件描述后续向真正 `jax_jit` 热路径迁移的优先级。
 
 ## 优先级（建议顺序）
 
@@ -20,7 +20,7 @@
 
 - **M1**：单测覆盖「同一 `x` 下 NumPy 残差 vs jnp 残差」`max|Δ| < tol`（按分量缩放）。
 - **M2**：`make_cell_residuals_jax` 改为真实 `jacfwd`（无 custom 数值 JVP）在代表性状态上可用。
-- **M3**：整炉 `jax_pure` 或新开关 `jax_jit_cell` 端到端计时不低于当前 host FD（在 CPU 上至少不更慢）。
+- **M3**：整炉 `jax_jit` 或新开关 `jax_jit_cell` 端到端计时不低于当前 `newton_fd` host FD 路线（在 CPU 上至少不更慢）。
 
 ## 非目标（短期内）
 

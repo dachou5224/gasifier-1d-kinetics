@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-使用当前 solver_method=jax_pure 配置，对 VALIDATION_CASES 中全部工况求解，
+使用当前 solver_method=newton_fd 配置，对 VALIDATION_CASES 中全部工况求解，
 并将出口干基 KPI 与 case['expected'] 对比（不与 newton 对比）。
 
 示例：
-  PYTHONPATH=src python3 scripts/run_validation_jax_pure_vs_expected.py --n-cells 20
+  PYTHONPATH=src python3 scripts/run_validation_newton_fd_vs_expected.py --n-cells 20
 """
 from __future__ import annotations
 
@@ -138,7 +138,7 @@ def main() -> None:
 
     case_names = sorted(VALIDATION_CASES.keys())
     print(
-        f"solver_method=jax_pure, N_cells={args.n_cells}, "
+        f"solver_method=newton_fd, N_cells={args.n_cells}, "
         f"fixed_ignition_length={args.fixed_ignition_length}, cases={len(case_names)}"
         f"{', ignition_zone_dz='+str(args.ignition_zone_dz) if args.ignition_zone_dz is not None else ''}"
         f"{', stretch='+str(args.ignition_zone_stretch_ratio) if args.ignition_zone_stretch_ratio is not None else ''}\n"
@@ -157,7 +157,8 @@ def main() -> None:
         t0 = time.perf_counter()
         prof, _z = sys_g.solve(
             N_cells=args.n_cells,
-            solver_method="jax_pure",
+            solver_method="newton_fd",
+            jacobian_mode="centered_fd",
             jax_warmup=True,
         )
         elapsed = time.perf_counter() - t0
@@ -213,7 +214,7 @@ def main() -> None:
         out = Path(args.json_out)
         out.parent.mkdir(parents=True, exist_ok=True)
         payload = {
-            "solver_method": "jax_pure",
+            "solver_method": "newton_fd",
             "n_cells": args.n_cells,
             "fixed_ignition_length": args.fixed_ignition_length,
             "ignition_zone_dz": args.ignition_zone_dz,

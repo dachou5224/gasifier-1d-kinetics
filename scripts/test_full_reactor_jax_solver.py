@@ -3,7 +3,7 @@
 
 对比：
 1) baseline：`solver_method='minimize'`（现有基线）
-2) jax_path：`solver_method='jax_newton'`
+2) fd_path：`solver_method='newton_fd'`
 
 打印：
 - 运行耗时
@@ -74,7 +74,8 @@ def _build_system(case_name: str) -> "GasifierSystem":
 def _y_of(profile: np.ndarray, idx: int) -> np.ndarray:
     """profile: (N,11)，idx: 气体组分索引 0-7，返回 y_i（%）按 mol fraction 计算。"""
     gas = profile[:, :8]
-    denom = gas.sum(axis=1)
+    # 干基：与 gasifier_kinetic_ui.py 保持一致（忽略 H2O，使用 gas[:7]）
+    denom = gas[:, :7].sum(axis=1)
     denom = np.where(denom <= 0, 1e-12, denom)
     return (gas[:, idx] / denom) * 100.0
 
@@ -96,12 +97,9 @@ def _print_profile_diff(base: np.ndarray, jax: np.ndarray, z: np.ndarray) -> Non
     print("\n=== Profile 误差（jax - baseline）===")
     print(f"  max|ΔT|   : {np.max(np.abs(d[:,10])):.6f} K")
     for sp, idx in [("CO", 2), ("CO2", 3), ("H2", 5), ("CH4", 1)]:
-        print(f"  max|Δ{sp}| : {np.max(np.abs(d[:,idx])):.6e} mol/s")
-
-    # 以 mol fraction 表示的更直观对比
-    y_base = _y_of(base, 2)   # CO%
-    y_jax = _y_of(jax, 2)
-    print(f"  max|Δy_CO|: {np.max(np.abs(y_jax - y_base)):.6f} %")
+        y_base = _y_of(base, idx)
+        y_jax = _y_of(jax, idx)
+        print(f"  max|Δy_{sp}|: {np.max(np.abs(y_jax - y_base)):.6f} %")
 
     # ignition 判据
     ign_th = 1200.0
@@ -109,12 +107,12 @@ def _print_profile_diff(base: np.ndarray, jax: np.ndarray, z: np.ndarray) -> Non
     jax_ign = np.where(jax[:, 10] > ign_th)[0]
     base_first = int(base_ign[0]) if base_ign.size else None
     jax_first = int(jax_ign[0]) if jax_ign.size else None
-    print(f"  ignition_first_cell (T>{ign_th}K): baseline={base_first}, jax_newton={jax_first}")
+    print(f"  ignition_first_cell (T>{ign_th}K): baseline={base_first}, newton_fd={jax_first}")
 
     # 采样点展示：每 N/5 左右一个点，避免输出过多
     n = base.shape[0]
     sample_idx = sorted(set(np.linspace(0, n - 1, num=min(6, n), dtype=int).tolist()))
-    print("\n=== 采样点（baseline vs jax_newton）===")
+    print("\n=== 采样点（baseline vs newton_fd）===")
     for i in sample_idx:
         print(
             f"  cell{i:02d} z={z[i]:.4f}m | "
@@ -139,38 +137,41 @@ def main() -> None:
 
     sys_b = _build_system(args.case)
     t0 = __import__("time").time()
-    base_profile, z_b = sys_b.solve(N_cells=args.N_cells, solver_method=args.baseline, use_jax_jacobian=False, jax_warmup=False)
+    base_profile, z_b = sys_b.solve(N_cells=args.N_cells, solver_method=args.baseline, jacobian_mode="scipy", jax_warmup=False)
     t_base = __import__("time").time() - t0
 
     sys_j = _build_system(args.case)
     t1 = __import__("time").time()
     jax_profile, z_j = sys_j.solve(
         N_cells=args.N_cells,
-        solver_method="jax_newton",
-        use_jax_jacobian=False,
+        solver_method="newton_fd",
+        jacobian_mode="centered_fd",
         jax_warmup=args.jax_warmup,
     )
     t_jax = __import__("time").time() - t1
 
-    print(f"\n[Timing] baseline={t_base:.2f}s, jax_newton={t_jax:.2f}s")
+    print(f"\n[Timing] baseline={t_base:.2f}s, newton_fd={t_jax:.2f}s")
     if not np.allclose(z_b, z_j):
         print("[WARN] z_positions 不一致（可能是 grid 策略/浮点误差导致）。")
 
     _print_exit(base_profile, float(z_b[-1]), f"baseline={args.baseline}")
-    _print_exit(jax_profile, float(z_j[-1]), "jax_newton")
+    _print_exit(jax_profile, float(z_j[-1]), "newton_fd")
 
     # 最后一个 cell 残差质量（用于判断求解器收敛质量）
-    cell_b = sys_b.cells[-1]
-    cell_j = sys_j.cells[-1]
-    res_b = cell_b.residuals(base_profile[-1])
-    res_j = cell_j.residuals(jax_profile[-1])
-    print(f"\n[Final cell residuals quality]")
-    print(f"  baseline={args.baseline}: max|res|={np.max(np.abs(res_b)):.6e}")
-    print(f"  jax_newton             : max|res|={np.max(np.abs(res_j)):.6e}")
+    # 目前 GasifierSystem 可能不暴露 cells 列表，因此这里做容错跳过。
+    if hasattr(sys_b, "cells") and hasattr(sys_j, "cells") and getattr(sys_b, "cells") and getattr(sys_j, "cells"):
+        cell_b = sys_b.cells[-1]
+        cell_j = sys_j.cells[-1]
+        res_b = cell_b.residuals(base_profile[-1])
+        res_j = cell_j.residuals(jax_profile[-1])
+        print(f"\n[Final cell residuals quality]")
+        print(f"  baseline={args.baseline}: max|res|={np.max(np.abs(res_b)):.6e}")
+        print(f"  newton_fd             : max|res|={np.max(np.abs(res_j)):.6e}")
+    else:
+        print(f"\n[Final cell residuals quality] 跳过：GasifierSystem 未提供 cells 列表")
 
     _print_profile_diff(base_profile, jax_profile, z_b)
 
 
 if __name__ == "__main__":
     main()
-

@@ -109,6 +109,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+venv_jax/
 
 # Spyder project settings
 .spyderproject
@@ -148,3 +149,6 @@ results/
 *_audit_result.txt
 *.png
 *.csv
+
+# 一次性验证报告草稿（避免误提交）
+**/_tmp*.md

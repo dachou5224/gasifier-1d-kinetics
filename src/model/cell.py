@@ -2,6 +2,7 @@ import numpy as np
 import logging
 from model.state import StateVector
 from model.material import MaterialService, SPECIES_NAMES
+from model.input_contract import ash_mass_fraction_dry
 from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
 
@@ -42,7 +43,7 @@ class Cell:
         
         # 2. Particle Diameter (Shrinking Core vs Ash skeleton)
         d_p0 = self.op_conds.get('particle_diameter', 100e-6)
-        Ash_d = self.coal_props.get('Ashd', 6.0) / 100.0
+        Ash_d = ash_mass_fraction_dry(self.coal_props)
         Cd_total = self.coal_props.get('Cd', 60.0) / 100.0
         f_ash_coal = Ash_d / (Cd_total + Ash_d + 1e-9)
         d_p = d_p0 * (f_ash_coal + (1.0 - f_ash_coal) * (1.0 - X_total))**(1/3.0)
@@ -410,7 +411,17 @@ class Cell:
             hhv_MJ_kg = hhv_MJ_kg / 1000.0
         
         Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6  # total coal power (W), base for heat loss
-        Q_loss_W = (loss_pct / 100.0) * Q_total_W * (self.dz / L_total)
+        
+        # Radiative Heat Loss Weighting (T^4 bias)
+        # Uniform distribution (dz/L) is often too mild for the extreme combustion zone.
+        # We introduce a T-dependent bias relative to a reference process temperature (1800K).
+        T_local = current.T
+        T_ref = self.op_conds.get('HeatLossRefTemp', 1800.0)
+        # Weight scales from ~0.2 at 1200K to ~2.2 at 2200K
+        t_weight = (T_local / T_ref)**4.0
+        t_weight = np.clip(t_weight, 0.1, 5.0) # Stability guard
+        
+        Q_loss_W = (loss_pct / 100.0) * Q_total_W * (self.dz / L_total) * t_weight
         
         # Reaction heat from rates (for audit only)
         Q_rxn_total = 0.0

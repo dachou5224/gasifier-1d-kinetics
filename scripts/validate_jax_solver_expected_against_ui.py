@@ -5,7 +5,7 @@
 1) 使用 VALIDATION_CASES.inputs 构造 GasifierSystem（尽量与 gasifier_kinetic_ui.py 的口径一致）
 2) 分别调用：
    - baseline：solver_method='minimize'（与 UI 默认 solve(...) 一致）
-   - jax_path：solver_method='jax_newton'
+   - fd_path：solver_method='newton_fd'
 3) 计算 UI 用的 KPI：
    - T_out_C = T_g - 273.15
    - 干基 yCO/yH2/yCO2：F_dry = sum(gas[:7])（气体顺序 [O2,CH4,CO,CO2,H2S,H2,N2,H2O]）
@@ -13,7 +13,7 @@
 
 用法示例：
   cd gasifier-1d-kinetic
-  python3 scripts/validate_jax_solver_expected_against_ui.py --N_cells 40 --out docs/expected_jax_newton_report.md
+  python3 scripts/validate_jax_solver_expected_against_ui.py --N_cells 40 --out docs/expected_newton_fd_report.md
 """
 
 from __future__ import annotations
@@ -54,13 +54,28 @@ def _compute_kpis(profile: np.ndarray) -> Dict[str, float]:
 
 
 def _max_profile_diffs(base: np.ndarray, jax: np.ndarray) -> Dict[str, float]:
-    d = jax - base
+    # 以 UI KPI 口径的干基（忽略 H2O）mol% 来做 profile 差异统计
+    def dry_y(profile: np.ndarray, idx: int) -> np.ndarray:
+        gas = profile[:, :8].astype(float)
+        denom = np.sum(gas[:, :7], axis=1) + 1e-12  # 逐 cell 干基分母（忽略 H2O）
+        denom = np.where(denom <= 0, 1e-12, denom)
+        return (gas[:, idx] / denom) * 100.0
+
+    y_base_co = dry_y(base, 2)
+    y_jax_co = dry_y(jax, 2)
+    y_base_h2 = dry_y(base, 5)
+    y_jax_h2 = dry_y(jax, 5)
+    y_base_co2 = dry_y(base, 3)
+    y_jax_co2 = dry_y(jax, 3)
+    y_base_ch4 = dry_y(base, 1)
+    y_jax_ch4 = dry_y(jax, 1)
+
     return {
-        "max|ΔT|": float(np.max(np.abs(d[:, 10]))),
-        "max|ΔCO|": float(np.max(np.abs(d[:, 2]))),
-        "max|ΔCO2|": float(np.max(np.abs(d[:, 3]))),
-        "max|ΔH2|": float(np.max(np.abs(d[:, 5]))),
-        "max|ΔCH4|": float(np.max(np.abs(d[:, 1]))),
+        "max|ΔT|": float(np.max(np.abs(jax[:, 10] - base[:, 10]))),
+        "max|ΔyCO|": float(np.max(np.abs(y_jax_co - y_base_co))),
+        "max|ΔyCO2|": float(np.max(np.abs(y_jax_co2 - y_base_co2))),
+        "max|ΔyH2|": float(np.max(np.abs(y_jax_h2 - y_base_h2))),
+        "max|ΔyCH4|": float(np.max(np.abs(y_jax_ch4 - y_base_ch4))),
     }
 
 
@@ -75,7 +90,7 @@ def _fmt_e(x: float, digits: int = 2) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--N_cells", type=int, default=40)
-    parser.add_argument("--out", type=str, default="docs/expected_jax_newton_report.md")
+    parser.add_argument("--out", type=str, default="docs/expected_newton_fd_report.md")
     parser.add_argument("--log-level", type=str, default="ERROR")
     args = parser.parse_args()
 
@@ -129,14 +144,14 @@ def main() -> None:
         # baseline：minimize（UI 默认）
         sys_b = GasifierSystem(geometry, coal_props, op_conds)
         t0 = time.perf_counter()
-        base_profile, z_b = sys_b.solve(N_cells=args.N_cells, solver_method="minimize")
+        base_profile, z_b = sys_b.solve(N_cells=args.N_cells, solver_method="minimize", jacobian_mode="scipy")
         t_base = time.perf_counter() - t0
         base_kpis = _compute_kpis(base_profile)
 
-        # jax：jax_newton
+        # newton_fd
         sys_j = GasifierSystem(geometry, coal_props, op_conds)
         t1 = time.perf_counter()
-        jax_profile, z_j = sys_j.solve(N_cells=args.N_cells, solver_method="jax_newton", jax_warmup=True)
+        jax_profile, z_j = sys_j.solve(N_cells=args.N_cells, solver_method="newton_fd", jacobian_mode="centered_fd", jax_warmup=True)
         t_jax = time.perf_counter() - t1
         jax_kpis = _compute_kpis(jax_profile)
 
@@ -175,19 +190,20 @@ def main() -> None:
             f"  baseline(min) T={base_kpis['T_out_C']:.1f}C yCO={base_kpis['yCO']:.1f}% yH2={base_kpis['yH2']:.1f}% yCO2={base_kpis['yCO2']:.2f}%"
         )
         print(
-            f"  jax_newton   T={jax_kpis['T_out_C']:.1f}C yCO={jax_kpis['yCO']:.1f}% yH2={jax_kpis['yH2']:.1f}% yCO2={jax_kpis['yCO2']:.2f}%"
+            f"  newton_fd   T={jax_kpis['T_out_C']:.1f}C yCO={jax_kpis['yCO']:.1f}% yH2={jax_kpis['yH2']:.1f}% yCO2={jax_kpis['yCO2']:.2f}%"
         )
         print(
-            f"  max|ΔT|(K)={max_diffs['max|ΔT|']:.2f}, max|ΔCO|(mol/s)={max_diffs['max|ΔCO|']:.2e}"
+            f"  max|ΔT|(K)={max_diffs['max|ΔT|']:.2f}, "
+            f"max|ΔyCO|(mol%)={max_diffs['max|ΔyCO|']:.3f}%"
         )
 
     # 生成 Markdown
     lines = []
-    lines.append("# gasifier-1d-kinetic：`jax_newton` vs expected（按 UI KPI 口径）")
+    lines.append("# gasifier-1d-kinetic：`newton_fd` vs expected（按 UI KPI 口径）")
     lines.append("")
     lines.append(f"- N_cells: {args.N_cells}")
     lines.append("- baseline: `minimize`（UI 默认）")
-    lines.append("- jax solver: `jax_newton`")
+    lines.append("- fd solver: `newton_fd`")
     lines.append("")
 
     lines.append("## 出口 KPI 与 expected 对比（含 wall time）")
@@ -268,4 +284,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

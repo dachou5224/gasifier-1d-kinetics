@@ -1,14 +1,15 @@
 """
-遍历 `model.chemistry.VALIDATION_CASES`，对比 baseline(newton) vs jax_newton：
+遍历仓库当前 19 个 benchmark case（`data/validation_cases_final.json`），
+对比 baseline(minimize) vs newton_fd：
 
 - 对比出口数据：`T_out_C`，以及干基 `yCO/yH2/yCO2`（与 `gasifier_kinetic_ui.py` 一致）
 - 对比 profile：`max|ΔT|`、`max|ΔCO|`、`max|ΔCO2|`、`max|ΔH2|`、`max|ΔCH4|`
-- 对比运行时间：baseline 与 jax_newton 的 wall time
+- 对比运行时间：baseline 与 newton_fd 的 wall time
 - 生成 Markdown 报告：便于粘贴到文档/PR
 
 用法示例：
   cd gasifier-1d-kinetic
-  python3 scripts/validate_jax_solver_all_cases.py --N_cells 20 --out docs/validation_jax_newton_report.md
+  python3 scripts/validate_jax_solver_all_cases.py --N_cells 20 --out docs/validation_newton_fd_report.md
 """
 
 from __future__ import annotations
@@ -63,13 +64,28 @@ def _compute_kpis_from_profile(profile: np.ndarray) -> Dict[str, float]:
 
 
 def _max_profile_diffs(base: np.ndarray, jax: np.ndarray) -> Dict[str, float]:
-    d = jax - base
+    # 以 UI KPI 口径的干基（忽略 H2O）mol% 做 profile 差异统计
+    def dry_y(profile: np.ndarray, idx: int) -> np.ndarray:
+        gas = profile[:, :8].astype(float)
+        denom = np.sum(gas[:, :7], axis=1) + 1e-12  # 逐 cell 干基分母
+        denom = np.where(denom <= 0, 1e-12, denom)
+        return (gas[:, idx] / denom) * 100.0
+
+    y_base_co = dry_y(base, 2)
+    y_jax_co = dry_y(jax, 2)
+    y_base_h2 = dry_y(base, 5)
+    y_jax_h2 = dry_y(jax, 5)
+    y_base_co2 = dry_y(base, 3)
+    y_jax_co2 = dry_y(jax, 3)
+    y_base_ch4 = dry_y(base, 1)
+    y_jax_ch4 = dry_y(jax, 1)
+
     return {
-        "max|ΔT|": float(np.max(np.abs(d[:, 10]))),
-        "max|ΔCO|": float(np.max(np.abs(d[:, 2]))),
-        "max|ΔCO2|": float(np.max(np.abs(d[:, 3]))),
-        "max|ΔH2|": float(np.max(np.abs(d[:, 5]))),
-        "max|ΔCH4|": float(np.max(np.abs(d[:, 1]))),
+        "max|ΔT|": float(np.max(np.abs(jax[:, 10] - base[:, 10]))),
+        "max|ΔyCO|": float(np.max(np.abs(y_jax_co - y_base_co))),
+        "max|ΔyCO2|": float(np.max(np.abs(y_jax_co2 - y_base_co2))),
+        "max|ΔyH2|": float(np.max(np.abs(y_jax_h2 - y_base_h2))),
+        "max|ΔyCH4|": float(np.max(np.abs(y_jax_ch4 - y_base_ch4))),
     }
 
 
@@ -88,8 +104,11 @@ class CaseResult:
 
 def _build_system_from_case(case_name: str, case_inputs: Dict[str, float], coal_database: Dict) -> "GasifierSystem":
     from model.gasifier_system import GasifierSystem
+    from model.chemistry import CASE_TO_COAL_MAP
 
     coal_key = case_inputs.get("coal") or case_inputs.get("coal_type")
+    if not coal_key:
+        coal_key = CASE_TO_COAL_MAP.get(case_name)
     coal_props = coal_database[coal_key].copy()
 
     # validation_cases.py 的约定：默认 L=6m, D=2m（与 UI 默认一致）
@@ -142,8 +161,8 @@ def _run_case(
     t0 = time.perf_counter()
     base_profile, _z = sys_b.solve(
         N_cells=N_cells,
-        solver_method="newton",
-        use_jax_jacobian=False,
+        solver_method="minimize",
+        jacobian_mode="scipy",
         jax_warmup=False,
     )
     t_base = time.perf_counter() - t0
@@ -154,8 +173,8 @@ def _run_case(
     t1 = time.perf_counter()
     jax_profile, _z2 = sys_j.solve(
         N_cells=N_cells,
-        solver_method="jax_newton",
-        use_jax_jacobian=False,
+        solver_method="newton_fd",
+        jacobian_mode="centered_fd",
         jax_warmup=first_jax,
     )
     t_jax = time.perf_counter() - t1
@@ -199,24 +218,38 @@ def _to_md_table(rows: Dict[str, str]) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--N_cells", type=int, default=20)
-    parser.add_argument("--out", type=str, default="docs/validation_jax_newton_report.md")
+    parser.add_argument("--out", type=str, default="docs/validation_newton_fd_report.md")
     parser.add_argument("--log-level", type=str, default="ERROR")
     args = parser.parse_args()
 
     logging.basicConfig(level=getattr(logging, args.log_level.upper(), logging.ERROR))
     _ensure_import_path()
 
-    from model.chemistry import COAL_DATABASE, VALIDATION_CASES
+    import json
+
+    from model.chemistry import COAL_DATABASE
+    from model.validation_loader import (
+        get_validation_cases_final_path,
+        iter_validation_cases_final,
+        normalize_final_case_to_legacy,
+    )
 
     os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
 
-    case_names = list(VALIDATION_CASES.keys())
+    with open(get_validation_cases_final_path(), "r", encoding="utf-8") as f:
+        final_data = json.load(f)
+    normalized_cases = {
+        name: normalize_final_case_to_legacy(name, case_data)
+        for name, case_data in iter_validation_cases_final(final_data)
+    }
+
+    case_names = list(normalized_cases.keys())
     results: Dict[str, CaseResult] = {}
 
     print(f"=== 开始验证：N_cells={args.N_cells}，总案例数={len(case_names)} ===")
 
     for idx, case_name in enumerate(case_names):
-        case = VALIDATION_CASES[case_name]
+        case = normalized_cases[case_name]
         expected = case.get("expected", {})
         case_inputs = case["inputs"]
         print(f"\n[Case {idx+1}/{len(case_names)}] {case_name}")
@@ -232,28 +265,28 @@ def main() -> None:
         results[case_name] = r
 
         print(
-            f"  baseline(newton): {r.baseline_time_s:.2f}s | "
+            f"  baseline(minimize): {r.baseline_time_s:.2f}s | "
             f"T={r.baseline_kpis['T_out_C']:.1f}C yCO={r.baseline_kpis['yCO']:.1f}% yH2={r.baseline_kpis['yH2']:.1f}% yCO2={r.baseline_kpis['yCO2']:.2f}%"
         )
         print(
-            f"  jax_newton      : {r.jax_time_s:.2f}s | "
+            f"  newton_fd       : {r.jax_time_s:.2f}s | "
             f"T={r.jax_kpis['T_out_C']:.1f}C yCO={r.jax_kpis['yCO']:.1f}% yH2={r.jax_kpis['yH2']:.1f}% yCO2={r.jax_kpis['yCO2']:.2f}%"
         )
 
     # Markdown report
     lines = []
-    lines.append("# gasifier-1d-kinetic：验证 `jax_newton` vs baseline(newton)")
+    lines.append("# gasifier-1d-kinetic：验证 `newton_fd` vs baseline(`minimize`)")
     lines.append("")
     lines.append(f"- N_cells: {args.N_cells}")
-    lines.append("- baseline solver: `newton`")
-    lines.append("- jax solver: `jax_newton`")
+    lines.append("- baseline solver: `minimize`")
+    lines.append("- fd solver: `newton_fd`")
     lines.append("- jax_warmup: 仅对第一个案例启用（用于摊销编译开销）")
     lines.append("")
 
     # Summary table: baseline vs jax + time + profile diffs
     lines.append("## 汇总对比（出口 KPI + 运行时间 + profile 最大误差）")
     lines.append(
-        "| Case | baseline T(°C) | baseline yCO(%) | baseline yH2(%) | baseline yCO2(%) | baseline time(s) | jax_newton T(°C) | jax_newton yCO(%) | jax_newton yH2(%) | jax_newton yCO2(%) | jax time(s) | max|ΔT|(K) | max|ΔCO|(mol/s) | max|ΔCO2|(mol/s) | max|ΔH2|(mol/s) | max|ΔCH4|(mol/s) |"
+        "| Case | baseline T(°C) | baseline yCO(%) | baseline yH2(%) | baseline yCO2(%) | baseline time(s) | newton_fd T(°C) | newton_fd yCO(%) | newton_fd yH2(%) | newton_fd yCO2(%) | fd time(s) | max|ΔT|(K) | max|ΔyCO|(mol%) | max|ΔyCO2|(mol%) | max|ΔyH2|(mol%) | max|ΔyCH4|(mol%) |"
     )
     lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 
@@ -276,10 +309,10 @@ def main() -> None:
                     _fmt(r.jax_kpis["yCO2"], 2),
                     _fmt(r.jax_time_s, 2),
                     _fmt(md["max|ΔT|"], 3),
-                    _fmt_e(md["max|ΔCO|"], 2),
-                    _fmt_e(md["max|ΔCO2|"], 2),
-                    _fmt_e(md["max|ΔH2|"], 2),
-                    _fmt_e(md["max|ΔCH4|"], 2),
+                    _fmt_e(md["max|ΔyCO|"], 2),
+                    _fmt_e(md["max|ΔyCO2|"], 2),
+                    _fmt_e(md["max|ΔyH2|"], 2),
+                    _fmt_e(md["max|ΔyCH4|"], 2),
                 ]
             )
             + " |"
@@ -290,7 +323,7 @@ def main() -> None:
     # Expected comparison table
     lines.append("## 与预期（VALIDATION_CASES.expected）对齐情况")
     lines.append(
-        "| Case | expected T(°C) | baseline ΔT(K) | jax_newton ΔT(K) | expected yCO(%) | baseline ΔyCO(%) | jax_newton ΔyCO(%) | expected yH2(%) | baseline ΔyH2(%) | jax_newton ΔyH2(%) | expected yCO2(%) | baseline ΔyCO2(%) | jax_newton ΔyCO2(%) |"
+        "| Case | expected T(°C) | baseline ΔT(K) | newton_fd ΔT(K) | expected yCO(%) | baseline ΔyCO(%) | newton_fd ΔyCO(%) | expected yH2(%) | baseline ΔyH2(%) | newton_fd ΔyH2(%) | expected yCO2(%) | baseline ΔyCO2(%) | newton_fd ΔyCO2(%) |"
     )
     lines.append("|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|")
 
@@ -342,4 +375,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

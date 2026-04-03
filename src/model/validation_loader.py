@@ -86,3 +86,112 @@ def get_validation_cases_new_path() -> str:
     """Default path to validation_cases_new.json (project data dir)."""
     base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     return os.path.join(base, "data", "validation_cases_new.json")
+
+
+def get_project_data_dir() -> str:
+    base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    return os.path.join(base, "data")
+
+
+def get_validation_cases_final_path() -> str:
+    return os.path.join(get_project_data_dir(), "validation_cases_final.json")
+
+
+def get_validation_cases_legacy_path() -> str:
+    return os.path.join(get_project_data_dir(), "validation_cases.json")
+
+
+def iter_validation_cases_final(data: Dict[str, Any]):
+    """Yield `(name, case_data)` pairs from normalized `validation_cases_final.json`."""
+    for cap, by_feed in data.items():
+        if cap == "metadata" or not isinstance(by_feed, dict):
+            continue
+        for _feed, cases in by_feed.items():
+            if not isinstance(cases, dict):
+                continue
+            for name, case_data in cases.items():
+                yield name, case_data
+
+
+def normalize_final_case_to_legacy(case_name: str, case_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Convert one normalized final-case record into the legacy `{inputs, expected}` shape
+    used by older tests and scripts.
+    """
+    cond = case_data.get("operating_conditions", {})
+    expected_results = case_data.get("expected_results", {})
+    dry = expected_results.get("dry_product_gas_vol_pct", {})
+
+    feed_rate_kg_h = cond.get("coal_feed_rate_kg_hr")
+    if feed_rate_kg_h is None and cond.get("coal_feed_rate_g_s") is not None:
+        feed_rate_kg_h = float(cond["coal_feed_rate_g_s"]) * 3.6
+
+    ratio_oc = cond.get("O2_to_coal_ratio", cond.get("O2_to_fuel_ratio"))
+    ratio_sc = cond.get("water_to_coal_ratio", cond.get("steam_to_fuel_ratio", 0.0))
+    pressure_pa = cond.get("pressure_Pa", cond.get("P"))
+    t_in_k = cond.get("inlet_temperature_K", cond.get("TIN"))
+    heat_loss = cond.get("heat_loss_percent", cond.get("HeatLossPercent", 1.0))
+    slurry_pct = cond.get("slurry_concentration_pct", cond.get("SlurryConcentration", 100.0))
+
+    return {
+        "name": case_name,
+        "coal_type": case_data.get("coal_type"),
+        "inputs": {
+            "coal": case_data.get("coal_type"),
+            "FeedRate_kg_h": feed_rate_kg_h,
+            "FeedRate": feed_rate_kg_h,
+            "Ratio_OC": ratio_oc,
+            "O2_to_fuel_ratio": ratio_oc,
+            "SteamRatio_SC": ratio_sc,
+            "Ratio_SC": ratio_sc,
+            "P_Pa": pressure_pa,
+            "P": pressure_pa,
+            "T_in_K": t_in_k,
+            "TIN": t_in_k,
+            "HeatLossPercent": heat_loss,
+            "SlurryConcentration": slurry_pct,
+            "Voidage": cond.get("Voidage", 1.0),
+            "L_reactor": cond.get("L_reactor_m", cond.get("L_reactor", 6.0)),
+            "D_reactor": cond.get("D_reactor_m", cond.get("D_reactor", 2.0)),
+        },
+        "expected": {
+            "TOUT_C": expected_results.get("outlet_temperature_C"),
+            "YCO": dry.get("CO"),
+            "YH2": dry.get("H2"),
+            "YCO2": dry.get("CO2"),
+        },
+        "expected_results": expected_results,
+        "capacity": case_data.get("capacity"),
+        "feed_type": case_data.get("feed_type"),
+    }
+
+
+def load_case_from_repo(case_name: str) -> Dict[str, Any]:
+    """
+    Load one validation case from repository data sources.
+
+    Priority:
+    1. Legacy `data/validation_cases.json` if present.
+    2. Normalized `data/validation_cases_final.json` (19-case benchmark set).
+    3. `chemistry.VALIDATION_CASES` fallback.
+    """
+    legacy_path = get_validation_cases_legacy_path()
+    if os.path.exists(legacy_path):
+        with open(legacy_path, "r", encoding="utf-8") as f:
+            config = json.load(f)
+        if "cases" in config and case_name in config["cases"]:
+            return config["cases"][case_name]
+
+    final_path = get_validation_cases_final_path()
+    if os.path.exists(final_path):
+        with open(final_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        for name, case_data in iter_validation_cases_final(data):
+            if name == case_name:
+                return normalize_final_case_to_legacy(case_name, case_data)
+
+    from model.chemistry import VALIDATION_CASES
+
+    if case_name in VALIDATION_CASES:
+        return VALIDATION_CASES[case_name]
+    raise KeyError(f"Case '{case_name}' not found in repository validation data")

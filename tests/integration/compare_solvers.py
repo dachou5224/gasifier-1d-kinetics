@@ -10,22 +10,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../s
 
 from model.gasifier_system import GasifierSystem
 from model.chemistry import COAL_DATABASE
+from model.validation_loader import load_case_from_repo
 
 # Configure condensed logging
 logging.basicConfig(level=logging.ERROR, format='%(levelname)s: %(message)s') # Suppress INFO logs
 logger = logging.getLogger(__name__)
 
 def load_case_data(case_name):
-    json_path = os.path.join(os.path.dirname(__file__), '../../data/validation_cases.json')
-    with open(json_path, 'r') as f:
-        config = json.load(f)
-    if 'cases' in config and case_name in config['cases']:
-        return config['cases'][case_name]
-    # 兼容当前仓库以 model.chemistry.VALIDATION_CASES 为主的数据组织
-    from model.chemistry import VALIDATION_CASES
-    if case_name in VALIDATION_CASES:
-        return VALIDATION_CASES[case_name]
-    raise KeyError(f"Case '{case_name}' not found in validation_cases.json or VALIDATION_CASES")
+    return load_case_from_repo(case_name)
 
 def run_case(case_name, solver_method, **solve_kwargs):
     extra = f" {solve_kwargs}" if solve_kwargs else ""
@@ -119,10 +111,10 @@ if __name__ == "__main__":
     
     case = "Paper_Case_6"
     
-    res_min = run_case(case, 'minimize')
-    res_new = run_case(case, 'newton')
-    res_jac = run_case(case, 'minimize', use_jax_jacobian=True)
-    res_jaxn = run_case(case, 'jax_newton', jax_warmup=True)
+    res_min = run_case(case, 'minimize', jacobian_mode='scipy')
+    res_new = run_case(case, 'newton_fd', jacobian_mode='centered_fd')
+    res_jac = run_case(case, 'minimize', jacobian_mode='centered_fd')
+    res_jaxn = run_case(case, 'jax_jit', jax_warmup=True)
     
     print("\n=== Summary Table ===")
     print(f"{'Method':<22} | {'Status':<10} | {'Time (s)':<10} | {'T_out (K)':<10} | {'CO (%)':<8} | {'Res Norm':<10}")
