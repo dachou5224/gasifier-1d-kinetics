@@ -104,7 +104,7 @@ PYTHONPATH=src pytest tests/integration/test_jax_jit_contracts.py -q
 `gasifier-1d-kinetic` 是 `chem_portal` 下的一个计算模块，和 equilibrium `gasifier-model` 在线服务保持同级，`chem_portal` 仅需在配置里把 `calculation_service_url` 指向本模块的 REST/GRPC endpoint（即编译完成的 `jax_jit` 服务），用户在入口访问时就能直接走“热态快速”路线。
 
 - 在 `chem_portal` 所在的镜像里，先 canvass 参考 `../gasifier-model` 的 Docker/entrypoint，然后在入口脚本 `/ENTRYPOINT` 中执行 `scripts/precompile_jax_solver.py`（按需传 `--cases`/`--n-cells`）以完成 `jax_jit` 编译，再启动服务接受流量；这样 portal 无需再重复这些调用。  
-- `.github/workflows/deploy-to-vps.yml` 的 CI/CD 部署步骤也会在每次 git push / VPS pull 后自动运行上述预热脚本（见 `python scripts/precompile_jax_solver.py --cases Paper_Case_6 Texaco_I-2 --n-cells 20`），确保部署到 VPS 的 `jax_jit` 计算 service 始终是热态。  
+- `.github/workflows/deploy-to-vps.yml` 会在每次 push 到 `main` 后 SSH 到 VPS：在仓库内 **创建或使用 `.venv`**（避免 Debian/Ubuntu **PEP 668** 禁止系统级 `pip install`），再 `pip install -r requirements.txt` 并运行 `scripts/precompile_jax_solver.py`（示例：`Paper_Case_6 Texaco_I-2`、`--n-cells 20`）。**VPS 需已安装 `python3-venv`**（首次可执行：`sudo apt-get install -y python3-venv`）。  
 - 每个 worker 的 readiness probe 或 supervisor 启动流程里可以再调用一次预热命令，避免第一次请求触发编译延迟；对于尚未预热的 `N_cells`/shape，可临时回退 `solver_method="minimize"` 或异步编译后再切到 `jax_jit`。
 
 ### 参考流程
