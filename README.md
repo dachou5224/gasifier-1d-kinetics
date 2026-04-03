@@ -70,6 +70,19 @@ cd gasifier-1d-kinetic
 JAX_ENABLE_X64=1 ./.venv/bin/python scripts/compare_sim_minimize_vs_jax_jit_all_cases.py --N_cells 20 --out docs/minimize_vs_jax_jit_report.md
 ```
 
+### 运行集成测试（提交前建议）
+
+```bash
+cd gasifier-1d-kinetic
+PYTHONPATH=src pytest tests/integration/ -q
+```
+
+仅验证 JAX 契约与 `jax_jit` 可跑性（需已安装 `jax`/`jaxlib`）：
+
+```bash
+PYTHONPATH=src pytest tests/integration/test_jax_jit_contracts.py -q
+```
+
 ## 配置说明
 
 - 求解器公开接口：`solver_method='minimize'`、`solver_method='newton_fd'`、`solver_method='jax_jit'`
@@ -99,7 +112,7 @@ JAX_ENABLE_X64=1 ./.venv/bin/python scripts/compare_sim_minimize_vs_jax_jit_all_
 在 `chem_portal` 的 Dockerfile/entrypoint 中加入：
 
 ```bash
-python scripts/precompile_jax_solver.py --cases Paper_Case_6 Texaco_I-2 --n-cells 20 40
+python3 scripts/precompile_jax_solver.py --cases Paper_Case_6 Texaco_I-2 --n-cells 20 40
 ```
 
 然后再启动计算服务进程（例如 `uvicorn`/`gunicorn`），确保 `precompile_jax_solver.py` 走完后入口才感知清爽的 `jax_jit` 性能。

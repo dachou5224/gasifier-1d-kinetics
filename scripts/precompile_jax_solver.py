@@ -10,7 +10,12 @@ import sys
 import time
 from typing import Dict, Iterable, List
 
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "src")))
+# 仓库根目录：供 `from scripts....` 解析；src：供 `model` 包（src 优先）
+_REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_SRC = os.path.join(_REPO_ROOT, "src")
+for _p in (_SRC, _REPO_ROOT):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from model.chemistry import COAL_DATABASE
 from model.validation_loader import get_validation_cases_final_path, iter_validation_cases_final
