@@ -34,6 +34,7 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_KEY }}
           port: 22
+          command_timeout: 60m
           script: |
             set -euo pipefail
 
@@ -54,18 +55,9 @@ jobs:
             git pull --ff-only origin main
             echo "Current commit: $(git rev-parse --short HEAD)"
 
-            # PEP 668：系统 Python 禁止全局 pip install；统一使用仓库内 .venv
-            echo "Installing requirements for precompile (venv)"
-            if [ ! -d ".venv" ]; then
-              echo "Creating .venv (needs: apt install python3-venv on Debian/Ubuntu)..."
-              python3 -m venv .venv
-            fi
-            # shellcheck source=/dev/null
-            . .venv/bin/activate
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
-            echo "Running jax precompile"
-            JAX_ENABLE_X64=1 python scripts/precompile_jax_solver.py --cases Paper_Case_6 Texaco_I-2 --n-cells 20
+            # 说明：
+            # 线上热态 precompile 已迁移到 chem_portal 容器启动链路中执行。
+            # 本仓库的 VPS workflow 只负责同步代码，并交由后续 POST_CMD/portal 重建去完成服务刷新。
 
             # 可选：例如重启服务、重建容器等
             POST_CMD="${{ secrets.VPS_POST_DEPLOY_CMD }}"
