@@ -1,16 +1,20 @@
-import unittest
 import json
 import os
 import sys
 import numpy as np
 import logging
-import json
+import unittest
 
 # Add src to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../src')))
 
 from model.gasifier_system import GasifierSystem
-from model.validation_loader import get_validation_cases_final_path, iter_validation_cases_final, normalize_final_case_to_legacy
+from model.validation_loader import (
+    get_validation_cases_final_path,
+    iter_validation_cases_final,
+    load_case_from_repo,
+    normalize_final_case_to_legacy,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -149,6 +153,23 @@ class TestValidationCases(unittest.TestCase):
                 self.assertGreater(y_co, 10.0)
                 
                 # Note: Exact match requires calibration step
+
+    def test_normalize_final_case_infers_coal_type_for_texaco(self):
+        texaco_i3 = self.config["cases"]["Texaco_I-3"]
+        self.assertEqual(texaco_i3["coal_type"], "Paper_Base_Coal")
+        self.assertEqual(texaco_i3["inputs"]["coal"], "Paper_Base_Coal")
+
+    def test_load_case_from_repo_preserves_lowercase_pilot_case(self):
+        case = load_case_from_repo("texaco i-1")
+        self.assertEqual(case["inputs"]["coal"], "texaco i-1_Coal")
+        self.assertEqual(case["inputs"]["FeedRate"], 76.66)
+        self.assertEqual(case["inputs"]["HeatLossPercent"], 4)
+
+    def test_load_case_from_repo_canonical_case_uses_final_dataset(self):
+        case = load_case_from_repo("Texaco_I-1")
+        self.assertEqual(case["inputs"]["coal"], "Paper_Base_Coal")
+        self.assertEqual(case["inputs"]["FeedRate"], 276.0)
+        self.assertEqual(case["inputs"]["HeatLossPercent"], 3.0)
                 
 if __name__ == '__main__':
     unittest.main()

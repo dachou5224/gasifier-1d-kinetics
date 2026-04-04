@@ -1,5 +1,5 @@
 """
-对比验证：`minimize` vs `jax_jit`（当前 19 case benchmark）。
+对比验证：`minimize` vs `jax_jit`（validation_cases_final.json 全量 case，已合并小写 pilot 重复键）。
 
 输出内容：
 1) 每个 case：出口 `T_out` (K) 与干基 mol%（忽略 H2O）的 `yCO/yH2/yCO2` 差值

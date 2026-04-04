@@ -101,6 +101,20 @@ def get_validation_cases_legacy_path() -> str:
     return os.path.join(get_project_data_dir(), "validation_cases.json")
 
 
+def get_validation_cases_pilot_archive_path() -> str:
+    return os.path.join(get_project_data_dir(), "archive", "validation_cases_pilot.json")
+
+
+# 已合并到 validation_cases_final.json 的大写 canonical 名；小写 pilot 键仅作别名（文件内已删重复行）
+CASE_NAME_ALIASES_FINAL: Dict[str, str] = {
+    "texaco i-1": "Texaco_I-1",
+    "texaco i-2": "Texaco_I-2",
+    "texaco i-5c": "Texaco_I-5C",
+    "texaco i-10": "Texaco_I-10",
+    "texaco exxon": "Texaco_Exxon",
+}
+
+
 def iter_validation_cases_final(data: Dict[str, Any]):
     """Yield `(name, case_data)` pairs from normalized `validation_cases_final.json`."""
     for cap, by_feed in data.items():
@@ -132,12 +146,17 @@ def normalize_final_case_to_legacy(case_name: str, case_data: Dict[str, Any]) ->
     t_in_k = cond.get("inlet_temperature_K", cond.get("TIN"))
     heat_loss = cond.get("heat_loss_percent", cond.get("HeatLossPercent", 1.0))
     slurry_pct = cond.get("slurry_concentration_pct", cond.get("SlurryConcentration", 100.0))
+    coal_type = case_data.get("coal_type")
+    if not coal_type:
+        from model.chemistry import CASE_TO_COAL_MAP
+
+        coal_type = CASE_TO_COAL_MAP.get(case_name)
 
     return {
         "name": case_name,
-        "coal_type": case_data.get("coal_type"),
+        "coal_type": coal_type,
         "inputs": {
-            "coal": case_data.get("coal_type"),
+            "coal": coal_type,
             "FeedRate_kg_h": feed_rate_kg_h,
             "FeedRate": feed_rate_kg_h,
             "Ratio_OC": ratio_oc,
@@ -172,7 +191,7 @@ def load_case_from_repo(case_name: str) -> Dict[str, Any]:
 
     Priority:
     1. Legacy `data/validation_cases.json` if present.
-    2. Normalized `data/validation_cases_final.json` (19-case benchmark set).
+    2. Normalized `data/validation_cases_final.json`（benchmark；小写 pilot 别名见 CASE_NAME_ALIASES_FINAL）。
     3. `chemistry.VALIDATION_CASES` fallback.
     """
     legacy_path = get_validation_cases_legacy_path()
@@ -181,6 +200,20 @@ def load_case_from_repo(case_name: str) -> Dict[str, Any]:
             config = json.load(f)
         if "cases" in config and case_name in config["cases"]:
             return config["cases"][case_name]
+
+    # 小写 pilot 名不是 canonical 等价物；优先回到 archive 中保留原始 Fortran 口径。
+    pilot_archive_path = get_validation_cases_pilot_archive_path()
+    if case_name in CASE_NAME_ALIASES_FINAL and os.path.exists(pilot_archive_path):
+        with open(pilot_archive_path, "r", encoding="utf-8") as f:
+            pilot_data = json.load(f)
+        fortran_cases = pilot_data.get("fortran_cases", {})
+        if case_name in fortran_cases:
+            case = dict(fortran_cases[case_name])
+            coal_db = pilot_data.get("coal_database", {})
+            coal_key = case.get("inputs", {}).get("coal")
+            if coal_key in coal_db:
+                case["coal_type"] = coal_key
+            return case
 
     final_path = get_validation_cases_final_path()
     if os.path.exists(final_path):

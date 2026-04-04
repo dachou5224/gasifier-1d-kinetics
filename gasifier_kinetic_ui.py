@@ -12,6 +12,10 @@ from plotly.subplots import make_subplots
 import sys
 import os
 import logging
+import json
+import time
+
+st.set_page_config(layout="wide")
 
 # 添加 src 到路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -69,6 +73,111 @@ UI_CASE_INPUT_OVERRIDES = {
 }
 
 
+def _profile_dataframe(results_arr: np.ndarray, z: np.ndarray, coal_flow: float, cd_wt_pct: float) -> pd.DataFrame:
+    df = pd.DataFrame(
+        results_arr,
+        columns=["O2", "CH4", "CO", "CO2", "H2S", "H2", "N2", "H2O", "W_solid", "X_C", "T"],
+    )
+    df["z_m"] = z
+    f_dry_arr = np.sum(results_arr[:, :7], axis=1) + 1e-12
+    df["yCO_dry_pct"] = results_arr[:, 2] / f_dry_arr * 100.0
+    df["yCO2_dry_pct"] = results_arr[:, 3] / f_dry_arr * 100.0
+    df["yH2_dry_pct"] = results_arr[:, 5] / f_dry_arr * 100.0
+    df["yH2O_wet_pct"] = results_arr[:, 7] / (f_dry_arr + results_arr[:, 7] + 1e-12) * 100.0
+    df["T_C"] = results_arr[:, 10] - 273.15
+    df["Carbon_Conv"] = 1 - (df["W_solid"] * df["X_C"]) / (coal_flow * (cd_wt_pct / 100.0) + 1e-9)
+    return df
+
+
+def _exit_kpis(results_arr: np.ndarray) -> dict:
+    last = results_arr[-1]
+    gas = last[:8]
+    f_dry = float(np.sum(gas[:7]) + 1e-12)
+    return {
+        "T_out_C": float(last[10] - 273.15),
+        "yCO": float(gas[2] / f_dry * 100.0),
+        "yH2": float(gas[5] / f_dry * 100.0),
+        "yCO2": float(gas[3] / f_dry * 100.0),
+        "syngas": float((gas[2] + gas[5]) / f_dry * 100.0),
+        "gas": gas,
+    }
+
+
+def _expected_kpis_for_case(case_name: str) -> dict:
+    case = VALIDATION_CASES.get(case_name, {})
+    return dict(case.get("expected", {}))
+
+
+def _solver_recommendation(solver_method: str, compare_enabled: bool) -> tuple[str, str]:
+    if solver_method == "jax_jit":
+        return (
+            "热态服务优先",
+            "适合在线重复计算；线上默认应使用已预热的 hot path。"
+            if not compare_enabled
+            else "当前已启用 minimize 基线对比，适合同时检查精度贴合度与热态收益。",
+        )
+    if solver_method == "newton_fd":
+        return (
+            "工程折中优先",
+            "适合日常交互与 CPU 路线验证，通常比 minimize 更快，但稳健性仍依赖具体工况。",
+        )
+    return (
+        "稳健基线优先",
+        "适合确认基线结果、排查异常工况，通常是最稳但不是最快。",
+    )
+
+
+def _solver_run(system: GasifierSystem, n_cells: int, solver_method: str):
+    t0 = time.perf_counter()
+    arr, z = system.solve(
+        N_cells=n_cells,
+        solver_method=solver_method,
+        jacobian_mode=("centered_fd" if solver_method == "newton_fd" else "scipy"),
+        jax_warmup=True,
+    )
+    elapsed = time.perf_counter() - t0
+    return arr, z, elapsed
+
+
+def _build_runtime_badge(current_solver: str, elapsed_s: float, baseline_summary, jax_hot_summary) -> str:
+    if current_solver == "jax_jit" and jax_hot_summary is not None:
+        hot_s = jax_hot_summary["elapsed_s"]
+        if baseline_summary is not None and baseline_summary["elapsed_s"] > 0:
+            ratio = hot_s / baseline_summary["elapsed_s"]
+            return f"热态 `jax_jit` / `minimize` 时间比: `{ratio:.2f}x`"
+        return f"热态 `jax_jit` 耗时: `{hot_s:.2f}s`"
+
+    if baseline_summary is not None and baseline_summary["elapsed_s"] > 0:
+        ratio = elapsed_s / baseline_summary["elapsed_s"]
+        return f"当前 solver / `minimize` 时间比: `{ratio:.2f}x`"
+
+    return f"当前求解耗时: `{elapsed_s:.2f}s`"
+
+
+def _performance_summary_lines(current_solver: str, elapsed_s: float, baseline_summary, jax_hot_summary) -> list[str]:
+    lines = []
+
+    if current_solver == "jax_jit":
+        lines.append(f"冷启动展示耗时: `{elapsed_s:.2f}s`")
+        if jax_hot_summary is not None:
+            hot_s = jax_hot_summary["elapsed_s"]
+            lines.append(f"热态再次求解: `{hot_s:.2f}s`")
+            if elapsed_s > 0:
+                lines.append(f"热态相对冷启动: `{hot_s / elapsed_s:.2f}x`")
+        if baseline_summary is not None and jax_hot_summary is not None and baseline_summary["elapsed_s"] > 0:
+            lines.append(f"热态 `jax_jit` / `minimize`: `{jax_hot_summary['elapsed_s'] / baseline_summary['elapsed_s']:.2f}x`")
+        elif baseline_summary is not None and baseline_summary["elapsed_s"] > 0:
+            lines.append(f"当前 `jax_jit` / `minimize`: `{elapsed_s / baseline_summary['elapsed_s']:.2f}x`")
+        lines.append("解释：线上服务应隐藏 compile 成本，只向用户暴露热态时间。")
+        return lines
+
+    lines.append(f"当前 solver 耗时: `{elapsed_s:.2f}s`")
+    if baseline_summary is not None and baseline_summary["elapsed_s"] > 0:
+        lines.append(f"相对 `minimize` 时间比: `{elapsed_s / baseline_summary['elapsed_s']:.2f}x`")
+    lines.append("解释：当前结果更适合作为交互或基线参考。")
+    return lines
+
+
 
 
 def run():
@@ -91,17 +200,9 @@ def run():
         *   **寻找极端点**：气化炉空间的一大看点是“火焰锋面”。计算完毕后请留意右侧的主图。图上**温度曲线的最高峰**通常对应着氧气($O_2$)浓度被彻底耗尽的位置（即气相氧化区结束，转入吸热气化区的拐点）。通过调整炉长或氧煤比，你能观测到这个驻点在管道内的推移！
         """)
 
-    # 预设工况：默认展示 newton_fd 已验证集合，避免混入其他来源参数口径
-    show_all_templates = st.toggle(
-        "显示全部模板（超出 newton_fd 已验证集合）",
-        value=False,
-        help="默认只显示已做 newton_fd 验证的工况；打开后显示全部 VALIDATION_CASES 与工业模板。",
-    )
-
     all_case_names = list(dict.fromkeys(list(VALIDATION_CASES.keys()) + list(INDUSTRIAL_CASES.keys())))
     curated_case_names = [k for k in NEWTON_FD_VALIDATED_CASE_KEYS if (k in VALIDATION_CASES or k in INDUSTRIAL_CASES)]
-    preset_pool = all_case_names if show_all_templates else curated_case_names
-    preset_names = ["自定义"] + preset_pool
+    preset_names = ["自定义"]
 
     def _get_case(name):
         if name in VALIDATION_CASES:
@@ -113,10 +214,16 @@ def run():
             return INDUSTRIAL_CASES[name]
         return None
 
-    col_input, col_plot = st.columns([1, 2.2], gap="large")
-
-    with col_input:
+    with st.sidebar:
         st.header("⚙️ 参数配置")
+
+        show_all_templates = st.toggle(
+            "显示全部模板",
+            value=False,
+            help="默认只显示已做 newton_fd 验证的模板；打开后显示全部 VALIDATION_CASES 与工业模板。",
+        )
+        preset_pool = all_case_names if show_all_templates else curated_case_names
+        preset_names = ["自定义"] + preset_pool
 
         with st.container(border=True):
             st.markdown("#### 📂 步骤 1. 选择参考模板")
@@ -182,6 +289,22 @@ def run():
         st.session_state.P_k = c_p.number_input("压力 (MPa)", value=float(st.session_state.get("P_k", 4.08e6))/1e6, step=0.1) * 1e6
         st.session_state.HeatLossPercent_k = c_loss.number_input("热损估测 (%)", value=float(st.session_state.get("HeatLossPercent_k", 8.0)), step=0.5)
 
+        st.session_state.compare_minimize_k = st.toggle(
+            "同时跑 minimize 基线对比",
+            value=st.session_state.get("compare_minimize_k", False),
+            help="会额外运行一次 minimize，适合检查当前参数下 jax_jit / newton_fd 是否仍贴近稳健基线。",
+        )
+
+        rec_title, rec_desc = _solver_recommendation(
+            st.session_state.get("solver_method_k", "newton_fd"),
+            st.session_state.get("compare_minimize_k", False),
+        )
+        st.caption(f"推荐模式：{rec_title}")
+        st.caption(rec_desc)
+
+        if st.session_state.get("solver_method_k") == "jax_jit":
+            st.caption("线上语义：默认假设服务启动时已完成预热；本页面展示的是本地诊断与热态收益评估。")
+
         st.markdown("---")
         advanced_mode = st.toggle("🛠️ 显示高级配置 (几何/微观)", value=st.session_state.get("advanced_mode_k", False))
         st.session_state.advanced_mode_k = advanced_mode
@@ -208,8 +331,7 @@ def run():
         st.markdown("<br>", unsafe_allow_html=True)
         run_btn = st.button("🚀 运行动力学模拟", type="primary", use_container_width=True)
 
-    with col_plot:
-        if run_btn:
+    if run_btn:
             geometry = {"L": st.session_state.get("L_k", 6.0), "D": st.session_state.get("D_k", 2.0)}
             coal_props = {
                 "Cd": st.session_state.get("Cd_k", 80.19), 
@@ -234,37 +356,57 @@ def run():
             try:
                 system = GasifierSystem(geometry, coal_props, op_conds)
                 with st.spinner(f"计算中... (solver={solver_method}, 逐 cell 求解非线性方程组)"):
-                    results_arr, z = system.solve(
-                        N_cells=N_cells,
-                        solver_method=solver_method,
-                        jacobian_mode=("centered_fd" if solver_method == "newton_fd" else "scipy"),
-                        jax_warmup=True,
-                    )
+                    results_arr, z, elapsed_s = _solver_run(system, N_cells, solver_method)
 
                 st.success("收敛成功！")
 
-                # 列: O2, CH4, CO, CO2, H2S, H2, N2, H2O, W_solid, X_C, T
-                df = pd.DataFrame(results_arr, columns=["O2", "CH4", "CO", "CO2", "H2S", "H2", "N2", "H2O", "W_solid", "X_C", "T"])
-                df["z_m"] = z
-
-                # 出口干基组成
-                last = results_arr[-1]
-                gas = last[:8]
-                F_dry = np.sum(gas[:7]) + 1e-12
-                y_co = gas[2] / F_dry * 100
-                y_h2 = gas[5] / F_dry * 100
-                y_co2 = gas[3] / F_dry * 100
-                T_out_C = last[10] - 273.15
-
                 Cd_val = st.session_state.get("Cd_k", 80.19)
-                df["Carbon_Conv"] = 1 - (df["W_solid"] * df["X_C"]) / (coal_flow * (Cd_val / 100.0) + 1e-9)
-                # 干基体积分数 (%)：每 cell 的 F_dry 与 y
-                F_dry_arr = np.sum(results_arr[:, :7], axis=1) + 1e-12
-                y_co_arr = results_arr[:, 2] / F_dry_arr * 100   # CO
-                y_co2_arr = results_arr[:, 3] / F_dry_arr * 100  # CO2
-                y_h2_arr = results_arr[:, 5] / F_dry_arr * 100  # H2
-                y_h2o_arr = results_arr[:, 7] / (F_dry_arr + results_arr[:, 7] + 1e-12) * 100  # H2O 湿基
-                T_arr = results_arr[:, 10] - 273.15
+                df = _profile_dataframe(results_arr, z, coal_flow, Cd_val)
+                kpi = _exit_kpis(results_arr)
+                gas = kpi["gas"]
+                y_co = kpi["yCO"]
+                y_h2 = kpi["yH2"]
+                y_co2 = kpi["yCO2"]
+                T_out_C = kpi["T_out_C"]
+                y_co_arr = df["yCO_dry_pct"].to_numpy()
+                y_co2_arr = df["yCO2_dry_pct"].to_numpy()
+                y_h2_arr = df["yH2_dry_pct"].to_numpy()
+                y_h2o_arr = df["yH2O_wet_pct"].to_numpy()
+                T_arr = df["T_C"].to_numpy()
+                expected = _expected_kpis_for_case(case_name) if case_name != "自定义" else {}
+
+                baseline_summary = None
+                jax_hot_summary = None
+                if st.session_state.get("compare_minimize_k") and solver_method != "minimize":
+                    with st.spinner("额外计算 minimize 基线，用于结果对比..."):
+                        sys_base = GasifierSystem(geometry, coal_props, op_conds)
+                        base_arr, _base_z, base_elapsed_s = _solver_run(sys_base, N_cells, "minimize")
+                    base_kpi = _exit_kpis(base_arr)
+                    baseline_summary = {
+                        "solver": "minimize",
+                        "elapsed_s": base_elapsed_s,
+                        "T_out_C": base_kpi["T_out_C"],
+                        "yCO": base_kpi["yCO"],
+                        "yH2": base_kpi["yH2"],
+                        "yCO2": base_kpi["yCO2"],
+                        "max_dT_K": float(np.max(np.abs(base_arr[:, 10] - results_arr[:, 10]))),
+                        "max_dyCO_pct": float(np.max(np.abs(_profile_dataframe(base_arr, z, coal_flow, Cd_val)["yCO_dry_pct"].to_numpy() - y_co_arr))),
+                    }
+
+                if solver_method == "jax_jit":
+                    with st.spinner("补充热态 jax_jit 耗时，用于展示在线服务优势..."):
+                        sys_hot = GasifierSystem(geometry, coal_props, op_conds)
+                        _cold_arr, _cold_z, _cold_elapsed_s = _solver_run(sys_hot, N_cells, "jax_jit")
+                        hot_arr, _hot_z, hot_elapsed_s = _solver_run(sys_hot, N_cells, "jax_jit")
+                    hot_kpi = _exit_kpis(hot_arr)
+                    jax_hot_summary = {
+                        "elapsed_s": hot_elapsed_s,
+                        "T_out_C": hot_kpi["T_out_C"],
+                        "yCO": hot_kpi["yCO"],
+                        "yH2": hot_kpi["yH2"],
+                        "yCO2": hot_kpi["yCO2"],
+                        "max_dT_K_vs_current": float(np.max(np.abs(hot_arr[:, 10] - results_arr[:, 10]))),
+                    }
 
                 # --- 核心可视化：学术风格双轴图 ---
                 fig_main = make_subplots(specs=[[{"secondary_y": True}]])
@@ -301,42 +443,205 @@ def run():
 
                 st.plotly_chart(fig_main, use_container_width=True)
 
-                # --- 下方仪表盘：出口指标与组成饼图 ---
-                st.divider()
-                c_kpi, c_pie = st.columns([1.2, 1])
-                
-                with c_kpi:
-                    st.markdown("#### 🎯 出口关键指标 (KPIs)")
-                    mk1, mk2 = st.columns(2)
-                    mk1.metric("出口温度", f"{T_out_C:.1f} °C")
-                    mk2.metric("碳转化率", f"{df['Carbon_Conv'].iloc[-1]*100:.2f}%")
-                    
-                    mk3, mk4 = st.columns(2)
-                    mk3.metric("有效气 (CO+H₂)", f"{y_co + y_h2:.1f} %")
-                    mk4.metric("CO₂ 浓度", f"{y_co2:.1f} %")
-                
-                with c_pie:
-                    st.markdown("#### 🍕 出口干基组分占比")
-                    labels_pie = ["CO", "H₂", "CO₂", "CH₄", "N₂"]
-                    values_pie = [gas[2], gas[5], gas[3], gas[1], gas[6]] # gas = [O2, CH4, CO, CO2, H2S, H2, N2, H2O]
-                    
-                    fig_pie = go.Figure(data=[go.Pie(
-                        labels=labels_pie, 
-                        values=values_pie, 
-                        hole=.4,
-                        marker=dict(colors=[colors["CO"], colors["H2"], colors["CO2"], "#999999", "#CCCCCC"])
-                    )])
-                    fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=240, showlegend=True, legend=dict(orientation="v", x=1.1, y=0.5))
-                    st.plotly_chart(fig_pie, use_container_width=True)
+                tab_overview, tab_compare, tab_data = st.tabs(["结果总览", "对比分析", "数据与下载"])
+
+                with tab_overview:
+                    service_c1, service_c2, service_c3 = st.columns(3)
+                    service_c1.metric("当前 solver", solver_method)
+                    service_c2.metric("服务定位", rec_title)
+                    service_c3.metric("网格规模", f"{N_cells} cells")
+
+                    if solver_method == "jax_jit":
+                        st.info("当前页面是本地诊断视图，会额外展示冷启动与热态差异；线上部署默认应直接提供热态 `jax_jit`。")
+                        if jax_hot_summary is not None:
+                            hot_msg = (
+                                f"当前展示耗时 `{elapsed_s:.2f}s`，同进程热态再次求解约 `{jax_hot_summary['elapsed_s']:.2f}s`。"
+                            )
+                            if baseline_summary is not None and baseline_summary["elapsed_s"] > 0:
+                                ratio = jax_hot_summary["elapsed_s"] / baseline_summary["elapsed_s"]
+                                hot_msg += f" 相对 `minimize` 基线时间比约为 `{ratio:.2f}x`。"
+                            st.success(hot_msg)
+
+                    st.caption(_build_runtime_badge(solver_method, elapsed_s, baseline_summary, jax_hot_summary))
+
+                    perf_lines = _performance_summary_lines(solver_method, elapsed_s, baseline_summary, jax_hot_summary)
+                    st.markdown("#### ⚡ Performance Summary")
+                    for line in perf_lines:
+                        st.markdown(f"- {line}")
+
+                    c_kpi, c_pie = st.columns([1.2, 1])
+
+                    with c_kpi:
+                        st.markdown("#### 🎯 出口关键指标 (KPIs)")
+                        mk1, mk2 = st.columns(2)
+                        mk1.metric("出口温度", f"{T_out_C:.1f} °C")
+                        mk2.metric("碳转化率", f"{df['Carbon_Conv'].iloc[-1]*100:.2f}%")
+
+                        mk3, mk4 = st.columns(2)
+                        mk3.metric("当前 solver 耗时", f"{elapsed_s:.2f} s")
+                        if solver_method == "jax_jit" and jax_hot_summary is not None:
+                            mk4.metric("热态 jax_jit 耗时", f"{jax_hot_summary['elapsed_s']:.2f} s")
+                        elif baseline_summary is not None:
+                            mk4.metric("minimize 基线耗时", f"{baseline_summary['elapsed_s']:.2f} s")
+                        else:
+                            mk4.metric("服务建议", rec_title)
+
+                        mk5, mk6, mk7 = st.columns(3)
+                        mk5.metric("CO (dry)", f"{y_co:.2f} %")
+                        mk6.metric("H₂ (dry)", f"{y_h2:.2f} %")
+                        mk7.metric("CO₂ (dry)", f"{y_co2:.2f} %")
+
+                        if expected:
+                            st.markdown("#### 📏 与预期值的出口偏差")
+                            ex1, ex2, ex3 = st.columns(3)
+                            exp_t = expected.get("TOUT_C")
+                            exp_yco = expected.get("YCO")
+                            exp_yh2 = expected.get("YH2")
+                            ex1.metric("ΔT vs expected", "-" if exp_t is None else f"{T_out_C - float(exp_t):+.1f} K")
+                            ex2.metric("ΔyCO vs expected", "-" if exp_yco is None else f"{y_co - float(exp_yco):+.2f} %")
+                            ex3.metric("ΔyH₂ vs expected", "-" if exp_yh2 is None else f"{y_h2 - float(exp_yh2):+.2f} %")
+
+                    with c_pie:
+                        st.markdown("#### 🍕 出口干基组分占比")
+                        labels_pie = ["CO", "H₂", "CO₂", "CH₄", "N₂"]
+                        values_pie = [gas[2], gas[5], gas[3], gas[1], gas[6]]
+
+                        fig_pie = go.Figure(data=[go.Pie(
+                            labels=labels_pie,
+                            values=values_pie,
+                            hole=.4,
+                            marker=dict(colors=[colors["CO"], colors["H2"], colors["CO2"], "#999999", "#CCCCCC"])
+                        )])
+                        fig_pie.update_layout(margin=dict(t=0, b=0, l=0, r=0), height=240, showlegend=True, legend=dict(orientation="v", x=1.1, y=0.5))
+                        st.plotly_chart(fig_pie, use_container_width=True)
+
+                with tab_compare:
+                    st.markdown("#### ⚖️ Solver / 结果判读")
+                    if baseline_summary is None:
+                        st.info("打开左侧“同时跑 minimize 基线对比”后，这里会显示当前 solver 与稳健基线的出口和 profile 偏差。")
+                    else:
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("基线耗时", f"{baseline_summary['elapsed_s']:.2f} s")
+                        c2.metric("ΔT_out vs minimize", f"{T_out_C - baseline_summary['T_out_C']:+.2f} K")
+                        c3.metric("max|ΔT| profile", f"{baseline_summary['max_dT_K']:.2f} K")
+                        c4, c5, c6 = st.columns(3)
+                        c4.metric("ΔyCO vs minimize", f"{y_co - baseline_summary['yCO']:+.3f} %")
+                        c5.metric("ΔyH₂ vs minimize", f"{y_h2 - baseline_summary['yH2']:+.3f} %")
+                        c6.metric("max|ΔyCO| profile", f"{baseline_summary['max_dyCO_pct']:.3f} %")
+
+                        summary_rows = pd.DataFrame(
+                            [
+                                {"solver": solver_method, "time_s": elapsed_s, "T_out_C": T_out_C, "yCO_dry_pct": y_co, "yH2_dry_pct": y_h2, "yCO2_dry_pct": y_co2},
+                                {"solver": baseline_summary["solver"], "time_s": baseline_summary["elapsed_s"], "T_out_C": baseline_summary["T_out_C"], "yCO_dry_pct": baseline_summary["yCO"], "yH2_dry_pct": baseline_summary["yH2"], "yCO2_dry_pct": baseline_summary["yCO2"]},
+                            ]
+                        )
+                        if solver_method == "jax_jit" and jax_hot_summary is not None:
+                            summary_rows = pd.concat(
+                                [
+                                    summary_rows,
+                                    pd.DataFrame(
+                                        [
+                                            {
+                                                "solver": "jax_jit_hot",
+                                                "time_s": jax_hot_summary["elapsed_s"],
+                                                "T_out_C": jax_hot_summary["T_out_C"],
+                                                "yCO_dry_pct": jax_hot_summary["yCO"],
+                                                "yH2_dry_pct": jax_hot_summary["yH2"],
+                                                "yCO2_dry_pct": jax_hot_summary["yCO2"],
+                                            }
+                                        ]
+                                    ),
+                                ],
+                                ignore_index=True,
+                            )
+                        st.dataframe(summary_rows, use_container_width=True, hide_index=True)
+
+                        if solver_method == "jax_jit" and jax_hot_summary is not None:
+                            st.markdown("#### ⚡ jax_jit 热态耗时")
+                            hot_c1, hot_c2, hot_c3 = st.columns(3)
+                            hot_c1.metric("当前展示耗时", f"{elapsed_s:.2f} s")
+                            hot_c2.metric("热态再次求解", f"{jax_hot_summary['elapsed_s']:.2f} s")
+                            hot_c3.metric(
+                                "热态 / minimize",
+                                f"{jax_hot_summary['elapsed_s'] / baseline_summary['elapsed_s']:.2f}x",
+                            )
+
+                        compare_fig = make_subplots(
+                            rows=1,
+                            cols=2,
+                            subplot_titles=("Temperature Profile", "Dry Gas Profile (CO / H₂ / CO₂)"),
+                        )
+                        compare_fig.add_trace(
+                            go.Scatter(x=z, y=T_arr, mode="lines", name=f"{solver_method} T", line=dict(width=3, color="#E7298A")),
+                            row=1, col=1,
+                        )
+                        base_df = _profile_dataframe(base_arr, z, coal_flow, Cd_val)
+                        compare_fig.add_trace(
+                            go.Scatter(x=z, y=base_df["T_C"], mode="lines", name="minimize T", line=dict(width=2, dash="dash", color="#222222")),
+                            row=1, col=1,
+                        )
+                        for col_name, color, label in [
+                            ("yCO_dry_pct", "#E41A1C", "CO"),
+                            ("yH2_dry_pct", "#4DAF4A", "H₂"),
+                            ("yCO2_dry_pct", "#377EB8", "CO₂"),
+                        ]:
+                            compare_fig.add_trace(
+                                go.Scatter(x=z, y=df[col_name], mode="lines", name=f"{solver_method} {label}", line=dict(width=3, color=color)),
+                                row=1, col=2,
+                            )
+                            compare_fig.add_trace(
+                                go.Scatter(x=z, y=base_df[col_name], mode="lines", name=f"minimize {label}", line=dict(width=2, dash="dash", color=color)),
+                                row=1, col=2,
+                            )
+                        compare_fig.update_layout(height=460, legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5))
+                        compare_fig.update_xaxes(title_text="z (m)", row=1, col=1)
+                        compare_fig.update_xaxes(title_text="z (m)", row=1, col=2)
+                        compare_fig.update_yaxes(title_text="T (°C)", row=1, col=1)
+                        compare_fig.update_yaxes(title_text="mol%", row=1, col=2)
+                        st.plotly_chart(compare_fig, use_container_width=True)
+
+                with tab_data:
+                    st.markdown("#### 📦 下载与 profile 数据")
+                    export_cols = [
+                        "z_m", "T_C", "Carbon_Conv", "yCO_dry_pct", "yH2_dry_pct", "yCO2_dry_pct", "yH2O_wet_pct",
+                        "O2", "CH4", "CO", "CO2", "H2S", "H2", "N2", "H2O", "W_solid", "X_C",
+                    ]
+                    export_df = df[export_cols].copy()
+                    d1, d2 = st.columns(2)
+                    d1.download_button(
+                        "下载 profile CSV",
+                        data=export_df.to_csv(index=False).encode("utf-8"),
+                        file_name=f"gasifier_profile_{solver_method}_{case_name if case_name != '自定义' else 'custom'}.csv",
+                        mime="text/csv",
+                        use_container_width=True,
+                    )
+                    payload = {
+                        "case_name": case_name,
+                        "solver_method": solver_method,
+                        "elapsed_s": elapsed_s,
+                        "geometry": geometry,
+                        "coal_props": coal_props,
+                        "op_conds": op_conds,
+                        "exit_kpis": {k: v for k, v in kpi.items() if k != "gas"},
+                        "expected": expected,
+                    }
+                    d2.download_button(
+                        "下载本次输入 JSON",
+                        data=json.dumps(payload, ensure_ascii=False, indent=2).encode("utf-8"),
+                        file_name=f"gasifier_run_{solver_method}_{case_name if case_name != '自定义' else 'custom'}.json",
+                        mime="application/json",
+                        use_container_width=True,
+                    )
+                    st.dataframe(export_df.round(4), use_container_width=True, hide_index=True)
 
             except Exception as e:
                 st.error(f"计算失败: {e}")
                 import traceback
                 st.code(traceback.format_exc())
-        else:
-            st.info("💡 **提示**: 1D 动力学模型含燃烧区起燃、WGS 判据等。建议从 **Paper_Case_6** 或 **LuNan_Texaco_Slurry** 预设开始。")
-            with st.expander("📐 气化炉小室划分示意图", expanded=True):
-                st.components.v1.html(get_chamber_schematic_html(), height=500, scrolling=False)
+    else:
+        st.info("💡 **提示**: 1D 动力学模型含燃烧区起燃、WGS 判据等。建议从 **Paper_Case_6** 或 **LuNan_Texaco_Slurry** 预设开始。")
+        with st.expander("📐 气化炉小室划分示意图", expanded=True):
+            st.components.v1.html(get_chamber_schematic_html(), height=500, scrolling=False)
 
 
 def get_chamber_schematic_html() -> str:

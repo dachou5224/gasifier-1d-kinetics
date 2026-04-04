@@ -4,7 +4,30 @@
     "categories": [
       "Capacity (Pilot/Industrial)",
       "Feed (Slurry/Dry)"
-    ]
+    ],
+    "duplicate_case_merge_2026_04": {
+      "policy": "小写 pilot 键名（validation_cases_pilot 风格）与对应大写 Texaco_* 指同一物理工况时，仅保留大写条目；小写键已从本文件删除。",
+      "removed_keys": [
+        "texaco i-1",
+        "texaco i-2",
+        "texaco i-5c",
+        "texaco i-10",
+        "texaco exxon"
+      ],
+      "canonical_keys": [
+        "Texaco_I-1",
+        "Texaco_I-2",
+        "Texaco_I-5C",
+        "Texaco_I-10",
+        "Texaco_Exxon"
+      ],
+      "why_not_identical_field_for_field": [
+        "小写副本 heat_loss_percent=4（Fortran 小试约定），大写文献工况 heat_loss_percent=3（Wen & Chaung 原文）",
+        "小写条目中 coal_feed_rate_kg_hr 数值实为 g/s（与 Fortran tfcoal 一致），大写使用 coal_feed_rate_kg_hr=g/s*3.6",
+        "小写条目无 expected_results 干基气体组成；权威实验/模型预测仅在大写 Texaco_* 中维护"
+      ],
+      "code_alias": "src/model/validation_loader.py 中 CASE_NAME_ALIASES_FINAL：仍可用小写名 load_case_from_repo，映射到大写 canonical。"
+    }
   },
   "Pilot": {
     "Slurry-fed": {
@@ -167,7 +190,10 @@
           "dry_product_gas_vol_pct": {
             "CO": 53.06,
             "H2": 41.0,
-            "CO2": 5.15
+            "CO2": 5.15,
+            "CH4": 0.46,
+            "H2S": 0.21,
+            "N2": 0.07
           },
           "model_predictions": {
             "carbon_conversion_pct": 93.29,
@@ -177,6 +203,181 @@
               "CO2": 3.89
             }
           }
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-3": {
+        "name": "Texaco_I-3",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-3",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 82.202,
+          "oxygen_feed_rate_g_s": 66.83023,
+          "steam_feed_rate_g_s": 25.40042,
+          "O2_to_fuel_ratio": 0.813,
+          "steam_to_fuel_ratio": 0.309,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 295.9272,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 99.28,
+          "dry_product_gas_vol_pct": {
+            "CO": 54.66,
+            "H2": 39.31,
+            "CO2": 5.51,
+            "CH4": 0.08,
+            "H2S": 0.26,
+            "N2": 0.11
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-4A": {
+        "name": "Texaco_I-4A",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-4A",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 79.456,
+          "oxygen_feed_rate_g_s": 64.12099,
+          "steam_feed_rate_g_s": 25.66429,
+          "O2_to_fuel_ratio": 0.807,
+          "steam_to_fuel_ratio": 0.323,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 286.0416,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 97.24,
+          "dry_product_gas_vol_pct": {
+            "CO": 55.7,
+            "H2": 38.9,
+            "CO2": 5.11,
+            "CH4": 0.12,
+            "H2S": 0.11,
+            "N2": 0.0
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-4B": {
+        "name": "Texaco_I-4B",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-4B",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 81.846,
+          "oxygen_feed_rate_g_s": 65.23126,
+          "steam_feed_rate_g_s": 25.37226,
+          "O2_to_fuel_ratio": 0.797,
+          "steam_to_fuel_ratio": 0.31,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 294.6456,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 97.34,
+          "dry_product_gas_vol_pct": {
+            "CO": 54.9,
+            "H2": 39.26,
+            "CO2": 5.3,
+            "CH4": 0.14,
+            "H2S": 0.23,
+            "N2": 0.11
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-5A": {
+        "name": "Texaco_I-5A",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-5A",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 71.64,
+          "oxygen_feed_rate_g_s": 59.19613,
+          "steam_feed_rate_g_s": 25.21728,
+          "O2_to_fuel_ratio": 0.8263,
+          "steam_to_fuel_ratio": 0.352,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 714.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 257.904,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.875,
+          "dry_product_gas_vol_pct": {
+            "CO": 54.02,
+            "H2": 38.78,
+            "CO2": 6.64,
+            "CH4": 0.07,
+            "H2S": 0.21,
+            "N2": 0.22
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-5B": {
+        "name": "Texaco_I-5B",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-5B",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 65.0,
+          "oxygen_feed_rate_g_s": 53.105,
+          "steam_feed_rate_g_s": 25.48,
+          "O2_to_fuel_ratio": 0.817,
+          "steam_to_fuel_ratio": 0.392,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 714.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 234.0,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.868,
+          "dry_product_gas_vol_pct": {
+            "CO": 52.48,
+            "H2": 39.85,
+            "CO2": 7.22,
+            "CH4": 0.08,
+            "H2S": 0.31,
+            "N2": 0.04
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
         },
         "coal": {},
         "feedstock_type_orig": "molten_residue",
@@ -201,9 +402,262 @@
         },
         "expected_results": {
           "carbon_conversion_pct": 98.885,
+          "dry_product_gas_vol_pct": {
+            "CO": 51.39,
+            "H2": 39.83,
+            "CO2": 8.23,
+            "CH4": 0.04,
+            "H2S": 0.41,
+            "N2": 0.04
+          },
           "model_predictions": {
             "carbon_conversion_pct": 99.76
           }
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-6": {
+        "name": "Texaco_I-6",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-6",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 87.73,
+          "oxygen_feed_rate_g_s": 67.90302,
+          "steam_feed_rate_g_s": 25.52943,
+          "O2_to_fuel_ratio": 0.774,
+          "steam_to_fuel_ratio": 0.291,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 315.828,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 97.122,
+          "dry_product_gas_vol_pct": {
+            "CO": 55.03,
+            "H2": 39.43,
+            "CO2": 5.01,
+            "CH4": 0.2,
+            "H2S": 0.1,
+            "N2": 0.17
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-7A": {
+        "name": "Texaco_I-7A",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-7A",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 90.974,
+          "oxygen_feed_rate_g_s": 70.56853,
+          "steam_feed_rate_g_s": 25.65467,
+          "O2_to_fuel_ratio": 0.7757,
+          "steam_to_fuel_ratio": 0.282,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 327.5064,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 96.826,
+          "dry_product_gas_vol_pct": {
+            "CO": 55.33,
+            "H2": 39.62,
+            "CO2": 4.62,
+            "CH4": 0.2,
+            "H2S": 0.08,
+            "N2": 0.09
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-7B": {
+        "name": "Texaco_I-7B",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-7B",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 95.392,
+          "oxygen_feed_rate_g_s": 74.59654,
+          "steam_feed_rate_g_s": 25.46966,
+          "O2_to_fuel_ratio": 0.782,
+          "steam_to_fuel_ratio": 0.267,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 343.4112,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 96.992,
+          "dry_product_gas_vol_pct": {
+            "CO": 55.87,
+            "H2": 39.03,
+            "CO2": 4.4,
+            "CH4": 0.13,
+            "H2S": 0.26,
+            "N2": 0.25
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-8A": {
+        "name": "Texaco_I-8A",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-8A",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 92.13,
+          "oxygen_feed_rate_g_s": 73.42761,
+          "steam_feed_rate_g_s": 22.75611,
+          "O2_to_fuel_ratio": 0.797,
+          "steam_to_fuel_ratio": 0.247,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 331.668,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.641,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.38,
+            "H2": 38.43,
+            "CO2": 3.7,
+            "CH4": 0.09,
+            "H2S": 0.3,
+            "N2": 0.04
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-8B": {
+        "name": "Texaco_I-8B",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-8B",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 95.07,
+          "oxygen_feed_rate_g_s": 76.20811,
+          "steam_feed_rate_g_s": 22.72173,
+          "O2_to_fuel_ratio": 0.8016,
+          "steam_to_fuel_ratio": 0.239,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 342.252,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.663,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.67,
+            "H2": 38.28,
+            "CO2": 3.62,
+            "CH4": 0.03,
+            "H2S": 0.25,
+            "N2": 0.08
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-8C": {
+        "name": "Texaco_I-8C",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-8C",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 92.86,
+          "oxygen_feed_rate_g_s": 74.288,
+          "steam_feed_rate_g_s": 22.84356,
+          "O2_to_fuel_ratio": 0.8,
+          "steam_to_fuel_ratio": 0.246,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 334.296,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.605,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.02,
+            "H2": 38.39,
+            "CO2": 3.93,
+            "CH4": 0.04,
+            "H2S": 0.37,
+            "N2": 0.18
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-9": {
+        "name": "Texaco_I-9",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-9",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 87.79,
+          "oxygen_feed_rate_g_s": 69.09073,
+          "steam_feed_rate_g_s": 23.52772,
+          "O2_to_fuel_ratio": 0.787,
+          "steam_to_fuel_ratio": 0.268,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 316.044,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 97.45,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.49,
+            "H2": 38.29,
+            "CO2": 3.76,
+            "CH4": 0.07,
+            "H2S": 0.26,
+            "N2": 0.06
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
         },
         "coal": {},
         "feedstock_type_orig": "molten_residue",
@@ -231,7 +685,10 @@
           "dry_product_gas_vol_pct": {
             "CO": 55.18,
             "H2": 39.24,
-            "CO2": 4.69
+            "CO2": 4.69,
+            "CH4": 0.26,
+            "H2S": 0.1,
+            "N2": 0.47
           },
           "model_predictions": {
             "carbon_conversion_pct": 96.01,
@@ -241,6 +698,321 @@
               "CO2": 4.46
             }
           }
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_I-11": {
+        "name": "Texaco_I-11",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Illinois No. 6 coal, run I-11",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 132.79,
+          "oxygen_feed_rate_g_s": 112.65904,
+          "steam_feed_rate_g_s": 37.04841,
+          "O2_to_fuel_ratio": 0.8484,
+          "steam_to_fuel_ratio": 0.279,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 478.044,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 99.187,
+          "dry_product_gas_vol_pct": {
+            "CO": 54.57,
+            "H2": 39.72,
+            "CO2": 5.11,
+            "CH4": 0.09,
+            "H2S": 0.12,
+            "N2": 0.11
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-1": {
+        "name": "Texaco_W-1",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-1",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 86.0,
+          "oxygen_feed_rate_g_s": 77.4,
+          "steam_feed_rate_g_s": 27.348,
+          "O2_to_fuel_ratio": 0.9,
+          "steam_to_fuel_ratio": 0.318,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 309.6,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.98,
+          "dry_product_gas_vol_pct": {
+            "CO": 56.96,
+            "H2": 38.04,
+            "CO2": 4.84,
+            "CH4": 0.03,
+            "H2S": 0.0,
+            "N2": 0.07
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-2": {
+        "name": "Texaco_W-2",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-2",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 87.231,
+          "oxygen_feed_rate_g_s": 74.93143,
+          "steam_feed_rate_g_s": 24.94807,
+          "O2_to_fuel_ratio": 0.859,
+          "steam_to_fuel_ratio": 0.286,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 314.0316,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 99.17,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.67,
+            "H2": 37.9,
+            "CO2": 4.29,
+            "CH4": 0.06,
+            "H2S": 0.0,
+            "N2": 0.08
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-3A": {
+        "name": "Texaco_W-3A",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-3A",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 128.49,
+          "oxygen_feed_rate_g_s": 108.44556,
+          "steam_feed_rate_g_s": 32.50797,
+          "O2_to_fuel_ratio": 0.844,
+          "steam_to_fuel_ratio": 0.253,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 462.564,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 99.393,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.8,
+            "H2": 37.47,
+            "CO2": 4.43,
+            "CH4": 0.1,
+            "H2S": 0.0,
+            "N2": 0.15
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-3B": {
+        "name": "Texaco_W-3B",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-3B",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 128.67,
+          "oxygen_feed_rate_g_s": 110.6562,
+          "steam_feed_rate_g_s": 33.96888,
+          "O2_to_fuel_ratio": 0.86,
+          "steam_to_fuel_ratio": 0.264,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 463.212,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 99.395,
+          "dry_product_gas_vol_pct": {
+            "CO": 56.02,
+            "H2": 37.02,
+            "CO2": 5.82,
+            "CH4": 0.06,
+            "H2S": 0.01,
+            "N2": 0.18
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-4": {
+        "name": "Texaco_W-4",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-4",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 125.66,
+          "oxygen_feed_rate_g_s": 107.69062,
+          "steam_feed_rate_g_s": 34.30518,
+          "O2_to_fuel_ratio": 0.857,
+          "steam_to_fuel_ratio": 0.273,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 452.376,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.765,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.61,
+            "H2": 37.77,
+            "CO2": 4.12,
+            "CH4": 0.13,
+            "H2S": 0.0,
+            "N2": 0.32
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-5": {
+        "name": "Texaco_W-5",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-5",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 129.826,
+          "oxygen_feed_rate_g_s": 110.8714,
+          "steam_feed_rate_g_s": 34.14424,
+          "O2_to_fuel_ratio": 0.854,
+          "steam_to_fuel_ratio": 0.263,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 467.3736,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 98.211,
+          "dry_product_gas_vol_pct": {
+            "CO": 57.0,
+            "H2": 38.32,
+            "CO2": 4.28,
+            "CH4": 0.15,
+            "H2S": 0.0,
+            "N2": 0.19
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-6": {
+        "name": "Texaco_W-6",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-6",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 132.82,
+          "oxygen_feed_rate_g_s": 113.5611,
+          "steam_feed_rate_g_s": 42.23676,
+          "O2_to_fuel_ratio": 0.855,
+          "steam_to_fuel_ratio": 0.318,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 478.152,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 97.9,
+          "dry_product_gas_vol_pct": {
+            "CO": 54.91,
+            "H2": 39.2,
+            "CO2": 5.49,
+            "CH4": 0.18,
+            "H2S": 0.0,
+            "N2": 0.18
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
+        },
+        "coal": {},
+        "feedstock_type_orig": "molten_residue",
+        "capacity": "Pilot",
+        "feed_type": "Dry-fed"
+      },
+      "Texaco_W-7": {
+        "name": "Texaco_W-7",
+        "source": "Montebello Texaco pilot (user tables: feed g/s, O2/fuel, steam/fuel, C conv; dry gas vol%)",
+        "description": "H-coal residue from Wyodak coal, run W-7",
+        "operating_conditions": {
+          "coal_feed_rate_g_s": 135.64,
+          "oxygen_feed_rate_g_s": 127.5016,
+          "steam_feed_rate_g_s": 42.0484,
+          "O2_to_fuel_ratio": 0.94,
+          "steam_to_fuel_ratio": 0.31,
+          "pressure_atm": 24.0,
+          "inlet_temperature_K": 500.0,
+          "steam_temperature_K": 696.67,
+          "oxygen_temperature_K": 298.0,
+          "heat_loss_percent": 3.0,
+          "coal_feed_rate_kg_hr": 488.304,
+          "pressure_Pa": 2431800.0
+        },
+        "expected_results": {
+          "carbon_conversion_pct": 99.676,
+          "dry_product_gas_vol_pct": {
+            "CO": 54.24,
+            "H2": 37.98,
+            "CO2": 7.62,
+            "CH4": 0.0,
+            "H2S": 0.0,
+            "N2": 0.11
+          },
+          "notes": "干基 vol% 为实验测得；文献中壁温常假设沿炉长 2100→1500 K 线性（Wen & Chaung）。入口温度未逐批单独给出时 inlet_temperature_K 取 500 K 占位；steam_temperature_K 在 steam/fuel≥0.35 时用 714.67 K 否则 696.67 K。"
         },
         "coal": {},
         "feedstock_type_orig": "molten_residue",
@@ -283,101 +1055,6 @@
         },
         "coal": {},
         "feedstock_type_orig": "molten_residue",
-        "capacity": "Pilot",
-        "feed_type": "Dry-fed"
-      },
-      "texaco i-1": {
-        "name": "texaco i-1",
-        "source": "validation_cases_pilot.json",
-        "description": "",
-        "operating_conditions": {
-          "coal_feed_rate_kg_hr": 76.66,
-          "O2_to_fuel_ratio": 0.866,
-          "steam_to_fuel_ratio": 0.241,
-          "pressure_Pa": 2431800,
-          "inlet_temperature_K": 505.22,
-          "slurry_concentration_pct": 100,
-          "heat_loss_percent": 4
-        },
-        "expected_results": {},
-        "coal": {},
-        "feedstock_type_orig": "",
-        "capacity": "Pilot",
-        "feed_type": "Dry-fed"
-      },
-      "texaco i-2": {
-        "name": "texaco i-2",
-        "source": "validation_cases_pilot.json",
-        "description": "",
-        "operating_conditions": {
-          "coal_feed_rate_kg_hr": 81.18,
-          "O2_to_fuel_ratio": 0.76818,
-          "steam_to_fuel_ratio": 0.314,
-          "pressure_Pa": 2431800,
-          "inlet_temperature_K": 496.33,
-          "slurry_concentration_pct": 100,
-          "heat_loss_percent": 4
-        },
-        "expected_results": {},
-        "coal": {},
-        "feedstock_type_orig": "",
-        "capacity": "Pilot",
-        "feed_type": "Dry-fed"
-      },
-      "texaco i-5c": {
-        "name": "texaco i-5c",
-        "source": "validation_cases_pilot.json",
-        "description": "",
-        "operating_conditions": {
-          "coal_feed_rate_kg_hr": 56.264,
-          "O2_to_fuel_ratio": 0.832,
-          "steam_to_fuel_ratio": 0.429,
-          "pressure_Pa": 2431800,
-          "inlet_temperature_K": 497.44,
-          "slurry_concentration_pct": 100,
-          "heat_loss_percent": 4
-        },
-        "expected_results": {},
-        "coal": {},
-        "feedstock_type_orig": "",
-        "capacity": "Pilot",
-        "feed_type": "Dry-fed"
-      },
-      "texaco i-10": {
-        "name": "texaco i-10",
-        "source": "validation_cases_pilot.json",
-        "description": "",
-        "operating_conditions": {
-          "coal_feed_rate_kg_hr": 129.77,
-          "O2_to_fuel_ratio": 0.83457,
-          "steam_to_fuel_ratio": 0.276,
-          "pressure_Pa": 2431800,
-          "inlet_temperature_K": 481.33,
-          "slurry_concentration_pct": 100,
-          "heat_loss_percent": 4
-        },
-        "expected_results": {},
-        "coal": {},
-        "feedstock_type_orig": "",
-        "capacity": "Pilot",
-        "feed_type": "Dry-fed"
-      },
-      "texaco exxon": {
-        "name": "texaco exxon",
-        "source": "validation_cases_pilot.json",
-        "description": "",
-        "operating_conditions": {
-          "coal_feed_rate_kg_hr": 126.11,
-          "O2_to_fuel_ratio": 0.79,
-          "steam_to_fuel_ratio": 0.5,
-          "pressure_Pa": 2431800,
-          "inlet_temperature_K": 505.22,
-          "slurry_concentration_pct": 100,
-          "heat_loss_percent": 4
-        },
-        "expected_results": {},
-        "coal": {},
-        "feedstock_type_orig": "",
         "capacity": "Pilot",
         "feed_type": "Dry-fed"
       },
@@ -424,36 +1101,34 @@
   "Industrial": {
     "Slurry-fed": {
       "Illinois_No6": {
-          "name": "Illinois_No6",
-          "source": "validation_cases_new.json",
-          "description": "",
-          "operating_conditions": {
-              "coal_feed_rate_kg_hr": 41670.0,
-              "O2_to_fuel_ratio": 1.05,
-              "steam_to_fuel_ratio": 0.0,
-              "pressure_Pa": 4083000.0,
-              "inlet_temperature_K": 400.0,
-              "slurry_concentration_pct": 66.5,
-              "heat_loss_percent": 1.2
-          },
-
+        "name": "Illinois_No6",
+        "source": "validation_cases_new.json",
+        "description": "",
+        "operating_conditions": {
+          "coal_feed_rate_kg_hr": 41670.0,
+          "O2_to_fuel_ratio": 1.05,
+          "steam_to_fuel_ratio": 0.0,
+          "pressure_Pa": 4083000.0,
+          "inlet_temperature_K": 400.0,
+          "slurry_concentration_pct": 66.5,
+          "heat_loss_percent": 1.2
+        },
         "expected_results": {
-            "CO": 40.8,
-            "H2": 29.8,
-            "CO2": 10.27,
-            "H2O": 17.1,
-            "CH4": 0.3
+          "CO": 40.8,
+          "H2": 29.8,
+          "CO2": 10.27,
+          "H2O": 17.1,
+          "CH4": 0.3
         },
         "coal": {
-            "C": 69.6,
-            "H": 5.3,
-            "O": 10.0,
-            "N": 1.3,
-            "S": 3.9,
-            "Ash": 10.0
+          "C": 69.6,
+          "H": 5.3,
+          "O": 10.0,
+          "N": 1.3,
+          "S": 3.9,
+          "Ash": 10.0
         },
         "feedstock_type_orig": "coal_water_slurry",
-
         "capacity": "Industrial",
         "feed_type": "Slurry-fed"
       },
@@ -530,7 +1205,6 @@
           "coal_feed_rate_g_s": 4976.9,
           "O2_to_fuel_ratio": 1.05,
           "steam_to_fuel_ratio": 0.0,
-
           "pressure_atm": 39.48,
           "pressure_Pa": 4000000.0,
           "inlet_temperature_K": 400.0,
@@ -539,8 +1213,7 @@
           "O2_purity": 0.98,
           "L_reactor_m": 6.87,
           "D_reactor_m": 1.68
-          },
-
+        },
         "expected_results": {
           "outlet_temperature_C": 1350.0,
           "carbon_conversion_pct": 91.0,
@@ -567,29 +1240,28 @@
       }
     },
     "Dry-fed": {
-        "Paper_Case_6": {
-            "name": "Paper_Case_6",
-            "source": "README.md",
-            "description": "Illinois No.6, Industrial Dry-fed Reference",
-            "operating_conditions": {
-                "coal_feed_rate_kg_hr": 41670.0,
-                "O2_to_fuel_ratio": 1.05,
-                "steam_to_fuel_ratio": 0.08,
-                "pressure_Pa": 4083000.0,
-                "inlet_temperature_K": 300.0,
-                "heat_loss_percent": 2.85,
-                "slurry_concentration_pct": 100.0
-            },
-            "expected_results": {
-                "outlet_temperature_C": 1370.0,
-                "CO": 61.7,
-                "H2": 30.3
-            },
-            "coal_type": "Paper_Base_Coal",
-            "capacity": "Industrial",
-            "feed_type": "Dry-fed"
-        }
+      "Paper_Case_6": {
+        "name": "Paper_Case_6",
+        "source": "README.md",
+        "description": "Illinois No.6, Industrial Dry-fed Reference",
+        "operating_conditions": {
+          "coal_feed_rate_kg_hr": 41670.0,
+          "O2_to_fuel_ratio": 1.05,
+          "steam_to_fuel_ratio": 0.08,
+          "pressure_Pa": 4083000.0,
+          "inlet_temperature_K": 300.0,
+          "heat_loss_percent": 2.85,
+          "slurry_concentration_pct": 100.0
+        },
+        "expected_results": {
+          "outlet_temperature_C": 1370.0,
+          "CO": 61.7,
+          "H2": 30.3
+        },
+        "coal_type": "Paper_Base_Coal",
+        "capacity": "Industrial",
+        "feed_type": "Dry-fed"
+      }
     }
-
   }
 }

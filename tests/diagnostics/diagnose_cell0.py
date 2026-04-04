@@ -11,19 +11,27 @@ from model.gasifier_system import GasifierSystem
 from model.chemistry import COAL_DATABASE
 from model.state import StateVector
 from model.material import SPECIES_NAMES
+from model.validation_loader import CASE_NAME_ALIASES_FINAL
 
 # Configure Logging to show INFO (for Cell Audit)
 logging.basicConfig(level=logging.INFO, format='%(message)s')
 logger = logging.getLogger(__name__)
 
 def load_case_data(case_name):
-    json_path = os.path.join(os.path.dirname(__file__), '../../data/validation_cases_pilot.json')
-    with open(json_path, 'r') as f:
+    data_dir = os.path.join(os.path.dirname(__file__), '../../data')
+    primary_path = os.path.join(data_dir, 'validation_cases_pilot.json')
+    archive_path = os.path.join(data_dir, 'archive', 'validation_cases_pilot.json')
+    json_path = primary_path if os.path.exists(primary_path) else archive_path
+    with open(json_path, 'r', encoding='utf-8') as f:
         config = json.load(f)
-    return config['fortran_cases'][case_name], config['coal_database']
+    lookup = case_name
+    reverse_aliases = {canonical: alias for alias, canonical in CASE_NAME_ALIASES_FINAL.items()}
+    if lookup not in config['fortran_cases']:
+        lookup = reverse_aliases.get(case_name, case_name)
+    return config['fortran_cases'][lookup], config['coal_database']
 
 if __name__ == "__main__":
-    case_name = "texaco i-1"
+    case_name = "Texaco_I-1"
     print(f"--- Diagnosing Energy Balance for {case_name} ---")
     
     # Load Data
