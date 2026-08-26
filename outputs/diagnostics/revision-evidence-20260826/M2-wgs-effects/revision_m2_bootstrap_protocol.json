@@ -1,0 +1,50 @@
+{
+  "selected_block_length": 8,
+  "acf_cutoff": 0.36787944117144233,
+  "selection_split": "train",
+  "acf": [
+    {
+      "lag": 1,
+      "acf": 0.934956881841723,
+      "below_cutoff": false
+    },
+    {
+      "lag": 2,
+      "acf": 0.8798039166632432,
+      "below_cutoff": false
+    },
+    {
+      "lag": 3,
+      "acf": 0.8442241515487011,
+      "below_cutoff": false
+    },
+    {
+      "lag": 4,
+      "acf": 0.8159953610293351,
+      "below_cutoff": false
+    },
+    {
+      "lag": 5,
+      "acf": 0.7780624755601072,
+      "below_cutoff": false
+    },
+    {
+      "lag": 6,
+      "acf": 0.7392279448243119,
+      "below_cutoff": false
+    },
+    {
+      "lag": 7,
+      "acf": 0.6957262095112914,
+      "below_cutoff": false
+    },
+    {
+      "lag": 8,
+      "acf": 0.6583409889226655,
+      "below_cutoff": false
+    }
+  ],
+  "seed": 20260826,
+  "n_bootstrap": 2000,
+  "rule": "smallest lag in 1..8 with |ACF| < 1/e on train residuals; neighbors L-1 and L+1 reported"
+}
