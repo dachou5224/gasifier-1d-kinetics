@@ -1,0 +1,13 @@
+method,candidate,alpha_wgs,selection_split,selection_objective,bound_low,bound_high,bound_hit_rate_train,status,selected,selected_feature,selected_sign,base_alpha,alpha_min_train,alpha_max_train,source_commit,dataset_id
+global_bounded_wgs_scalar,alpha=0.05,0.05,train,1.9569425935616107,0.02,2.0,0.0,ok,True,,,,,,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+global_bounded_wgs_scalar,alpha=0.2,0.2,train,1.957787201602794,0.02,2.0,0.0,ok,False,,,,,,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+global_bounded_wgs_scalar,alpha=0.5,0.5,train,1.957963356405083,0.02,2.0,0.0,ok,False,,,,,,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+global_bounded_wgs_scalar,alpha=1,1.0,train,1.9580225803068043,0.02,2.0,0.0,ok,False,,,,,,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+global_bounded_wgs_scalar,alpha=2,2.0,train,1.9580523344908407,0.02,2.0,1.0,ok,False,,,,,,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+low_capacity_alpha_wgs_xt,constant_global_alpha,,train,1.9569425935616107,,,0.0,ok,False,,0.0,0.05,0.05,0.05,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+low_capacity_alpha_wgs_xt,o_c_ratio_negative_slope,,train,1.957148780008048,,,0.0,ok,False,o_c_ratio,-1.0,0.05,0.0391706601632336,0.0652992804291156,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+low_capacity_alpha_wgs_xt,o_c_ratio_positive_slope,,train,1.9567087084792651,,,0.0,ok,False,o_c_ratio,1.0,0.05,0.0382852610866642,0.0638232797094022,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+low_capacity_alpha_wgs_xt,pressure_mpa_negative_slope,,train,1.956761061506678,,,0.0,ok,False,pressure_mpa,-1.0,0.05,0.0393072679451461,0.0668262655228912,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+low_capacity_alpha_wgs_xt,pressure_mpa_positive_slope,,train,1.957111992164288,,,0.0,ok,False,pressure_mpa,1.0,0.05,0.0374104400483613,0.0636014694149892,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+low_capacity_alpha_wgs_xt,syngas_flow_mean_negative_slope,,train,1.956680603180225,,,0.0,ok,True,syngas_flow_mean,-1.0,0.05,0.0419817069205633,0.0676306482125162,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75
+low_capacity_alpha_wgs_xt,syngas_flow_mean_positive_slope,,train,1.9572005320605173,,,0.0,ok,False,syngas_flow_mean,1.0,0.05,0.0369654892578322,0.0595497463866924,a2955d2a2f6e850b88d8b206f465d810e1ad86ab,R52-C-75

@@ -1,0 +1,5 @@
+configuration,n_completed,n_error,n_timeout,poor_flag_rate,median_cell0_cost,max_cell0_cost,eligible,selected_configuration,gate_status,numerical_quality_unresolved,source_commit
+alt_cell0_init,9,0,0,1.0,0.0139250629362846,0.0158419056852274,True,reference,stable,True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+reference,9,0,0,1.0,0.0139250629362846,0.0158419056852365,True,reference,stable,True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+refined_first_cv,9,0,0,1.0,0.0197474475357796,0.0219756622394136,True,reference,stable,True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+tighter_tol,9,0,0,1.0,0.0139250629362761,0.0158419056852258,True,reference,stable,True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
