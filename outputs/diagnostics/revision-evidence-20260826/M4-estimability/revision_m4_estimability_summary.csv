@@ -1,0 +1,5 @@
+dataset_id,alpha_name,mean_abs_scaled_sensitivity,right_singular_vector_1,numerical_rank,condition_number,evidence_field,identifiable_flag_forbidden
+R52-C-75,alpha_wgs,0.0001769901567073611,0.004287591330733539,2,inf,insufficiently_supported,False
+R52-C-75,alpha_char_oxidation,0.0,0.0,2,inf,insufficiently_supported,False
+R52-C-75,alpha_volatile_oxidation,0.03130229355670378,-0.999990808238046,2,inf,locally_estimable_under_selected_measurements,False
+R52-C-75,alpha_char_gasification,,,2,inf,insufficiently_supported,False

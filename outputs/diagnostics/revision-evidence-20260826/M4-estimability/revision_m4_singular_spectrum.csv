@@ -1,0 +1,4 @@
+dataset_id,component,singular_value,relative_to_max,rank_tolerance,above_tolerance
+R52-C-75,0,0.10511784010712986,1.0,0.001,True
+R52-C-75,1,0.00022445135916816924,0.0021352356454377463,0.001,True
+R52-C-75,2,0.0,0.0,0.001,False
