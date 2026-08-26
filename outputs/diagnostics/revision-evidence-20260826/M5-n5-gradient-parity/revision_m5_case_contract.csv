@@ -1,0 +1,5 @@
+dataset_id,window_id,phase,N_cells,configuration,jax_seed_from_minimize,note,source_commit
+R52-C-75,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1,5,reference,False,"selected-path N=5 JAX/IFT consistency, not a full-solver differentiability proof",a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2,5,reference,False,"selected-path N=5 JAX/IFT consistency, not a full-solver differentiability proof",a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,3,5,reference,False,"selected-path N=5 JAX/IFT consistency, not a full-solver differentiability proof",a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,4,5,reference,False,"selected-path N=5 JAX/IFT consistency, not a full-solver differentiability proof",a2955d2a2f6e850b88d8b206f465d810e1ad86ab
