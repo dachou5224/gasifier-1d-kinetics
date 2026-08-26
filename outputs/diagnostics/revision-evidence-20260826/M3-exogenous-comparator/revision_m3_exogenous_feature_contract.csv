@@ -1,0 +1,11 @@
+dataset_id,feature,availability_class,timestamp_rationale,allowed_in_forward_comparator,source_commit
+R52-C-75,o_c_ratio,exogenous_process_input,window-mean O2/coal ratio from feed measurements available at the window start,True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,coal_flow_mean,exogenous_process_input,weighfeeder coal mass flow measured before the prediction window closes,True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,carrier_to_coal_ratio,exogenous_engineering_input,"CO2 carrier is an engineering ratio of measured O2 feed, not an outlet measurement",True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,pressure_mpa,exogenous_process_input,"gasifier pressure is a contemporaneous process input, not a syngas product measurement",True,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,syngas_flow_mean,contemporaneous_or_future_output,outlet composition or syngas flow is not available before the prediction time,False,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,co_vol_pct,contemporaneous_or_future_output,outlet composition or syngas flow is not available before the prediction time,False,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,h2_vol_pct,contemporaneous_or_future_output,outlet composition or syngas flow is not available before the prediction time,False,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,co2_vol_pct,contemporaneous_or_future_output,outlet composition or syngas flow is not available before the prediction time,False,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,h2_co_ratio,contemporaneous_or_future_output,outlet composition or syngas flow is not available before the prediction time,False,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
+R52-C-75,pred_dry_flow_nm3_h,contemporaneous_or_future_output,outlet composition or syngas flow is not available before the prediction time,False,a2955d2a2f6e850b88d8b206f465d810e1ad86ab
