@@ -1,0 +1,25 @@
+Registered paper-facing data-preparation tests
+Date: 2026-08-26
+
+Command:
+cd ${DATA_PREP_ROOT}
+PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider \
+  tests/test_huayi_round52.py \
+  tests/test_huayi_four_phase_evidence.py \
+  tests/test_model_case_contract.py \
+  tests/test_huayi_phase2.py \
+  tests/test_huayi_phase3.py \
+  tests/test_huayi_phase4.py \
+  tests/test_huayi_shift_steady.py
+
+Result: 40 passed in 23.07 s
+xfail/skip introduced: none
+narrowed selection: none; this is the registered paper-facing suite from the 2026-07-16 reproducibility lock
+
+Environment:
+Python 3.9.6
+pytest 8.4.2
+pandas 2.3.3
+numpy 1.26.4
+PyYAML 6.0.3
+platform macOS-26.5.2 x86_64
