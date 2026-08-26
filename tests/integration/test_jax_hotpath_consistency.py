@@ -1,11 +1,16 @@
+import os
+import sys
+
 import numpy as np
-import jax.numpy as jnp
+import pytest
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
 
 from model.state import StateVector
 from model.material import MaterialService, SPECIES_NAMES
 from model.physics import calculate_enthalpy
 from model.kinetics_service import KineticsService
-from model.jax_kinetics import homogeneous_rates_outlet_jax
+from model.species_bridge import mainline_gas8_to_jax9
 
 
 def _sample_state() -> StateVector:
@@ -19,6 +24,42 @@ def _sample_state() -> StateVector:
         P=4.0e6,
         z=0.5,
     )
+
+
+def _homogeneous_rates_pair():
+    jax = pytest.importorskip("jax")
+    jax.config.update("jax_enable_x64", True)
+    jnp = pytest.importorskip("jax.numpy")
+
+    from model.jax_kinetics import homogeneous_rates_jax
+
+    state = _sample_state()
+    volume = 0.35
+    kin = KineticsService()
+
+    rates_np = kin.calc_homogeneous_rates(
+        state,
+        volume,
+        inlet_state=None,
+        gas_src=None,
+        Ts_particle=None,
+        wgs_rat_factor=False,
+        msr_tmin_k=1000.0,
+        wgs_catalytic_factor=0.2,
+        wgs_k_factor=1.0,
+    )
+
+    gas_moles_9 = mainline_gas8_to_jax9(state.gas_moles)
+    rates_jax = homogeneous_rates_jax(
+        jnp.asarray(gas_moles_9, dtype=jnp.float64),
+        jnp.asarray(state.T),
+        jnp.asarray(volume),
+        jnp.asarray(state.P),
+        wgs_catalytic=0.2,
+        T_wgs_min=1000.0,
+        T_msr_min=1000.0,
+    )
+    return rates_np, rates_jax
 
 
 def test_material_enthalpy_consistency():
@@ -41,36 +82,10 @@ def test_material_enthalpy_consistency():
 
 
 def test_homogeneous_rates_jax_vs_numpy_fallback():
-    state = _sample_state()
-    volume = 0.35
-    kin = KineticsService()
+    rates_np, rates_jax = _homogeneous_rates_pair()
 
-    rates_np = kin.calc_homogeneous_rates(
-        state,
-        volume,
-        inlet_state=None,
-        gas_src=None,
-        Ts_particle=None,
-        wgs_rat_factor=False,
-        msr_tmin_k=1000.0,
-        wgs_catalytic_factor=0.2,
-        wgs_k_factor=1.0,
-    )
-
-    c_arr = np.array([state.get_concentration(i) for i in range(8)], dtype=float)
-    rates_jax = homogeneous_rates_outlet_jax(
-        jnp.asarray(c_arr),
-        jnp.asarray(state.T),
-        jnp.asarray(volume),
-        wgs_catalytic=0.2,
-        T_wgs_min=1000.0,
-        T_msr_min=1000.0,
-    )
-
-    keys = ["CO_Ox", "H2_Ox", "WGS", "CH4_Ox", "MSR"]
-    for k in keys:
+    for idx, k in [(0, "CO_Ox"), (1, "H2_Ox"), (2, "WGS"), (3, "CH4_Ox"), (4, "MSR")]:
         v_np = float(rates_np[k])
-        v_j = float(rates_jax[k])
+        v_j = float(rates_jax[idx])
         # WGS 在高温下可能数值较小，给一个温和的绝对误差
         assert np.isclose(v_np, v_j, rtol=2e-6, atol=1e-2), f"{k} mismatch: np={v_np}, jax={v_j}"
-

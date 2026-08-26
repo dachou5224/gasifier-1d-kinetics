@@ -3,7 +3,8 @@ from scipy.optimize import least_squares
 import warnings
 from .state import StateVector
 from .cell import Cell
-from .material import MaterialService
+from .material import MaterialService, SPECIES_NAMES
+from .physics import get_enthalpy_molar
 from .kinetics_service import KineticsService
 from .pyrolysis_service import PyrolysisService
 from .constants import PhysicalConstants
@@ -32,7 +33,9 @@ _LEGACY_SOLVER_ALIASES = {
 class GasifierSystem:
     def __init__(self, geometry, coal_props, op_conds):
         self._validate_inputs(geometry, coal_props, op_conds)
-        self.geometry = geometry; self.coal_props = coal_props; self.op_conds = op_conds.copy()
+        self.geometry = geometry
+        self.coal_props = coal_props.copy()  # copy to avoid mutating caller's dict (Hf_coal may be added below)
+        self.op_conds = op_conds.copy()
         if 'Hf_coal' not in self.coal_props:
             Cd = self.coal_props.get('Cd', 0.0)/100.0; Hd = self.coal_props.get('Hd', 0.0)/100.0; Sd = self.coal_props.get('Sd', 0.0)/100.0
             hhv = self.coal_props.get('HHV_d', 30.0); hhv_kj = hhv if hhv > 1000.0 else hhv * 1000.0
@@ -55,10 +58,39 @@ class GasifierSystem:
             raise ValueError(f"Missing operating conditions: {missing_op}")
         if op_conds['coal_flow'] < 0 or op_conds['o2_flow'] < 0:
             raise ValueError("Flow rates cannot be negative.")
+        if op_conds.get("n2_flow", 0.0) < 0 or op_conds.get("co2_flow", 0.0) < 0:
+            raise ValueError("Carrier gas flow rate cannot be negative.")
+        if op_conds.get("carrier_gas_flow", 0.0) < 0:
+            raise ValueError("Carrier gas flow rate cannot be negative.")
+        carrier_gas_type = str(op_conds.get("carrier_gas_type", "N2")).upper()
+        if carrier_gas_type not in {"N2", "CO2"}:
+            raise ValueError("carrier_gas_type must be either 'N2' or 'CO2'.")
         if op_conds['P'] <= 0 or op_conds['T_in'] <= 0:
             raise ValueError("Pressure and Temperature must be positive.")
         if 'Cd' not in coal_props:
             raise ValueError("Coal property 'Cd' (Carbon dry basis) is required.")
+
+    def _carrier_gas_molar_flows(self):
+        """
+        Return inlet carrier gas molar flows [mol/s] for mainline CO2 and N2 slots.
+
+        Public op_conds contract:
+        - ``n2_flow`` and ``co2_flow`` are legacy/direct mass flows [kg/s].
+        - ``carrier_gas_flow`` is a mass flow [kg/s] assigned by
+          ``carrier_gas_type`` in {"N2", "CO2"}.
+        """
+        f_n2 = self.op_conds.get("n2_flow", 0.0) / 28.013 * 1000.0
+        f_co2 = self.op_conds.get("co2_flow", 0.0) / 44.01 * 1000.0
+        carrier_flow = float(self.op_conds.get("carrier_gas_flow", 0.0))
+        if carrier_flow:
+            carrier_gas_type = str(self.op_conds.get("carrier_gas_type", "N2")).upper()
+            if carrier_gas_type == "N2":
+                f_n2 += carrier_flow / 28.013 * 1000.0
+            elif carrier_gas_type == "CO2":
+                f_co2 += carrier_flow / 44.01 * 1000.0
+            else:
+                raise ValueError("carrier_gas_type must be either 'N2' or 'CO2'.")
+        return f_co2, f_n2
 
     def _jax_cell0_seed_from_minimize(self, dz_list, inlet, A, F_H2O_evap, L_evap, ref_f, ref_e):
         """
@@ -74,7 +106,6 @@ class GasifierSystem:
             A,
             inlet,
             self.kinetics,
-            self.pyrolysis,
             self.coal_props,
             self.op_conds,
             sources=[
@@ -122,8 +153,8 @@ class GasifierSystem:
         W_slurry_h2o = (W_dry / (slurry/100.0)) - W_dry if slurry < 100.0 else 0.0
         self.tmp_W_h2o_total = W_coal_moist + W_slurry_h2o + W_steam
         self.tmp_W_liq_evap = W_coal_moist + W_slurry_h2o
-        F_O2 = (self.op_conds['o2_flow'] / 31.998) * 1000.0; F_N2 = self.op_conds.get('n2_flow', 0.0) / 28.013 * 1000.0; F_st = W_steam / 18.015 * 1000.0
-        gas = np.zeros(8); gas[0]=F_O2; gas[6]=F_N2; gas[7]=F_st
+        F_O2 = (self.op_conds['o2_flow'] / 31.998) * 1000.0; F_CO2, F_N2 = self._carrier_gas_molar_flows(); F_st = W_steam / 18.015 * 1000.0
+        gas = np.zeros(8); gas[0]=F_O2; gas[3]=F_CO2; gas[6]=F_N2; gas[7]=F_st
         inlet = StateVector(gas_moles=gas, solid_mass=W_dry, carbon_fraction=self.coal_props.get('Cd', 60.0)/100.0, T=self.op_conds['T_in'], P=self.op_conds['P'])
         self.W_dry = W_dry; self.Cd_total = self.coal_props.get('Cd', 60.0)/100.0
         m_y, w_y = self.pyrolysis.calc_yields(self.coal_props)
@@ -161,7 +192,13 @@ class GasifierSystem:
     def solve(self, N_cells=100, solver_method='minimize', use_jax_jacobian=False, jax_warmup=True, jacobian_mode=None):
         solver_method, jacobian_mode = self._normalize_solver_api(solver_method, use_jax_jacobian, jacobian_mode)
         L, D = self.geometry['L'], self.geometry['D']; A = np.pi * (D/2)**2
-        mesh_cfg = MeshConfig(total_length=L, n_cells=N_cells, ignition_zone_length=self.op_conds.get('FirstCellLength', 0.1), min_grid_size=0.001)
+        mesh_cfg = MeshConfig(
+            total_length=L,
+            n_cells=N_cells,
+            ignition_zone_length=self.op_conds.get('FirstCellLength', 0.1),
+            ignition_zone_res=self.op_conds.get('IgnitionZoneRes', 0.1),
+            min_grid_size=0.001,
+        )
         dz_list, self.z_positions = AdaptiveMeshGenerator(mesh_cfg).generate()
         inlet = self._initialize_inlet()
         if jax_warmup and solver_method == "jax_jit":
@@ -187,7 +224,6 @@ class GasifierSystem:
                 # 须用 +=：与 Cell 内 EvaporationSource + PyrolysisSource 一致，勿整行覆盖以致丢失蒸发 H2O
                 g_src_9[i, :] = g_src_9[i, :] + mainline_gas8_to_jax9(v)
                 s_src[i] = -self.tmp_W_vol
-                from model.physics import get_enthalpy_molar; from model.material import SPECIES_NAMES
                 e_src[i] += sum(v[j]*get_enthalpy_molar(sp, inlet.T) for j, sp in enumerate(SPECIES_NAMES) if v[j]>0)
 
         f_s_coal = resolve_f_s_coal(self.coal_props, self.op_conds)
@@ -269,7 +305,13 @@ class GasifierSystem:
             )
 
         def _least_squares_with_optional_jac(func_local, x0, bounds):
-            kwargs = dict(bounds=bounds, method='trf', xtol=1e-12, ftol=1e-8, max_nfev=1000)
+            kwargs = dict(
+                bounds=bounds,
+                method='trf',
+                xtol=float(self.op_conds.get("SolverXtol", 1e-12)),
+                ftol=float(self.op_conds.get("SolverFtol", 1e-8)),
+                max_nfev=int(self.op_conds.get("SolverMaxNfev", 1000)),
+            )
             if jacobian_mode == "centered_fd":
                 kwargs["jac"] = make_jacobian_fn(func_local, n_vars=11, centered=True)
             return least_squares(func_local, x0, **kwargs)
@@ -287,17 +329,37 @@ class GasifierSystem:
                 x0[:8] += self.tmp_F_vol
                 x0[8] -= self.tmp_W_vol
                 x0[9] = self.char_Xc0
+                if str(self.op_conds.get("Cell0GuessMode", "pyrolysis_only")) == "oxidation_prestep":
+                    xi1 = min(x0[1] * 0.99, x0[0] * 0.99 / 2.0)
+                    x0[1] -= xi1
+                    x0[0] -= 2.0 * xi1
+                    x0[2] += xi1
+                    x0[7] += 2.0 * xi1
+                    xi2 = min(x0[5] * 0.99, x0[0] * 0.99 / 0.5)
+                    x0[5] -= xi2
+                    x0[0] -= 0.5 * xi2
+                    x0[7] += xi2
+                    xi3 = min(x0[2] * 0.99, x0[0] * 0.99 / 0.5)
+                    x0[2] -= xi3
+                    x0[0] -= 0.5 * xi3
+                    x0[3] += xi3
             return x0
 
+        # Solver bounds: constant across all cells, built once here
+        lower = np.zeros(11)
+        upper = np.ones(11) * 3000.0
+        lower[8] = 0.0;  upper[8] = self.W_dry * 1.5
+        lower[9] = 0.0;  upper[9] = 1.0
+        lower[10] = 300.0; upper[10] = 4000.0
+
         for i in range(N_cells):
-            cell = Cell(i, self.z_positions[i], dz_list[i], A*dz_list[i], A, current_inlet, self.kinetics, self.pyrolysis, self.coal_props, cell_ops, sources=[EvaporationSource(F_H2O_evap, L_evap_m=L_evap), PyrolysisSource(self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T)])
+            cell = Cell(i, self.z_positions[i], dz_list[i], A*dz_list[i], A, current_inlet, self.kinetics, self.coal_props, cell_ops, sources=[EvaporationSource(F_H2O_evap, L_evap_m=L_evap), PyrolysisSource(self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T)])
             cell.coal_flow_dry = self.W_dry; cell.Cd_total = self.Cd_total; cell.char_Xc0 = self.char_Xc0; cell.ref_flow, cell.ref_energy = ref_f, ref_e
             self.cells.append(cell)
-            lower = np.zeros(11); upper = np.ones(11)*3000.0; lower[8]=0.0; upper[8]=self.W_dry*1.5; lower[9]=0.0; upper[9]=1.0; lower[10]=300.0; upper[10]=4000.0
             def func(x): return cell.residuals(x)
 
             if i == 0:
-                guesses = [3000.0, 2000.0, 1500.0, 1000.0, 400.0]
+                guesses = list(self.op_conds.get("Cell0GuessTemperatures", [3000.0, 2000.0, 1500.0, 1000.0, 400.0]))
                 if solver_method == "newton_fd":
                     from .jax_solver import newton_solve_multistart_numpy
                     x0_list = [_make_cell0_x0(t) for t in guesses]

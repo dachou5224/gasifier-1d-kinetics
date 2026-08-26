@@ -128,7 +128,9 @@ def homogeneous_rates_jax(
     vol_scale = volume_m3 * 1000.0
     
     A_homo = jnp.array([2.23e12, 1.08e13, 2.877e5, 1.6e10, 312.0])
-    E_homo = jnp.array([1.25e8, 8.37e7, 27760.0*CAL2J, 1.256e8, 30000.0*CAL2J])
+    # Keep the homogeneous oxidation activation energies aligned with
+    # KineticsService: source values are divided by 1000 before use as J/mol.
+    E_homo = jnp.array([1.25e8/1000.0, 8.37e7/1000.0, 27760.0*CAL2J, 1.256e8/1000.0, 30000.0*CAL2J])
     ks = A_homo * jnp.exp(-E_homo / (R_CONST * T))
     
     r_co = ks[0] * C[2] * C[0]

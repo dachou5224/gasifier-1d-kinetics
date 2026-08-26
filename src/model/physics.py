@@ -164,11 +164,23 @@ FULLER_VOLUMES = {
     'H2O': 13.1, 'O2': 16.3, 'N2': 18.5, 'C': 15.9,
 }
 
+# Sutherland's law parameters per species: (mu_ref [Pa·s], T_ref [K], S [K])
+# Sources: White "Fluid Mechanics" App. A; CRC Handbook; engineering standard values.
+_SUTHERLAND_PARAMS = {
+    'N2':  (1.781e-5, 273.15, 111.0),
+    'O2':  (1.919e-5, 273.15, 127.0),
+    'CO':  (1.657e-5, 273.15, 136.0),
+    'CO2': (1.370e-5, 273.15, 222.0),
+    'H2':  (8.411e-6, 273.15,  72.0),
+    'CH4': (1.030e-5, 273.15, 164.0),
+    'H2O': (1.012e-5, 373.15, 1064.0),
+    'H2S': (1.173e-5, 273.15, 331.0),
+}
+
 def calculate_gas_viscosity(T, species='N2'):
-    mu_ref = 1.781e-5
-    T_ref = 273.15
-    S = 111.0
-    return mu_ref * (T/T_ref)**1.5 * (T_ref + S) / (T + S)
+    """Dynamic viscosity via Sutherland's law [Pa·s]. Falls back to N2 if species unknown."""
+    mu_ref, T_ref, S = _SUTHERLAND_PARAMS.get(species, _SUTHERLAND_PARAMS['N2'])
+    return mu_ref * (T / T_ref) ** 1.5 * (T_ref + S) / (T + S)
 
 def calculate_diffusion_coefficient(T, P, species_A, species_B='N2'):
     """Fuller correlation: D [m²/s]. Used when use_fortran_diffusion=False."""

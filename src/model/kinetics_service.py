@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 from typing import Dict, List, Optional
 from model.state import StateVector
 from model.kinetics import (
@@ -9,6 +10,9 @@ from model.kinetics import (
 from model.constants import PhysicalConstants
 from model.physics import R_CONST
 from model.material import SPECIES_NAMES
+
+logger = logging.getLogger(__name__)
+
 
 class KineticsService:
     """
@@ -184,12 +188,10 @@ class KineticsService:
                 # C_i = y_i * P / (R*T) [mol/m³] -> [kmol/m³]
                 C[sp] = (y_i * P / (R_CONST * T)) / 1000.0
             
-            # Debug: Show average moles for key species (only once per solve)
-            import logging
-            logger = logging.getLogger(__name__)
+            # Debug: Show average moles for key species
             if inlet_moles.get('CH4', 0) > 1.0:  # Only log if there's significant CH4
-                logger.info(f"[AVG CONC] CH4: inlet={inlet_moles['CH4']:.2f}, outlet={outlet_moles['CH4']:.2f}, avg={avg_moles['CH4']:.2f}")
-                logger.info(f"[AVG CONC] O2:  inlet={inlet_moles['O2']:.2f}, outlet={outlet_moles['O2']:.2f}, avg={avg_moles['O2']:.2f}")
+                logger.debug(f"[AVG CONC] CH4: inlet={inlet_moles['CH4']:.2f}, outlet={outlet_moles['CH4']:.2f}, avg={avg_moles['CH4']:.2f}")
+                logger.debug(f"[AVG CONC] O2:  inlet={inlet_moles['O2']:.2f}, outlet={outlet_moles['O2']:.2f}, avg={avg_moles['O2']:.2f}")
 
 
         else:

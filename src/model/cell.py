@@ -5,6 +5,7 @@ from model.material import MaterialService, SPECIES_NAMES
 from model.input_contract import ash_mass_fraction_dry
 from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
+from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ class Cell:
     """
     MOLAR_MASSES = np.array([31.998, 16.04, 28.01, 44.01, 34.08, 2.016, 28.013, 18.015])
 
-    def __init__(self, cell_index, z, dz, V, A, inlet_state, kinetics, pyrolysis, coal_props, op_conds, sources=None):
+    def __init__(self, cell_index, z, dz, V, A, inlet_state, kinetics, coal_props, op_conds, sources=None):
         self.idx = cell_index
         self.z = z
         self.dz = dz
@@ -31,8 +32,10 @@ class Cell:
         # Determine Reference Scales for normalization
         self.ref_flow = max(self.inlet.total_gas_moles, 1.0)
         self.ref_solid = max(self.inlet.solid_mass, 1e-3)
-        self.coal_flow_dry = getattr(self, 'coal_flow_dry', 1.0)
-        self.char_Xc0 = self.inlet.carbon_fraction
+        # coal_flow_dry and char_Xc0 must be set by the caller immediately after construction.
+        # Intentionally NOT given a default so that any accidental early call to residuals()
+        # raises AttributeError instead of silently using a wrong value.
+        self.char_Xc0 = self.inlet.carbon_fraction  # safe fallback; overridden externally
 
     def _calc_physics_props(self, current, C_fed_total):
         """Calculates physical properties and transport coefficients."""
@@ -68,7 +71,6 @@ class Cell:
         S_total = (6 * m_hold) / (PhysicalConstants.PARTICLE_DENSITY * d_p + 1e-9)
         
         # 4. Transport Properties
-        from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient
         rho_gas = (P_local * (np.sum(current.gas_moles * self.MOLAR_MASSES)/F_total) * 1e-3) / (8.314 * T_local)
         mu_g = calculate_gas_viscosity(T_local)
         v_slip = PhysicalConstants.MIN_SLIP_VELOCITY
@@ -329,9 +331,9 @@ class Cell:
         # Debug: Show budgets for Cell 0
         if self.idx == 0:
             zone = "combustion" if is_combustion_zone else "gasification"
-            logger.info(f"[BUDGET] zone={zone} pO2_in={pO2_Pa/101325:.3f}atm O2={avail['O2']:.2f}")
-            logger.info(f"         Volatile Ox (instant): CH4={r_homo['CH4_Ox']:.2f} H2={r_homo['H2_Ox']:.2f} CO={r_homo['CO_Ox']:.2f}")
-            logger.info(f"         Het: C+O2={r_het['C+O2']:.2f}, C+H2O={r_het['C+H2O']:.2f}")
+            logger.debug(f"[BUDGET] zone={zone} pO2_in={pO2_Pa/101325:.3f}atm O2={avail['O2']:.2f}")
+            logger.debug(f"         Volatile Ox (instant): CH4={r_homo['CH4_Ox']:.2f} H2={r_homo['H2_Ox']:.2f} CO={r_homo['CO_Ox']:.2f}")
+            logger.debug(f"         Het: C+O2={r_het['C+O2']:.2f}, C+H2O={r_het['C+H2O']:.2f}")
         
         # WGS/RWGS are typically slower, no constraint needed
 
@@ -404,8 +406,11 @@ class Cell:
         L_total = max(float(L_total), 1e-9)
         loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
         
-        coal_flow_kg_s = self.op_conds['coal_flow']  # kg/s
-        hhv_MJ_kg = self.coal_props.get('HHV_d', 30.0)  # MJ/kg (or kJ/kg, normalized below)
+        coal_flow_kg_s = self.op_conds['coal_flow']  # wet coal flow [kg/s]
+        hhv_MJ_kg = self.coal_props.get('HHV_d', 30.0)  # dry-basis HHV [MJ/kg_dry]
+        # NOTE: using wet flow × dry HHV slightly overstates total power by 1/(1-Mt/100).
+        # This convention is intentional and kept consistent with input_contract.coal_flow_kg_s_for_heat_loss
+        # and the JAX solver path. To correct, pass W_dry via op_conds['coal_flow_dry'] and use that here.
         
         if hhv_MJ_kg > 1000.0:
             hhv_MJ_kg = hhv_MJ_kg / 1000.0
@@ -516,6 +521,52 @@ class Cell:
         
         return np.concatenate([res_gas_sc, [res_Ws_sc, res_Xc_sc, res_E_sc]])
 
+    def residual_scale_vector(self):
+        """Return the residual scale used by ``residuals`` (independent of x)."""
+        g_src = np.zeros(8)
+        for source in self.sources:
+            g, _s_m, _e = source.get_sources(self.idx, self.z, self.dz)
+            g_src += g
+        ref_n2 = max(abs(self.inlet.gas_moles[6]) + abs(g_src[6]), 1e-3)
+        ref_energy = max(self.ref_flow * 35.0 * 200.0, 5.0e5)
+        scales = np.array(
+            [self.ref_flow] * 8
+            + [self.ref_solid, max(self.char_Xc0, 0.1), ref_energy],
+            dtype=float,
+        )
+        scales[6] = ref_n2
+        return scales
+
+    def residual_components(self, x_flat):
+        """Return scaled and unscaled residual components for diagnostics."""
+        scaled = np.asarray(self.residuals(x_flat), dtype=float)
+        scales = self.residual_scale_vector()
+        unscaled = scaled * scales
+        names = tuple(f"gas_{name}" for name in SPECIES_NAMES) + (
+            "solid_mass",
+            "carbon_fraction",
+            "energy",
+        )
+        abs_scaled = np.abs(scaled)
+        abs_unscaled = np.abs(unscaled)
+        i_scaled = int(np.argmax(abs_scaled)) if scaled.size else -1
+        i_unscaled = int(np.argmax(abs_unscaled)) if unscaled.size else -1
+        return {
+            "names": names,
+            "scaled": scaled,
+            "unscaled": unscaled,
+            "scales": scales,
+            "cost": float(0.5 * np.sum(scaled * scaled)),
+            "max_abs_scaled": float(np.max(abs_scaled)) if scaled.size else float("nan"),
+            "max_abs_unscaled": float(np.max(abs_unscaled)) if unscaled.size else float("nan"),
+            "dominant_scaled_name": names[i_scaled] if i_scaled >= 0 else "",
+            "dominant_scaled_index": i_scaled,
+            "dominant_scaled_value": float(scaled[i_scaled]) if i_scaled >= 0 else float("nan"),
+            "dominant_unscaled_name": names[i_unscaled] if i_unscaled >= 0 else "",
+            "dominant_unscaled_index": i_unscaled,
+            "dominant_unscaled_value": float(unscaled[i_unscaled]) if i_unscaled >= 0 else float("nan"),
+        }
+
 
 
     def diagnose_failure(self, x_flat):
@@ -607,3 +658,44 @@ class Cell:
         
         logger.error(f"==========================================")
 
+    def get_snapshot(self, state: 'StateVector') -> dict:
+        """
+        Public diagnostic interface: compute physics props and reaction rates
+        for a given state without modifying any internal state.
+
+        Returns a dict with keys:
+            'd_p'        [m]       particle diameter
+            'S_total'    [m²]      total particle surface area in cell
+            'X_total'    [-]       overall carbon conversion
+            'v_g'        [m/s]     gas velocity
+            'Rates_Het'  {rxn: mol/s}  heterogeneous rates
+            'Rates_Homo' {rxn: mol/s}  homogeneous rates
+            'phi'        [-]       CO/CO2 mechanism factor
+        """
+        g_src = np.zeros(8)
+        s_src = 0.0
+        for src in self.sources:
+            g, sm, _ = src.get_sources(self.idx, self.z, self.dz)
+            g_src += g
+            s_src += sm
+
+        C_fed = self.coal_flow_dry * (self.coal_props.get('Cd', 60.0) / 100.0)
+        phys = self._calc_physics_props(state, C_fed)
+
+        Ts_in = self.inlet.T_solid_or_gas
+        tau = self.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
+        Ts_avg, _ = self._calc_particle_temperature(
+            state.T, Ts_in, tau, phys['d_p'],
+            state.solid_mass, state.carbon_fraction
+        )
+        r_het, r_homo, phi = self._calc_rates(state, phys, g_src, Ts_avg=Ts_avg)
+
+        return {
+            'd_p': phys['d_p'],
+            'S_total': phys['S_total'],
+            'X_total': phys['X_total'],
+            'v_g': phys['v_g'],
+            'Rates_Het': r_het,
+            'Rates_Homo': r_homo,
+            'phi': phi,
+        }

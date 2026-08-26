@@ -129,7 +129,6 @@ def test_single_cell_residual_numpy_vs_jax_flat():
         A,
         inlet,
         sys.kinetics,
-        sys.pyrolysis,
         sys.coal_props,
         sys.op_conds,
         sources=[
