@@ -1,0 +1,5 @@
+order,method,status,selection_split
+1,fixed_physics,consumed_round55,none
+2,global_bounded_wgs_scalar,ok,train
+3,low_capacity_alpha_wgs_xt,ok,train
+4,null_feature_shuffle_control,ok,train

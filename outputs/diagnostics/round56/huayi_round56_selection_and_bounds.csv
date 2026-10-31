@@ -1,0 +1,13 @@
+method,candidate,alpha_wgs,selection_split,selection_objective,bound_low,bound_high,bound_hit_rate_train,status,selected,selected_feature,selected_sign,base_alpha,alpha_min_train,alpha_max_train
+global_bounded_wgs_scalar,alpha=0.05,0.05,train,1.9569425935616107,0.02,2.0,0.0,ok,True,,,,,
+global_bounded_wgs_scalar,alpha=0.2,0.2,train,1.957787201602794,0.02,2.0,0.0,ok,False,,,,,
+global_bounded_wgs_scalar,alpha=0.5,0.5,train,1.9579633564050827,0.02,2.0,0.0,ok,False,,,,,
+global_bounded_wgs_scalar,alpha=1,1.0,train,1.9580225803068045,0.02,2.0,0.0,ok,False,,,,,
+global_bounded_wgs_scalar,alpha=2,2.0,train,1.9580523344908407,0.02,2.0,1.0,ok,False,,,,,
+low_capacity_alpha_wgs_xt,constant_global_alpha,,train,1.9569425935616107,,,0.0,ok,False,,0.0,0.05,0.05,0.05
+low_capacity_alpha_wgs_xt,o_c_ratio_negative_slope,,train,1.957148780008048,,,0.0,ok,False,o_c_ratio,-1.0,0.05,0.03917066016323364,0.06529928042911569
+low_capacity_alpha_wgs_xt,o_c_ratio_positive_slope,,train,1.9567087084792654,,,0.0,ok,False,o_c_ratio,1.0,0.05,0.038285261086664274,0.06382327970940226
+low_capacity_alpha_wgs_xt,pressure_mpa_negative_slope,,train,1.956761061506678,,,0.0,ok,False,pressure_mpa,-1.0,0.05,0.03930726794514618,0.06682626552289128
+low_capacity_alpha_wgs_xt,pressure_mpa_positive_slope,,train,1.9571119921642879,,,0.0,ok,False,pressure_mpa,1.0,0.05,0.03741044004836133,0.0636014694149892
+low_capacity_alpha_wgs_xt,syngas_flow_mean_negative_slope,,train,1.956680603180225,,,0.0,ok,True,syngas_flow_mean,-1.0,0.05,0.041981706920563355,0.06763064821251624
+low_capacity_alpha_wgs_xt,syngas_flow_mean_positive_slope,,train,1.9572005320605175,,,0.0,ok,False,syngas_flow_mean,1.0,0.05,0.03696548925783224,0.059549746386692484

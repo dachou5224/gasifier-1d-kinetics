@@ -1,0 +1,28 @@
+{
+  "added_columns": [
+    "cell0_residual_cost",
+    "pred_H2_dry_vol_pct",
+    "element_species_identity_max_abs_mol_s",
+    "downstream_cells_outside_combustion"
+  ],
+  "channel_difference": "one-sided, M4 perturbation magnitudes, positive direction from the fixed-physics baseline",
+  "channel_windows": "one phase-median window per phase",
+  "dataset_id": "R52-C-75",
+  "finer_mesh_subset": false,
+  "grids": [
+    3,
+    5,
+    9
+  ],
+  "handoff_model_head": "98ad47c",
+  "n1_metric_source": "archived fixed_physics reference predictions",
+  "n1_one_window_wall_time_s": 3.6033393190000003,
+  "n1_reproduction_rerun": false,
+  "n9_full_split_max_wall_time_s": 120.0,
+  "n9_one_window_wall_time_s": 2.292567051,
+  "n9_window_count": 142,
+  "residual_cost_threshold": 0.0001,
+  "solver_modules_match_handoff_head": true,
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "timing_window_id": "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001"
+}

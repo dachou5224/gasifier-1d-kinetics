@@ -1,0 +1,16 @@
+dataset_id,split_role,method,target,metric_scope,n,rmse,mae,bias,status
+R52-C-75,test,fixed_physics,CO2_dry_vol_pct,smoke_completed_rows_only,3,4.52450093990478,4.521418222989753,4.521418222989753,ok
+R52-C-75,test,fixed_physics,CO_dry_vol_pct,smoke_completed_rows_only,3,19.068274477211926,19.067553300647127,19.067553300647127,ok
+R52-C-75,test,fixed_physics,H2_CO_ratio,smoke_completed_rows_only,3,0.4145216069223358,0.4145180551197014,-0.4145180551197014,ok
+R52-C-75,test,fixed_physics,H2_dry_vol_pct,smoke_completed_rows_only,3,26.549934771931348,26.549918857333335,-26.549918857333335,ok
+R52-C-75,test,fixed_physics,dry_syngas_flow,smoke_completed_rows_only,3,0.0,0.0,0.0,ok
+R52-C-75,train,fixed_physics,CO2_dry_vol_pct,smoke_completed_rows_only,3,8.261355126047759,8.248585057642812,8.248585057642812,ok
+R52-C-75,train,fixed_physics,CO_dry_vol_pct,smoke_completed_rows_only,3,17.62575914824569,17.6177399352857,17.6177399352857,ok
+R52-C-75,train,fixed_physics,H2_CO_ratio,smoke_completed_rows_only,3,0.4584672911705664,0.4584621579312646,-0.4584621579312646,ok
+R52-C-75,train,fixed_physics,H2_dry_vol_pct,smoke_completed_rows_only,3,28.120412503067136,28.12018040355551,-28.12018040355551,ok
+R52-C-75,train,fixed_physics,dry_syngas_flow,smoke_completed_rows_only,3,0.0,0.0,0.0,ok
+R52-C-75,validation,fixed_physics,CO2_dry_vol_pct,smoke_completed_rows_only,3,0.8395559437405229,0.7454383629691771,0.7454383629691771,ok
+R52-C-75,validation,fixed_physics,CO_dry_vol_pct,smoke_completed_rows_only,3,23.470236527006378,23.469446293857235,23.469446293857235,ok
+R52-C-75,validation,fixed_physics,H2_CO_ratio,smoke_completed_rows_only,3,0.42146340149248446,0.421451049243877,-0.421451049243877,ok
+R52-C-75,validation,fixed_physics,H2_dry_vol_pct,smoke_completed_rows_only,3,26.655909811471485,26.655333228444444,-26.655333228444444,ok
+R52-C-75,validation,fixed_physics,dry_syngas_flow,smoke_completed_rows_only,3,0.0,0.0,0.0,ok

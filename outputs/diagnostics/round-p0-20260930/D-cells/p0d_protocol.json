@@ -1,0 +1,67 @@
+{
+  "alpha_wgs": 1.0,
+  "configuration": "reference",
+  "dataset_id": "R52-C-75",
+  "downstream_sentence_1_rule": "every cell_index > 0 has residual_cost <= 1e-4 and every cell 0 exceeds 1e-4",
+  "downstream_sentence_id": 1,
+  "dry_gap_sentence_id": 4,
+  "dry_gas_definition": "sum of O2, CH4, CO, CO2, H2S, H2, N2 mol/s; Nm3/h uses 22.414 and the same conversion as pred_dry_flow_nm3_h",
+  "element_identity": "max abs difference between reactor element closure error and the sum of cell gas-residual atom projections; H=4*CH4+2*H2S+2*H2+2*H2O, C=CH4+CO+CO2, O=2*O2+CO+2*CO2+H2O, S=H2S, N=2*N2",
+  "element_identity_max_abs_mol_s": 0.0002558821687088,
+  "element_identity_stop_mol_s": 0.01,
+  "full_split_rerun": false,
+  "gap_accounting_atol_mol_s": 1e-06,
+  "gap_accounting_max_abs_mol_s": 2.8421709430404007e-13,
+  "gap_accounting_rule": "pred dry minus plant dry equals gap_CO + gap_CO2 + gap_H2 + gap_other_dry + predicted_O2",
+  "gap_columns": [
+    "CO",
+    "CO2",
+    "H2",
+    "other_dry"
+  ],
+  "gap_sentence_3_rule": "one column has share >= 0.7 on every completed window and grid",
+  "gap_share": "abs(column) / abs(pred_dry - plant_dry)",
+  "grids": [
+    3,
+    5,
+    9
+  ],
+  "handoff_model_head": "98ad47c",
+  "n1_reproduction_rerun": false,
+  "n_solves_completed": 27,
+  "n_solves_expected": 27,
+  "n_windows": 9,
+  "o2_alone_below_one_percent_continues": true,
+  "o2_share_continue_limit": 0.01,
+  "o2_share_max": 1.879604699530913e-05,
+  "plant_species_from_dry_fraction": "plant mol/s = plant dry mol/s * dry vol pct / 100",
+  "plant_unmeasured_dry": "plant dry mol/s minus plant CO, CO2 and H2; not an independent measurement",
+  "predicted_other_dry": "CH4 + H2S + N2 mol/s; plant N2, CH4 and H2S are not measured",
+  "residual_cost_threshold": 0.0001,
+  "reused_without_resolve": [
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003|N=3"
+  ],
+  "solver_modules_match_handoff_head": true,
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "stop_reason": "",
+  "stopped": false,
+  "unchanged": [
+    "balance coefficients",
+    "pyrolysis yields",
+    "phi",
+    "f_co2",
+    "H2_OxidationFactor",
+    "P_O2_Combustion_atm=0.05"
+  ],
+  "window_ids": [
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001"
+  ]
+}

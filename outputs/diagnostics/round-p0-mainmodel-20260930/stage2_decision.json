@@ -1,0 +1,17 @@
+{
+  "failed_grid": null,
+  "full_split_passed_grids": [
+    3,
+    5,
+    9
+  ],
+  "identity_failed": false,
+  "identity_max_abs_mol_s": 8.200894163756805e-08,
+  "representative_passed_grids": [
+    3,
+    5,
+    9
+  ],
+  "revert_limit_change": false,
+  "selected_N": 3
+}

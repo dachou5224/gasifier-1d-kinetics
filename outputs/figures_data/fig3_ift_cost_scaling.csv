@@ -1,0 +1,7 @@
+method,N_cells,parameter,output,newton_iterations,status,failure_reason,compile_or_cold_time_s,warm_eval_time_s,warm_repeats,gradient_value,reference_method,reference_gradient_value,abs_gradient_diff,rel_gradient_diff,residual_max_abs
+ift_custom_vjp,1,HeatLossPercent,final_T_K,8,ok,,10.72609258,0.0002761860000006,2,-0.6395497670706515,,,,,2.996080389712006e-06
+ift_custom_vjp,2,HeatLossPercent,final_T_K,8,ok,,9.725553799,0.0005624884999999,2,-1.8495386774284428,,,,,2.996080389712006e-06
+ift_custom_vjp,3,HeatLossPercent,final_T_K,8,ok,,11.363156237,0.0005768529999992,2,-1.9143242232404376,,,,,8.707943114164404e-06
+ift_custom_vjp,4,HeatLossPercent,final_T_K,8,ok,,11.014537189,0.0005433669999987,2,-2.56674619654482,,,,,8.707943114164404e-06
+direct_unrolled_ad,1,HeatLossPercent,final_T_K,8,ok,,56.248562367,0.000720750500001,2,-0.639530376235063,ift_custom_vjp,-0.6395497670706515,1.9390835588439792e-05,3.0319510047288746e-05,2.996080389712006e-06
+direct_unrolled_ad,2,HeatLossPercent,final_T_K,8,timeout,case exceeded timeout_s=90.0,,,0,,,,,,

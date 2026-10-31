@@ -1,0 +1,56 @@
+{
+  "alignment_dry_atol_nm3_h": 0.1,
+  "alignment_rate_delta_atol_mol_s": 0.0001,
+  "channel": "alpha_volatile_oxidation",
+  "dataset_id": "R52-C-75",
+  "dry_nm3_conversion": "mol/s / 1000 * 22.414 * 3600, same as pred_dry_flow_nm3_h",
+  "element_identity_stop_mol_s": 0.01,
+  "full_split_rerun": false,
+  "grids": [
+    3,
+    5,
+    9
+  ],
+  "handoff_model_head": "98ad47c",
+  "injection": "perturbed solve sets CO_OxidationFactor and H2_OxidationFactor to 1.10; baseline factors stay at their current values",
+  "n_rows": 68,
+  "plus_factor": 1.1,
+  "residual_cost_threshold": 0.0001,
+  "selected_N": 3,
+  "selection_unchanged": true,
+  "solver_modules_match_handoff_head": true,
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "stop_reason": "",
+  "stopped": false,
+  "unchanged": [
+    "H2 sequential limit",
+    "baseline H2_OxidationFactor",
+    "baseline CO_OxidationFactor",
+    "pyrolysis yields",
+    "phi",
+    "f_co2",
+    "P_O2_Combustion_atm=0.05"
+  ],
+  "windows": [
+    {
+      "phase": 1,
+      "split_role": "train",
+      "window_id": "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003"
+    },
+    {
+      "phase": 2,
+      "split_role": "train",
+      "window_id": "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001"
+    },
+    {
+      "phase": 3,
+      "split_role": "validation",
+      "window_id": "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004"
+    },
+    {
+      "phase": 4,
+      "split_role": "test",
+      "window_id": "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002"
+    }
+  ]
+}

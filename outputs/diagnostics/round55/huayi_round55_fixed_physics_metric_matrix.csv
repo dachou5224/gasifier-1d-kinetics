@@ -1,0 +1,16 @@
+dataset_id,split_role,method,target,metric_scope,rmse,mae,bias,n_attempted,n_completed,n_timeout,n_error,status
+R52-C-75,test,fixed_physics,CO2_dry_vol_pct,full_frozen_split_completed_rows,4.5406876342208555,4.52914118799068,4.52914118799068,17,17,0,0,ok
+R52-C-75,test,fixed_physics,CO_dry_vol_pct,full_frozen_split_completed_rows,18.73193184979009,18.726690639211036,18.726690639211036,17,17,0,0,ok
+R52-C-75,test,fixed_physics,H2_CO_ratio,full_frozen_split_completed_rows,0.4109967430313252,0.41098304971843974,-0.41098304971843974,17,17,0,0,ok
+R52-C-75,test,fixed_physics,H2_dry_vol_pct,full_frozen_split_completed_rows,26.37016515937145,26.369754367999985,-26.369754367999985,17,17,0,0,ok
+R52-C-75,test,fixed_physics,dry_syngas_flow,full_frozen_split_completed_rows,0.0,0.0,0.0,17,17,0,0,ok
+R52-C-75,train,fixed_physics,CO2_dry_vol_pct,full_frozen_split_completed_rows,6.45109042264662,5.744551188879981,5.744551188879981,81,81,0,0,ok
+R52-C-75,train,fixed_physics,CO_dry_vol_pct,full_frozen_split_completed_rows,19.59434434694843,19.45951120365459,19.45951120365459,81,81,0,0,ok
+R52-C-75,train,fixed_physics,H2_CO_ratio,full_frozen_split_completed_rows,0.4420054449729634,0.44180277748864066,-0.44180277748864066,81,81,0,0,ok
+R52-C-75,train,fixed_physics,H2_dry_vol_pct,full_frozen_split_completed_rows,27.655149748448856,27.65052878391055,-27.65052878391055,81,81,0,0,ok
+R52-C-75,train,fixed_physics,dry_syngas_flow,full_frozen_split_completed_rows,0.0,0.0,0.0,81,81,0,0,ok
+R52-C-75,validation,fixed_physics,CO2_dry_vol_pct,full_frozen_split_completed_rows,1.1365650265577332,1.077501804421488,1.077501804421488,44,44,0,0,ok
+R52-C-75,validation,fixed_physics,CO_dry_vol_pct,full_frozen_split_completed_rows,22.91436896947165,22.90759958634972,22.90759958634972,44,44,0,0,ok
+R52-C-75,validation,fixed_physics,H2_CO_ratio,full_frozen_split_completed_rows,0.4213526146285402,0.42133953649402867,-0.42133953649402867,44,44,0,0,ok
+R52-C-75,validation,fixed_physics,H2_dry_vol_pct,full_frozen_split_completed_rows,26.686338280727416,26.68590793539124,-26.68590793539124,44,44,0,0,ok
+R52-C-75,validation,fixed_physics,dry_syngas_flow,full_frozen_split_completed_rows,0.0,0.0,0.0,44,44,0,0,ok

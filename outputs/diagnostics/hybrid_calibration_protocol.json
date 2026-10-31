@@ -1,0 +1,359 @@
+{
+  "protocol_version": "round40_v1",
+  "claim_boundary": "protocol freeze only; not a trained hybrid model, calibrated accuracy, production control, learned multiplier interpretability, weak-label coal-quality proof, temporal generalization result, or Yulin/slurry generalization",
+  "readiness_audit": {
+    "repo_dirty_state": "dirty_worktree_expected_from_prior_model_rounds",
+    "huayi_ready_model_cases": 22,
+    "huayi_contract_rows": 22,
+    "phase_counts": {
+      "phase1": 8,
+      "phase2": 4,
+      "phase3": 6,
+      "phase4": 4
+    },
+    "target_columns_available": [
+      "target_CO_vol_pct",
+      "target_H2_vol_pct",
+      "target_CO2_vol_pct",
+      "target_N2_vol_pct",
+      "target_dry_flow_kmol_s",
+      "target_H2_CO_ratio"
+    ],
+    "targets_sufficient_for": {
+      "CO_H2_CO2_H2CO": true,
+      "outlet_temperature": true,
+      "dry_syngas_flow": true
+    },
+    "baseline_rows": 44,
+    "baseline_n_cells": [
+      3,
+      5
+    ],
+    "baseline_fallback_distribution": {
+      "0": 44
+    },
+    "baseline_poor_convergence_distribution": {
+      "1": 44
+    },
+    "baseline_cell0_cost_range": [
+      0.0055878141771886,
+      0.0184163829937229
+    ],
+    "engineering_coordinate_rank": [
+      {
+        "coordinate": "O_C_ratio_at_fixed_load",
+        "aggregate_coordinate_rank": 1,
+        "aggregate_mean_abs_normalized_sensitivity": 0.6592703809048976
+      },
+      {
+        "coordinate": "load_at_fixed_O_C",
+        "aggregate_coordinate_rank": 2,
+        "aggregate_mean_abs_normalized_sensitivity": 0.233965773908485
+      },
+      {
+        "coordinate": "carrier_to_coal_ratio_boundary",
+        "aggregate_coordinate_rank": 3,
+        "aggregate_mean_abs_normalized_sensitivity": 0.1721934797286436
+      },
+      {
+        "coordinate": "HeatLossPercent_calibration",
+        "aggregate_coordinate_rank": 4,
+        "aggregate_mean_abs_normalized_sensitivity": 0.0645094756377163
+      }
+    ],
+    "oc_response_rows": 110,
+    "oc_response_ok_rows": 110,
+    "bounded_wgs_batch_rows": 22,
+    "bounded_wgs_loss_decreased": 22,
+    "bounded_wgs_final_theta_range": [
+      0.1390586763362116,
+      1.1950335887455406
+    ],
+    "bounded_wgs_batch_recommendation": "supplementary_feasibility_figure_candidate",
+    "relevant_artifacts": [
+      {
+        "path": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/huayi_expanded_model_case_contract_audit.csv",
+        "exists": true,
+        "bytes": 13938
+      },
+      {
+        "path": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/huayi_expanded_fixed_physics_diagnostic_baseline.csv",
+        "exists": true,
+        "bytes": 31732
+      },
+      {
+        "path": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/huayi_engineering_coordinate_influence_diagnostic.csv",
+        "exists": true,
+        "bytes": 430535
+      },
+      {
+        "path": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/huayi_oc_response_curve_diagnostic.csv",
+        "exists": true,
+        "bytes": 82205
+      },
+      {
+        "path": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/huayi_bounded_hybrid_correction_batch_smoke.csv",
+        "exists": true,
+        "bytes": 16704
+      },
+      {
+        "path": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/gradient_parity_diagnostic.csv",
+        "exists": true,
+        "bytes": 6148
+      }
+    ],
+    "split_blockers": [
+      "Current paper-facing set has only 22 representative ModelCases; adequate for protocol smoke and leave-future-out diagnostics, too small for a high-capacity trained hybrid.",
+      "Representative rows span four Huayi phases but are not an exhaustive steady-window training set.",
+      "Sparse LIMS/coal labels require timestamp alignment rules and train-only preprocessing before they can be used as z_d weak labels.",
+      "Yulin/slurry data are out of scope for this protocol unless a separate ModelCase contract is built."
+    ]
+  },
+  "candidate_alpha_groups": [
+    {
+      "name": "alpha_wgs",
+      "reaction_family": "water-gas-shift net family CO+H2O <-> CO2+H2",
+      "mapped_existing_parameter": "op_conds.WGS_CatalyticFactor",
+      "implementation_change": "none for scalar smoke; bounded alpha(x_t,z_d) wrapper needed for training",
+      "physical_rationale": "WGS directly redistributes CO/H2/CO2 and has already shown 22-case bounded scalar loss-decrease smoke.",
+      "expected_target_sensitivity": "CO, H2, CO2, H2/CO strongest; moderate outlet T through reaction heat.",
+      "default_bounds": [
+        0.02,
+        2.0
+      ],
+      "train_without_public_solver_api_change": true,
+      "current_evidence": "round38/39 bounded WGS scalar smoke; 22/22 loss-decrease, no bound hits.",
+      "identifiability_risk": "High with O/C, steam/water availability, CO2 carrier, and coal-quality weak labels; must report alpha distribution and bound hits."
+    },
+    {
+      "name": "alpha_char_oxidation",
+      "reaction_family": "char oxidation / first combustion severity C+O2",
+      "mapped_existing_parameter": "op_conds.CharCombustionRateFactor",
+      "implementation_change": "none for scalar mainline/JAX parameter; bounded alpha wrapper required for training",
+      "physical_rationale": "Controls first-cell heat release, oxygen consumption, CO/CO2 split through phi-coupled char oxidation, and persistent cell0 boundary/source-term behavior.",
+      "expected_target_sensitivity": "outlet T, CO, CO2, dry flow; can interact strongly with O/C response.",
+      "default_bounds": [
+        0.05,
+        1.0
+      ],
+      "train_without_public_solver_api_change": true,
+      "current_evidence": "parameter is already wired into Cell and JAX solver contract; no 22-case bounded training smoke yet.",
+      "identifiability_risk": "Very high with O/C ratio and first-cell initialization; should be introduced after WGS-only baseline and monitored with cell0 cost."
+    },
+    {
+      "name": "alpha_volatile_oxidation",
+      "reaction_family": "combustion-zone volatile CO/H2 oxidation",
+      "mapped_existing_parameter": "op_conds.CO_OxidationFactor and op_conds.H2_OxidationFactor",
+      "implementation_change": "minimal if exposed as one shared alpha or two bounded alphas; JAX parity coverage should be audited before training.",
+      "physical_rationale": "Existing first-cell combustion branch has explicit CO and H2 oxidation dampers that can localize H2/CO2 mismatch without inventing new source terms.",
+      "expected_target_sensitivity": "H2, CO, CO2, H2/CO; possibly T through oxidation heat.",
+      "default_bounds": [
+        0.2,
+        1.2
+      ],
+      "train_without_public_solver_api_change": true,
+      "current_evidence": "mainline parameters exist; not yet included in 22-case gradient/parity or bounded batch smoke.",
+      "identifiability_risk": "High with WGS and char oxidation; should use staged ablation and bound-hit reporting."
+    },
+    {
+      "name": "alpha_char_gasification",
+      "reaction_family": "char gasification C+CO2 and C+H2O",
+      "mapped_existing_parameter": "none as a clean grouped op_conds alpha",
+      "implementation_change": "requires small internal interface in Cell/KineticsService to multiply selected heterogeneous rates after rate calculation.",
+      "physical_rationale": "Can address downstream CO/H2 generation and carbon conversion/mass-flow mismatch beyond first-cell oxidation.",
+      "expected_target_sensitivity": "CO, H2, dry syngas flow, carbon sanity; weaker direct effect on early O2 zone.",
+      "default_bounds": [
+        0.1,
+        5.0
+      ],
+      "train_without_public_solver_api_change": false,
+      "current_evidence": "design-only; implement only after WGS/char oxidation baselines are stable.",
+      "identifiability_risk": "Very high with coal reactivity, particle diameter, residence time, and carbon-balance incompleteness."
+    }
+  ],
+  "split_policy": {
+    "minimum_training_dataset": "Use the larger Huayi steady-window ModelCase set once available; 22 representative rows are for smoke/protocol and leave-future-out diagnostics only.",
+    "chronological_22_case_diagnostic_split": {
+      "train": "phase1 + phase2 representative cases (12 rows)",
+      "validation": "phase3 representative cases (6 rows)",
+      "test": "phase4 representative cases (4 rows)",
+      "rationale": "preserves future holdout by campaign phase/date; intentionally small and diagnostic-only."
+    },
+    "leave_future_out": "For full steady-window set, train on earliest contiguous blocks, tune on the next chronological block, and report the latest block once. No random shuffling before split.",
+    "leave_regime_out": "Not robust with only 22 representatives. Feasible only after defining regimes by O/C/load/carrier/phase and ensuring at least one complete future-like regime is held out.",
+    "lims_weak_label_policy": [
+      "Align LIMS/coal-quality labels by timestamp using only labels available at or before the ModelCase timestamp.",
+      "No interpolation or smoothing may use future labels relative to validation/test rows.",
+      "Fit normalization, PCA/latent encoders, imputation medians, and lag windows on train blocks only.",
+      "Include LIMS shuffle, delay, and dropout controls before claiming weak-label value."
+    ],
+    "leakage_guards": [
+      "No statistics fit on all 22 rows before split.",
+      "No phase-level feature_version target leakage into model features unless used only as documented metadata/control.",
+      "Repeated rows from same independence group must stay in one split for larger datasets."
+    ]
+  },
+  "baseline_matrix": [
+    {
+      "name": "fixed_physics",
+      "description": "Current GasifierSystem fixed physics with ModelCase adapter.",
+      "implementation_effort": "existing",
+      "expected_changed_files": [],
+      "output_schema": "case_id, split, target, prediction, residual, solver status, cell0 diagnostics, evidence_boundary",
+      "tests": "adapter tests, diagnostic baseline schema tests, git diff --check",
+      "runtime_estimate": "minutes for 22 cases at N=3/5; larger steady-window set may be hours",
+      "evidence_boundary": "diagnostic baseline only, not calibrated accuracy"
+    },
+    {
+      "name": "direct_outlet_residual_correction",
+      "description": "Post-solver residual model maps process features to outlet residuals without changing physics.",
+      "implementation_effort": "small",
+      "expected_changed_files": [
+        "src/model/hybrid_training_protocol.py",
+        "scripts/generate_hybrid_baselines.py"
+      ],
+      "output_schema": "case_id, split, target, fixed_prediction, corrected_prediction, residual_before, residual_after, status",
+      "tests": "split integrity, no future leakage, schema, deterministic fit on toy data",
+      "runtime_estimate": "low; no inner differentiable solver training",
+      "evidence_boundary": "statistical residual baseline, not mechanistic alpha_j evidence"
+    },
+    {
+      "name": "direct_kinetic_parameter_correction",
+      "description": "Fit a small number of global scalar kinetic multipliers with bounds.",
+      "implementation_effort": "medium",
+      "expected_changed_files": [
+        "src/model/bounded_hybrid_correction_smoke.py",
+        "scripts/generate_global_alpha_baseline.py"
+      ],
+      "output_schema": "split, alpha_name, alpha_value, bound_hit, metrics, solver diagnostics",
+      "tests": "bound enforcement, monotonic loss smoke, schema",
+      "runtime_estimate": "medium; repeated solver calls per candidate alpha",
+      "evidence_boundary": "bounded global calibration baseline, not learned hybrid interpretability"
+    },
+    {
+      "name": "bounded_alpha_xt",
+      "description": "alpha_j(x_t) uses online/process variables only with hard sigmoid/logit bounds.",
+      "implementation_effort": "medium-high",
+      "expected_changed_files": [
+        "src/model/hybrid_alpha.py",
+        "src/model/hybrid_objective.py",
+        "scripts/train_bounded_alpha.py"
+      ],
+      "output_schema": "case_id, split, alpha_j, alpha_value, prediction, metric fields, bound hit, solver diagnostics",
+      "tests": "bound transform, split, deterministic tiny training, no hidden solver API change",
+      "runtime_estimate": "high if trained through solver; start with small N_cells and cached fixed branches",
+      "evidence_boundary": "hybrid readiness until validated on future holdout"
+    },
+    {
+      "name": "bounded_alpha_xt_zd",
+      "description": "alpha_j(x_t,z_d) adds delayed/weak coal-quality labels or coal latent descriptor.",
+      "implementation_effort": "high",
+      "expected_changed_files": [
+        "src/model/hybrid_alpha.py",
+        "src/model/lims_alignment.py",
+        "scripts/train_bounded_alpha.py"
+      ],
+      "output_schema": "all bounded_alpha_xt fields plus z_d availability, lag, source, dropout status",
+      "tests": "no future leakage, LIMS delay/shuffle/dropout controls, split integrity",
+      "runtime_estimate": "high; do only after x_t baseline is stable",
+      "evidence_boundary": "no weak-label value claim unless controls beat x_t-only baseline on future holdout"
+    },
+    {
+      "name": "time_embedding_only_control",
+      "description": "Use time/phase/position features without process or coal labels.",
+      "implementation_effort": "small-medium",
+      "expected_changed_files": [
+        "src/model/hybrid_controls.py",
+        "scripts/train_control_baselines.py"
+      ],
+      "output_schema": "case_id, split, target, prediction, metrics, control_status",
+      "tests": "split integrity and leakage guard",
+      "runtime_estimate": "low-medium",
+      "evidence_boundary": "detects temporal memorization; not physics correction"
+    },
+    {
+      "name": "lims_shuffle_delay_dropout_controls",
+      "description": "Controls for weak-label coal features: shuffled, excessively delayed, and dropout variants.",
+      "implementation_effort": "medium",
+      "expected_changed_files": [
+        "src/model/lims_alignment.py",
+        "scripts/train_control_baselines.py"
+      ],
+      "output_schema": "case_id, split, control_type, z_d_status, metrics, evidence_boundary",
+      "tests": "deterministic shuffle seed, delay rule, dropout mask, no future labels",
+      "runtime_estimate": "medium; repeats alpha training for controls",
+      "evidence_boundary": "required before any weak-label coal-quality claim"
+    }
+  ],
+  "metric_schema": {
+    "required_prediction_targets": [
+      "CO_volpct_dry",
+      "H2_volpct_dry",
+      "CO2_volpct_dry",
+      "H2_CO_ratio"
+    ],
+    "optional_prediction_targets": [
+      "T_out_degC",
+      "dry_syngas_flow_kmol_s",
+      "N2_volpct_dry"
+    ],
+    "per_target_metrics": [
+      "RMSE",
+      "MAE",
+      "bias",
+      "n"
+    ],
+    "diagnostic_fields": [
+      "case_id",
+      "phase",
+      "dataset_id",
+      "split",
+      "N_cells",
+      "fallback_count",
+      "poor_convergence_count",
+      "poor_convergence_cell_index",
+      "cell0_cost",
+      "cell0_max_abs_residual",
+      "carbon_sanity_status",
+      "gross_apparent_gas_phase_C_recovery",
+      "bound_hit_count",
+      "bound_hit_fraction",
+      "alpha_min",
+      "alpha_median",
+      "alpha_max",
+      "alpha_p05",
+      "alpha_p95",
+      "status",
+      "evidence_boundary"
+    ],
+    "artifact_schema": {
+      "case_predictions_csv": "case_id, split, phase, target, y_true, y_fixed, y_pred, residual_fixed, residual_hybrid, status",
+      "metric_summary_csv": "split, target, baseline_name, RMSE, MAE, bias, n, status, evidence_boundary",
+      "alpha_summary_csv": "split, alpha_name, min, p05, median, p95, max, bound_low, bound_high, bound_hit_fraction",
+      "solver_diagnostics_csv": "case_id, split, fallback_count, poor_convergence_count, poor_convergence_cell_index, cell0_cost, carbon_sanity_status"
+    }
+  },
+  "runtime_risks": [
+    "Training through the implicit solver may be slow; start with N_cells=3 smoke and one alpha before multi-alpha/full N_cells.",
+    "Persistent cell0 residual-quality flag can dominate diagnostics; report it separately and do not hide it by threshold changes.",
+    "Alpha groups are correlated with O/C, load, carrier ratio, and coal weak labels; staged ablations are mandatory.",
+    "Bound hits may mimic performance gains; report alpha distribution and hit frequency by split/phase.",
+    "The 22 representative rows are too small for high-capacity learned alpha networks; use larger steady-window set before accuracy claims.",
+    "LIMS labels are sparse and temporally delayed; future leakage is the highest risk for z_d experiments.",
+    "JAX/IFT coverage is partial; full production training may need fallback to fixed-branch probes or careful custom VJP expansion."
+  ],
+  "recommended_next_model_round": {
+    "title": "Implement split manifest + fixed-physics and global bounded-alpha baseline scaffolding",
+    "tasks": [
+      "Create a chronological split manifest for Huayi ModelCases without random shuffling.",
+      "Implement metric schema writer using existing fixed-physics outputs.",
+      "Run WGS-only global bounded alpha baseline on train/validation/test split as a non-learned calibration baseline.",
+      "Add leakage-guard tests before any alpha(x_t,z_d) experiment."
+    ],
+    "do_not_start_yet": [
+      "MLP training on all candidate alphas",
+      "weak-label coal latent claims",
+      "production-control framing"
+    ]
+  }
+}

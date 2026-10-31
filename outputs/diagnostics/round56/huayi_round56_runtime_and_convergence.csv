@@ -1,0 +1,7 @@
+dataset_id,method,split_role,rows_attempted,rows_completed,rows_timeout,rows_error,wall_time_s_sum,fallback_count_sum,poor_convergence_count_sum,cell0_cost_min,cell0_cost_max,bound_hit_rate
+R52-C-75,global_bounded_wgs_scalar,test,17,17,0,0,28.552313402999996,0.0,17.0,0.0128255775967434,0.0154865449158327,0.0
+R52-C-75,global_bounded_wgs_scalar,train,81,81,0,0,187.520810836,0.0,81.0,0.0051083566088994,0.0137674349338961,0.0
+R52-C-75,global_bounded_wgs_scalar,validation,44,44,0,0,113.54374051100001,0.0,44.0,0.0086383110330828,0.0153496372267745,0.0
+R52-C-75,low_capacity_alpha_wgs_xt,test,17,17,0,0,27.622863936,0.0,17.0,0.0127905234458262,0.0154308282806653,0.0
+R52-C-75,low_capacity_alpha_wgs_xt,train,81,81,0,0,138.058132957,0.0,81.0,0.0051152128203926,0.0137432066411052,0.0
+R52-C-75,low_capacity_alpha_wgs_xt,validation,44,44,0,0,114.247475921,0.0,44.0,0.0086188442995058,0.015333278103097,0.0

@@ -1,0 +1,5 @@
+rank,parameter_name,parameter_key,row_count,ok_row_count,mean_abs_normalized_sensitivity,median_abs_normalized_sensitivity,max_abs_normalized_sensitivity,status
+1,oxygen_flow,op_conds.o2_flow,110,110,0.6592506446137105,0.6766025129278398,1.063456297597295,ok
+2,coal_mass_flow,op_conds.coal_flow,110,110,0.4826253035926678,0.44427750849191516,1.2949072384936262,ok
+3,carrier_gas_flow,op_conds.carrier_gas_flow,110,110,0.1721944755640664,0.03293688913398976,0.6834734323962881,ok
+4,HeatLossPercent,op_conds.HeatLossPercent,110,110,0.06451321874438219,0.029662775375704973,0.5094860551359459,ok

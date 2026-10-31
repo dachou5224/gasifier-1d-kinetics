@@ -1,0 +1,59 @@
+{
+  "N_cells": 1,
+  "alpha_wgs": 1.0,
+  "concentration_rule": "a term is concentrated when its absolute residual contribution is at least 70% of the sum of absolute convection, reaction and inlet contributions",
+  "configuration": "reference",
+  "dataset_id": "R52-C-75",
+  "element_molar_mass_kg_per_mol": {
+    "C": 0.012011,
+    "H": 0.001008,
+    "N": 0.0140065,
+    "O": 0.015999,
+    "S": 0.03206
+  },
+  "excluded_reruns": [
+    "tighter_tol",
+    "alt_cell0_init",
+    "refined_first_cv"
+  ],
+  "handoff_model_head": "98ad47c",
+  "iteration_count": "least_squares has nfev and njev, not a Newton iteration count",
+  "jacobian_condition_number": "2-norm condition of the accepted cell-0 least_squares scaled residual Jacobian; not_computed when the accepted attempt cost does not match the stored residual or the matrix is non-finite",
+  "jacobian_mode": "scipy",
+  "judgment_sentence_id": 3,
+  "moisture_accounting": "coal moisture uses GasifierSystem.tmp_W_liq_evap and (mass_kg_s / 18.015) * 1000 mol/s; steam remains in inlet gas",
+  "much_smaller_rule": "sentence 4 when every window has that ratio >= 100",
+  "n_windows": 9,
+  "outlet_solid_elements": "carbon only; H O N S are not solid state variables",
+  "particle_ct_clip": "not_computed; the exponential clip sits inside the particle-temperature loop",
+  "residual_cost_threshold": 0.0001,
+  "same_order_rule": "sentence 3 when every window has max(|H2|,|CO2|) / max(|element errors|) < 10",
+  "solver_method": "minimize",
+  "solver_modules_match_handoff_head": true,
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "term_identity_atol_mol_s": 1e-06,
+  "term_identity_max_abs_mol_s": 1.7053025658242404e-13,
+  "term_split_sign": "residual = (F_out - F_in) - inlet_source - reaction_source",
+  "threshold_rule": "poor when residual_cost > 1e-4",
+  "units": {
+    "carbon_fraction_scale": "dimensionless max(char_Xc0, 0.1)",
+    "carbon_fraction_unscaled": "kg/s carbon-mass imbalance",
+    "energy": "W",
+    "energy_scale": "max(ref_flow * 35 * 200, 5e5) W",
+    "gas": "mol/s",
+    "gas_scale": "ref_flow mol/s except gas_N2, which uses max(|inlet N2| + |pyrolysis N2|, 1e-3) mol/s",
+    "ref_solid": "kg/s, inlet dry solid mass",
+    "solid_mass": "kg/s"
+  },
+  "window_ids": [
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002"
+  ]
+}

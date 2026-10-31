@@ -1,0 +1,4 @@
+{
+  "rule": "coarsest of {3, 5, 9} whose 142 windows all have every cell residual_cost <= 1e-4; null when no such grid",
+  "selected_N": 3
+}

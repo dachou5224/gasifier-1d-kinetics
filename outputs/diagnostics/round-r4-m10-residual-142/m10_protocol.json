@@ -1,0 +1,34 @@
+{
+  "adapter_contract": "revision M1/M2 Huayi model-case adapter; no re-tune of kinetics, moisture, carrier or steam",
+  "dataset_id": "R52-C-75",
+  "evidence_boundary": "locked post-outlet residual comparator on R52-C-75; not a physical update, not a reactor source term, not eligible for monitored evaluation, not learned WGS kinetics",
+  "exploratory_method": "residual_linear_operating",
+  "fixed_physics_source": "revision_m1_fullsplit_stability.csv",
+  "frozen_split_consumed": true,
+  "n_cells": 1,
+  "no_clipping": true,
+  "primary_method": "residual_constant_train_mean",
+  "quality_fields": "copied from fixed-physics rows; residual_quality_status is not hidden",
+  "residual_definition": "y_residual = y_fixed - mean_train(y_fixed - y_plant); independent per declared target",
+  "rmse_fixed_source": "revision_m2_wgs_effect_matrix.csv",
+  "seed": null,
+  "selection_rule": "primary form predeclared; validation/test RMSE were not used to choose residual form, targets or clipping",
+  "source_commit": "3c1d1a2cf8268de5ca94e6dd878a2834205bee7e",
+  "source_term_route": false,
+  "split_counts": {
+    "test": 17,
+    "train": 81,
+    "validation": 44
+  },
+  "split_id": "R52-C-75",
+  "test_excluded_from_fit": true,
+  "train_mean_corrections": {
+    "CO2_dry_vol_pct": 5.744551188879981,
+    "CO_dry_vol_pct": 19.45951120365459,
+    "H2_CO_ratio": -0.44180277748864066,
+    "H2_dry_vol_pct": -27.65052878391055,
+    "dry_syngas_flow": -72924.21526279407
+  },
+  "train_only": true,
+  "validation_excluded_from_fit": true
+}
