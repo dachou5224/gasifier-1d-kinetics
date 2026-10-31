@@ -109,22 +109,26 @@ def test_bounded_correction_schema_and_boundary_from_fixture_rows():
     assert "not a trained hybrid" in text
 
 
-def _fake_loss_context(monkeypatch_loss):
-    """Patch the objective used by the smoke loop so cases need no solver run."""
+def _patch_loss(monkeypatch, fake):
+    """用 monkeypatch 替换目标函数，测试结束自动恢复。
+
+    不能直接给模块全局 `_loss` 赋值：那样最后一个测试的 lambda 会留在模块上，
+    同进程后续任何真实 smoke 调用都会绕过求解器，结果依赖测试执行顺序。
+    """
     import model.bounded_hybrid_correction_smoke as module
 
-    module._loss = monkeypatch_loss
+    monkeypatch.setattr(module, "_loss", fake)
     return module
 
 
-def test_flat_objective_is_not_reported_as_decreased():
+def test_flat_objective_is_not_reported_as_decreased(monkeypatch):
     """恒定损失不得记成「下降」，theta 也不应沿梯度方向漂移。
 
-    回归 Codex 审查意见（P2）：原实现用 `final_loss <= initial_loss`，
+    回归审查意见（P2）：原实现用 `final_loss <= initial_loss`，
     平坦目标下 loss_delta=0 仍被标为 ok_loss_decreased，批次推荐还会给出
     supplementary_feasibility_figure_candidate。
     """
-    module = _fake_loss_context(lambda row, value, n_cells: {
+    module = _patch_loss(monkeypatch, lambda row, value, n_cells: {
         "case_id": "case_flat", "phase": "phase1", "dataset_id": "d",
         "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3,
         "loss": 1.0, "solve_status": "ok", "cell0_cost": 0.01,
@@ -144,13 +148,13 @@ def test_flat_objective_is_not_reported_as_decreased():
     assert batch[0]["recommendation"] == "feasibility_note_only"
 
 
-def test_failed_initial_solve_is_reported_and_does_not_break_batch():
+def test_failed_initial_solve_is_reported_and_does_not_break_batch(monkeypatch):
     """初始求解失败必须传播为 failed 状态，且不炸掉批次汇总。
 
     回归 Codex 审查意见（P2）：原实现把失败案例标成 ok_no_loss_decrease，
     批次汇总再把缺失的 cell0_cost_final 拿去 float(None)，整张报表生成失败。
     """
-    module = _fake_loss_context(lambda row, value, n_cells: {
+    module = _patch_loss(monkeypatch, lambda row, value, n_cells: {
         "case_id": "case_bad", "phase": "phase1", "dataset_id": "d",
         "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3,
         "loss": float("nan"), "solve_status": "failed", "failure_reason": "RuntimeError: boom",
@@ -170,9 +174,9 @@ def test_failed_initial_solve_is_reported_and_does_not_break_batch():
     assert batch[0]["recommendation"] == "blocked_no_cases"
 
 
-def test_failed_case_does_not_break_mixed_batch():
+def test_failed_case_does_not_break_mixed_batch(monkeypatch):
     """一个失败案例不应让同批次其他成功案例的汇总生成失败。"""
-    module = _fake_loss_context(lambda row, value, n_cells: {
+    module = _patch_loss(monkeypatch, lambda row, value, n_cells: {
         "case_id": "mixed", "phase": "phase1", "dataset_id": "d",
         "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3,
         "loss": float("nan"), "solve_status": "failed", "failure_reason": "boom",
@@ -192,3 +196,66 @@ def test_failed_case_does_not_break_mixed_batch():
     assert overall["n_ok"] == 1
     assert overall["n_failed"] == 1
     assert overall["n_loss_decreased"] == 1
+
+
+def test_failed_probe_is_reported_not_hidden_as_no_decrease(monkeypatch):
+    """初始求值正常、但差分探针失败时必须报 failed_probe 并保留探针原因。
+
+    回归审查意见（P2）：原实现在梯度非有限时直接 break，随后仍生成
+    ok_no_loss_decrease、failure_reason=None，探针异常完全丢失，批次还把它
+    计为 n_ok，等于把「梯度不可用」冒充成「优化跑完了但没改善」。
+    """
+    def fake(row, value, n_cells):
+        meta = {"case_id": "case_probe", "phase": "phase1", "dataset_id": "d",
+                "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3}
+        if abs(value - 1.0) < 1e-12:   # 初始点正常
+            return {**meta, "loss": 2.0, "solve_status": "ok", "cell0_cost": 0.01}
+        # 两个探针点都失败
+        return {**meta, "loss": float("nan"), "solve_status": "failed",
+                "failure_reason": "RuntimeError: probe boom"}
+
+    module = _patch_loss(monkeypatch, fake)
+    summaries, trajectory = module.run_bounded_wgs_correction_smoke([{}], n_cells=3, steps=3)
+    row = summaries[0]
+    assert row["status"] == "failed_probe", row["status"]
+    assert row["failure_reason"] is not None
+    assert "probe boom" in row["failure_reason"]
+    assert "minus probe" in row["failure_reason"]
+    assert "plus probe" in row["failure_reason"]
+    assert row["steps_completed"] == 0
+    assert trajectory == []
+
+    batch = module.build_bounded_correction_batch_summary(summaries)
+    assert batch[0]["n_ok"] == 0
+    assert batch[0]["n_failed"] == 1
+    assert batch[0]["recommendation"] == "blocked_no_cases"
+
+
+def test_partial_probe_failure_names_only_the_broken_side(monkeypatch):
+    """只有一侧探针失败时，failure_reason 只点名那一侧。"""
+    def fake(row, value, n_cells):
+        meta = {"case_id": "case_half", "phase": "phase1", "dataset_id": "d",
+                "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3}
+        if value >= 1.0:
+            return {**meta, "loss": 2.0 - (value - 1.0), "solve_status": "ok", "cell0_cost": 0.01}
+        return {**meta, "loss": float("nan"), "solve_status": "failed",
+                "failure_reason": "ValueError: minus side"}
+
+    module = _patch_loss(monkeypatch, fake)
+    summaries, _ = module.run_bounded_wgs_correction_smoke([{}], n_cells=3, steps=2)
+    reason = summaries[0]["failure_reason"]
+    assert summaries[0]["status"] == "failed_probe"
+    assert "minus probe" in reason
+    assert "plus probe" not in reason
+
+
+def test_patched_loss_is_restored_after_test(request):
+    """确认 monkeypatch 会在测试结束后复原，避免污染同进程后续调用。"""
+    import model.bounded_hybrid_correction_smoke as module
+
+    original = module._loss
+    mp = request.getfixturevalue("monkeypatch")
+    _patch_loss(mp, lambda *a, **k: {})
+    assert module._loss is not original
+    mp.undo()
+    assert module._loss is original

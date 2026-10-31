@@ -240,6 +240,25 @@ def _finite_or_none(value: Any) -> float | None:
     return numeric if math.isfinite(numeric) else None
 
 
+def _probe_failure_reason(minus_eval: Mapping[str, Any], plus_eval: Mapping[str, Any],
+                          minus_theta: float, plus_theta: float) -> str:
+    """把差分探针失败的原因拼成可读字符串，保留两侧各自的 failure_reason。"""
+    parts = []
+    for label, ev, theta_probe in (("minus", minus_eval, minus_theta), ("plus", plus_eval, plus_theta)):
+        loss_value = _finite_or_none(ev.get("loss"))
+        status = ev.get("solve_status", "unknown")
+        detail = ev.get("failure_reason")
+        if status == "ok" and loss_value is not None:
+            continue
+        text = f"{label} probe at theta={float(theta_probe):.6g}: status={status}, loss={ev.get('loss')!r}"
+        if detail:
+            text += f", reason={detail}"
+        parts.append(text)
+    if not parts:
+        return "finite difference gradient is not finite"
+    return "individual probe failed: " + " | ".join(parts)
+
+
 def _loss(model_case_row: Mapping[str, Any], value: float, n_cells: int) -> dict[str, Any]:
     try:
         return solve_with_wgs_correction(model_case_row, value, n_cells=n_cells)
@@ -343,13 +362,16 @@ def run_bounded_wgs_correction_smoke(
             )
             continue
         steps_accepted = 0
+        termination_reason: str | None = None
         for step in range(int(steps)):
             minus_theta, plus_theta = finite_difference_points(theta, bound_low, bound_high, fd_fraction)
             minus_eval = _loss(model_case_row, minus_theta, n_cells)
             plus_eval = _loss(model_case_row, plus_theta, n_cells)
             gradient = (float(plus_eval["loss"]) - float(minus_eval["loss"])) / (plus_theta - minus_theta)
             if not math.isfinite(gradient):
-                # 差分点求解失败，梯度不可用：停在当前点，不再推进。
+                # 差分探针求解失败，梯度不可用：停在当前点，并保留探针的失败原因。
+                # 不能把这个案例当成正常的「无改善」——那是优化真的跑完但没找到改进。
+                termination_reason = _probe_failure_reason(minus_eval, plus_eval, minus_theta, plus_theta)
                 break
             proposed_step = -float(learning_rate) * gradient
             trials = 0
@@ -407,6 +429,14 @@ def run_bounded_wgs_correction_smoke(
 
         final_loss = float(latest_eval["loss"])
         decreased = _strictly_decreased(final_loss, initial_loss)
+        if termination_reason is not None:
+            # 探针失败导致提前终止：不能用 ok_* 掩盖，否则批次会把它计为
+            # 「跑完了但没改善」，而真实原因是梯度不可用。
+            status = "failed_probe"
+            failure_reason = termination_reason
+        else:
+            status = "ok_loss_decreased" if decreased else "ok_no_loss_decrease"
+            failure_reason = None
         summaries.append(
             _build_summary_row(
                 model_case_row=model_case_row,
@@ -419,8 +449,8 @@ def run_bounded_wgs_correction_smoke(
                 latest_eval=latest_eval,
                 steps_accepted=steps_accepted,
                 final_loss=final_loss,
-                status="ok_loss_decreased" if decreased else "ok_no_loss_decrease",
-                failure_reason=None,
+                status=status,
+                failure_reason=failure_reason,
             )
         )
 
