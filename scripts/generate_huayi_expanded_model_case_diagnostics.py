@@ -268,7 +268,31 @@ def _build_huayi_baseline_mismatch(baseline_rows: list[dict[str, Any]]) -> pd.Da
     return pd.DataFrame(rows)
 
 
+def _repo_relative(path: Path, root: Path) -> str:
+    """输出仓库相对路径；仓库外路径保留绝对形式。
+
+    已提交的 manifest 必须可移植，不能写入作者机器的绝对路径。
+    """
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(Path(root).resolve()).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
+def _rel_entry(path: Path, root: Path, **extra: Any) -> dict[str, Any]:
+    relative = _repo_relative(path, root)
+    entry = {
+        "file": relative,
+        "path_basis": "repo_relative" if not Path(relative).is_absolute() else "absolute_outside_repo",
+        "path_basis_root": ".",
+    }
+    entry.update(extra)
+    return entry
+
+
 def _write_huayi_figure_bundle(out_dir: Path, audit_rows: list[dict[str, Any]], carbon_rows: list[dict[str, Any]], baseline_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    repo_root = Path(__file__).resolve().parents[1]
     out_dir.mkdir(parents=True, exist_ok=True)
     baseline_mismatch = _build_huayi_baseline_mismatch(baseline_rows)
     carbon = pd.DataFrame(carbon_rows)
@@ -288,19 +312,19 @@ def _write_huayi_figure_bundle(out_dir: Path, audit_rows: list[dict[str, Any]], 
         "evidence_boundary": "Huayi four-phase dry-powder fixed-physics diagnostic coverage only; not calibrated accuracy, hybrid validation, carbon closure, or Yulin/slurry generalization.",
         "artifacts": {
             "huayi_expanded_fig2_baseline_mismatch": {
-                "file": str(fig2_path),
+                **_rel_entry(fig2_path, repo_root),
                 "row_count": int(len(baseline_mismatch)),
                 "source_artifact": "outputs/diagnostics/huayi_expanded_fixed_physics_diagnostic_baseline.csv",
                 "key_columns": ["phase", "case_id", "N_cells", "target_name", "predicted_value", "target_value", "delta_pred_minus_target"],
             },
             "huayi_expanded_table_carbon_sanity": {
-                "file": str(carbon_path),
+                **_rel_entry(carbon_path, repo_root),
                 "row_count": int(len(carbon)),
                 "source_artifact": "outputs/diagnostics/huayi_expanded_carbon_balance_diagnostic.csv",
                 "key_columns": ["phase", "case_id", "apparent_gas_phase_C_recovery", "gross_recovery_if_c_f_monitoring_sum_used"],
             },
             "huayi_expanded_table_contract_audit": {
-                "file": str(contract_path),
+                **_rel_entry(contract_path, repo_root),
                 "row_count": int(len(audit)),
                 "source_artifact": "outputs/diagnostics/huayi_expanded_model_case_contract_audit.csv",
                 "key_columns": ["phase", "case_id", "adapter_uses_primary_coal_flow", "adapter_avoids_c_f_monitoring_sum", "adapter_uses_zero_steam_feed"],
@@ -317,8 +341,8 @@ def _write_huayi_figure_bundle(out_dir: Path, audit_rows: list[dict[str, Any]], 
         "not calibrated accuracy, hybrid validation, carbon closure, or Yulin/slurry generalization.\n",
         encoding="utf-8",
     )
-    manifest["artifacts"]["manifest"] = {"file": str(manifest_path), "row_count": 1}
-    manifest["artifacts"]["summary"] = {"file": str(summary_path), "row_count": 8}
+    manifest["artifacts"]["manifest"] = _rel_entry(manifest_path, repo_root, row_count=1)
+    manifest["artifacts"]["summary"] = _rel_entry(summary_path, repo_root, row_count=8)
     return manifest
 
 

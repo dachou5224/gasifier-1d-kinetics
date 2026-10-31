@@ -9,7 +9,9 @@ tuning, or post-hoc metric selection is performed.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
+import json
 import math
 import multiprocessing as mp
 import queue
@@ -136,12 +138,29 @@ def _prediction_rows_for_alpha(
     output_dir: Path,
     cache_name: str,
     timeout_s: float,
+    target_rows: Sequence[Mapping[str, Any]] | None = None,
 ) -> pd.DataFrame:
+    """Solve每行并生成 long-form 预测表。
+
+    ``target_rows`` 用于「输入被刻意扰动、但真值必须保持原样」的场景
+    （见 null/control 特征打乱）。缺省时真值取自 ``rows`` 自身。
+    """
     cache_path = output_dir / cache_name
+    # 真值来源不同则缓存不可混用，否则会把扰动前/后的 target 混在一张表里。
+    target_by_window: dict[str, Mapping[str, Any]] = {}
+    if target_rows is not None:
+        target_by_window = {str(row["window_id"]): row for row in target_rows}
+    target_source = "original_rows" if target_rows is not None else "input_rows"
+    fingerprint = _cache_fingerprint(method, alpha_by_window, target_source)
     cached = pd.read_csv(cache_path) if cache_path.exists() else pd.DataFrame()
     done = set()
     if not cached.empty:
-        done = set(zip(cached["window_id"].astype(str), cached["alpha_wgs"].astype(float).round(8)))
+        # 指纹不符（换了 alpha、窗口或真值来源）就整体作废，不能按行续用。
+        stored = set(cached.get("cache_fingerprint", pd.Series(dtype=str)).astype(str))
+        if stored != {fingerprint}:
+            cached = pd.DataFrame()
+        else:
+            done = set(zip(cached["window_id"].astype(str), cached["alpha_wgs"].astype(float).round(8)))
     chunks: list[pd.DataFrame] = [cached] if not cached.empty else []
     started = time.perf_counter()
     for index, row in enumerate(rows, start=1):
@@ -176,7 +195,9 @@ def _prediction_rows_for_alpha(
                 "bound_hit": math.isclose(alpha, ALPHA_LOW) or math.isclose(alpha, ALPHA_HIGH),
             }
             for target, true_col, pred_col in round54.TARGETS:
-                y_true = float(row[true_col])
+                # 真值必须来自未被扰动的行；被打乱的行只提供预测输入。
+                truth_source = target_by_window.get(str(row["window_id"]), row)
+                y_true = float(truth_source[true_col])
                 y_pred = float(outcome[pred_col]) if outcome.get("status") == "ok" and pred_col in outcome else math.nan
                 item = dict(base)
                 item.update(
@@ -189,6 +210,7 @@ def _prediction_rows_for_alpha(
                 )
                 records.append(item)
             pred = pd.DataFrame(records)
+        pred["cache_fingerprint"] = fingerprint
         chunks.append(pred)
         done.add(key)
         pd.concat(chunks, ignore_index=True).to_csv(cache_path, index=False)
@@ -293,13 +315,37 @@ def _read_predictions_cache(path: Path, method: str) -> pd.DataFrame:
     return frame
 
 
-def _cache_has_windows(path: Path, expected_window_count: int) -> bool:
+def _cache_fingerprint(method: str, alpha_by_window: Mapping[str, float],
+                       target_source: str) -> str:
+    """缓存指纹：方法名 + 逐窗 alpha + 真值来源。
+
+    只按行数/窗口数校验缓存是不够的（审查意见 2026-10-31 P2）：换了被选
+    alpha、换了窗口集合、或换了真值来源之后，行数与窗口数可能完全相同，
+    旧缓存会被静默当作本次实验的结果。
+    """
+    payload = json.dumps(
+        {
+            "method": method,
+            "alpha": sorted((str(key), round(float(value), 10)) for key, value in alpha_by_window.items()),
+            "target_source": target_source,
+        },
+        sort_keys=True,
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
+
+
+def _cache_has_windows(path: Path, expected_window_count: int,
+                       expected_fingerprint: str | None = None) -> bool:
     if not path.exists():
         return False
     try:
-        frame = pd.read_csv(path, usecols=["window_id", "target", "status"])
+        frame = pd.read_csv(path, usecols=["window_id", "target", "status", "cache_fingerprint"])
     except Exception:
         return False
+    if expected_fingerprint is not None:
+        stored = set(frame["cache_fingerprint"].astype(str))
+        if stored != {str(expected_fingerprint)}:
+            return False
     return (
         int(frame["window_id"].nunique()) == int(expected_window_count)
         and int(frame["target"].nunique()) == TARGET_COUNT
@@ -315,7 +361,12 @@ def _selected_global_full(
     selected_global: float,
 ) -> pd.DataFrame:
     full_cache = output_dir / "_global_selected_full.csv"
-    if _cache_has_windows(full_cache, len(rows)):
+    expected = _cache_fingerprint(
+        "global_bounded_wgs_scalar",
+        {str(row["window_id"]): float(selected_global) for row in rows},
+        "input_rows",
+    )
+    if _cache_has_windows(full_cache, len(rows), expected):
         return _read_predictions_cache(full_cache, "global_bounded_wgs_scalar")
     train_cache = _global_grid_cache(output_dir, selected_global)
     heldout_rows = [row for row in rows if row["split_role"] != "train"]
@@ -428,7 +479,12 @@ def _selected_xt_full(
     xt_alpha: Mapping[str, float],
 ) -> pd.DataFrame:
     full_cache = output_dir / "_alpha_xt_selected_full.csv"
-    if _cache_has_windows(full_cache, len(rows)):
+    expected = _cache_fingerprint(
+        "low_capacity_alpha_wgs_xt",
+        {str(key): float(value) for key, value in xt_alpha.items()},
+        "input_rows",
+    )
+    if _cache_has_windows(full_cache, len(rows), expected):
         return _read_predictions_cache(full_cache, "low_capacity_alpha_wgs_xt")
     train_cache = output_dir / f"_alpha_xt_candidate_{selected_xt['candidate']}.csv"
     heldout_rows = [row for row in rows if row["split_role"] != "train"]
@@ -519,22 +575,29 @@ def run(output_dir: Path, timeout_s: float) -> dict[str, Any]:
     # Deterministic null/control: shuffle the selected feature among train rows,
     # keep the selected alpha model form, evaluate train only.  This is a guardrail
     # and not used for model selection.
+    #
+    # 关键约束（2026-10-31 审查）：被打乱的行只能作为**模型输入**，
+    # 真值必须取自原始行。否则当被选特征是某个 target 的来源时
+    # （例如 syngas_flow_mean 同时是 dry_syngas_flow 的真值），打乱会把真值也改掉，
+    # 而该 target 的预测是"该行自身输入"的携带值，于是凭空造出与扰动无关的流量误差。
     null_rows: list[dict[str, Any]] = []
     if selected_xt.get("selected_feature"):
-        train = [dict(row) for row in rows if row["split_role"] == "train"]
-        values = [row[str(selected_xt["selected_feature"])] for row in train]
+        original_train = [dict(row) for row in rows if row["split_role"] == "train"]
+        shuffled_train = [dict(row) for row in original_train]
+        values = [row[str(selected_xt["selected_feature"])] for row in shuffled_train]
         shifted = values[1:] + values[:1]
-        for row, value in zip(train, shifted):
+        for row, value in zip(shuffled_train, shifted):
             row[str(selected_xt["selected_feature"])] = value
-        null_alpha = _alpha_map(train, selected_xt, scaler)
+        null_alpha = _alpha_map(shuffled_train, selected_xt, scaler)
         null_preds = _prediction_rows_for_alpha(
             round54,
-            train,
+            shuffled_train,
             method="null_feature_shuffle_control",
             alpha_by_window=null_alpha,
             output_dir=output_dir,
             cache_name="_null_feature_shuffle_train.csv",
             timeout_s=timeout_s,
+            target_rows=original_train,
         )
         null_obj = _objective(null_preds, "train")
         null_rows.append(

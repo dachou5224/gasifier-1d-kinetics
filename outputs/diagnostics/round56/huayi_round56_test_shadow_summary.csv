@@ -1,0 +1,11 @@
+dataset_id,split_role,method,target,rmse,mae,bias,delta_rmse_vs_fixed,worsened_target_flag,n_attempted,n_completed,n_timeout,n_error,status
+R52-C-75,test,global_bounded_wgs_scalar,CO2_dry_vol_pct,4.772371093591478,4.761237080345957,4.761237080345957,0.23168345937062185,True,17,17,0,0,ok
+R52-C-75,test,global_bounded_wgs_scalar,CO_dry_vol_pct,18.437867598857977,18.43219680448627,18.43219680448627,-0.29406425093211297,False,17,17,0,0,ok
+R52-C-75,test,global_bounded_wgs_scalar,H2_CO_ratio,0.4109967430313254,0.4109830497184399,-0.4109830497184399,1.6653345369377348e-16,False,17,17,0,0,ok
+R52-C-75,test,global_bounded_wgs_scalar,H2_dry_vol_pct,26.370165159371464,26.369754368,-26.369754368,1.4210854715202004e-14,False,17,17,0,0,ok
+R52-C-75,test,global_bounded_wgs_scalar,dry_syngas_flow,0.0,0.0,0.0,0.0,False,17,17,0,0,ok
+R52-C-75,test,low_capacity_alpha_wgs_xt,CO2_dry_vol_pct,4.808388982278183,4.796950022706461,4.796950022706461,0.2677013480573267,True,17,17,0,0,ok
+R52-C-75,test,low_capacity_alpha_wgs_xt,CO_dry_vol_pct,18.39326079096779,18.387341759779247,18.387341759779247,-0.33867105882229964,False,17,17,0,0,ok
+R52-C-75,test,low_capacity_alpha_wgs_xt,H2_CO_ratio,0.4109967430313254,0.4109830497184399,-0.4109830497184399,1.6653345369377348e-16,False,17,17,0,0,ok
+R52-C-75,test,low_capacity_alpha_wgs_xt,H2_dry_vol_pct,26.370165159371464,26.369754368,-26.369754368,1.4210854715202004e-14,False,17,17,0,0,ok
+R52-C-75,test,low_capacity_alpha_wgs_xt,dry_syngas_flow,0.0,0.0,0.0,0.0,False,17,17,0,0,ok

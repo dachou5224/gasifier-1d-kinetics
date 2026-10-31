@@ -1,0 +1,3 @@
+stage,rows_attempted,rows_completed,rows_timeout,rows_error,wall_time_s_sum,row_timeout_s,fallback_count_sum,poor_convergence_count_sum,status,decision
+fixed_physics_smoke,9,9,0,0,34.782709467,15.0,0.0,9.0,ok,EVALUATOR_CONDITIONAL
+fixed_physics_full_or_bounded,9,9,0,0,0.0,15.0,,,ok,EVALUATOR_CONDITIONAL

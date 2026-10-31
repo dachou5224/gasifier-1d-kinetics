@@ -1,9 +1,12 @@
 {
   "bundle_version": 1,
-  "output_directory": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data",
+  "output_directory": "outputs/figures_data",
+  "output_directory_basis": "repo_relative",
   "artifacts": {
     "fig2_baseline_mismatch": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/fig2_baseline_mismatch.csv",
+      "file": "outputs/figures_data/fig2_baseline_mismatch.csv",
+      "path_basis": "repo_relative",
+      "path_basis_root": ".",
       "source_artifact": "outputs/diagnostics/pilot_fixed_physics_diagnostic_baseline.csv",
       "row_count": 10,
       "column_count": 16,
@@ -18,7 +21,9 @@
       "evidence_boundary": "Pilot fixed-physics mismatch evidence; not calibrated accuracy."
     },
     "fig3_gradient_parity_matrix": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/fig3_gradient_parity_matrix.csv",
+      "file": "outputs/figures_data/fig3_gradient_parity_matrix.csv",
+      "path_basis": "repo_relative",
+      "path_basis_root": ".",
       "source_artifact": "outputs/diagnostics/gradient_parity_diagnostic.csv",
       "row_count": 20,
       "column_count": 12,
@@ -33,7 +38,9 @@
       "evidence_boundary": "Fixed-branch FD-vs-IFT/JAX parity evidence; not full-reactor training evidence."
     },
     "fig3_ift_cost_scaling": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/fig3_ift_cost_scaling.csv",
+      "file": "outputs/figures_data/fig3_ift_cost_scaling.csv",
+      "path_basis": "repo_relative",
+      "path_basis_root": ".",
       "source_artifact": "outputs/diagnostics/ift_cost_diagnostic.csv",
       "row_count": 6,
       "column_count": 16,
@@ -48,7 +55,9 @@
       "evidence_boundary": "Fixed-branch method-cost evidence; not full-reactor performance evidence."
     },
     "fig3_gradient_smoke_trajectory": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/fig3_gradient_smoke_trajectory.csv",
+      "file": "outputs/figures_data/fig3_gradient_smoke_trajectory.csv",
+      "path_basis": "repo_relative",
+      "path_basis_root": ".",
       "source_artifact": "outputs/diagnostics/end_to_end_gradient_smoke.csv",
       "row_count": 8,
       "column_count": 17,
@@ -63,7 +72,9 @@
       "evidence_boundary": "End-to-end gradient smoke evidence; not calibration accuracy."
     },
     "table_sensitivity_ranking": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/table_sensitivity_ranking.csv",
+      "file": "outputs/figures_data/table_sensitivity_ranking.csv",
+      "path_basis": "repo_relative",
+      "path_basis_root": ".",
       "source_artifact": "outputs/diagnostics/fixed_physics_sensitivity_ranking.csv",
       "row_count": 4,
       "column_count": 9,
@@ -76,7 +87,9 @@
       "evidence_boundary": "Fixed-physics sensitivity ranking evidence; not learned correction performance."
     },
     "ift_cost_protocol": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/ift_cost_protocol.md",
+      "file": "outputs/diagnostics/ift_cost_protocol.md",
+      "path_basis": "repo_relative",
+      "path_basis_root": ".",
       "source_artifact": "outputs/diagnostics/ift_cost_protocol.md",
       "row_count": 43,
       "column_count": 0,
@@ -89,7 +102,8 @@
       "evidence_boundary": "Reviewer-facing protocol metadata; not a numeric benchmark table."
     },
     "manifest": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/figure_data_manifest.json",
+      "file": "outputs/figures_data/figure_data_manifest.json",
+      "path_basis": "repo_relative",
       "source_artifact": "generated manifest",
       "row_count": 1,
       "column_count": 0,
@@ -101,7 +115,8 @@
       "evidence_boundary": "Figure data bundle for pilot diagnostics only. It does not claim hybrid calibration accuracy, trained model performance, or industrial generalization."
     },
     "summary": {
-      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/figure_data_summary.md",
+      "file": "outputs/figures_data/figure_data_summary.md",
+      "path_basis": "repo_relative",
       "source_artifact": "generated summary",
       "row_count": 26,
       "column_count": 0,

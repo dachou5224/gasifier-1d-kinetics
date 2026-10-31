@@ -157,6 +157,12 @@ results/
 !outputs/diagnostics/round-*/
 !outputs/diagnostics/round-*/*.csv
 !outputs/diagnostics/round-*/**/*.csv
+# round53-56 的轮次目录用无连字符命名，四份 result markdown 明确列出这些 CSV
+# 为 "Created files"；不收录会让已提交的摘要指向不存在的文件。
+!outputs/diagnostics/round[0-9]*/
+!outputs/diagnostics/round[0-9]*/*.csv
+# `_` 前缀的是求解缓存（round55/56 合计约 2.1 MB），不是交付物，仍排除。
+outputs/diagnostics/**/_*.csv
 !outputs/figures_data/
 !outputs/figures_data/*.csv
 

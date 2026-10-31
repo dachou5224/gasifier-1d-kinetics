@@ -228,9 +228,13 @@ def _build_sensitivity_ranking(ranking: pd.DataFrame) -> pd.DataFrame:
     return ranking.copy()
 
 
-def _manifest_entry(path: Path, source: str, df: pd.DataFrame, key_columns: list[str], boundary: str) -> dict[str, Any]:
+def _manifest_entry(path: Path, source: str, df: pd.DataFrame, key_columns: list[str],
+                    boundary: str, *, root: Path) -> dict[str, Any]:
+    relative = _repo_relative(path, root)
     return {
-        "file": str(path),
+        "file": relative,
+        "path_basis": _path_basis(relative, root),
+        "path_basis_root": ".",
         "source_artifact": source,
         "row_count": int(len(df)),
         "column_count": int(len(df.columns)),
@@ -278,6 +282,25 @@ def _summary_markdown(manifest: Mapping[str, Any]) -> str:
         ]
     )
     return "\n".join(lines) + "\n"
+
+
+def _repo_relative(path: Path, root: Path) -> str:
+    """输出仓库相对路径，仓库外路径保留绝对形式。
+
+    已提交的 manifest 必须可移植：把仓库克隆到别处后，按 `file` 字段读取
+    不应定位到作者机器的绝对路径。仓库外路径（例如外部数据准备目录）
+    没有共同基准，只能保留绝对形式并如实标注。
+    """
+    resolved = Path(path).resolve()
+    try:
+        return resolved.relative_to(Path(root).resolve()).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
+def _path_basis(path_value: str, root: Path) -> str:
+    """说明该路径是仓库相对还是绝对，供读取方决定解析基准。"""
+    return "repo_relative" if not Path(path_value).is_absolute() else f"absolute_outside_repo:{root.as_posix()}"
 
 
 def build_figure_data_bundle(
@@ -328,7 +351,8 @@ def build_figure_data_bundle(
 
     manifest: dict[str, Any] = {
         "bundle_version": 1,
-        "output_directory": str(output_dir),
+        "output_directory": _repo_relative(output_dir, root),
+        "output_directory_basis": _path_basis(_repo_relative(output_dir, root), root),
         "artifacts": {},
         "source_artifacts": dict(DIAGNOSTIC_SOURCES),
         "protocol_artifacts": dict(PROTOCOL_SOURCES),
@@ -340,12 +364,14 @@ def build_figure_data_bundle(
     for name, (df, source, key_columns, boundary) in artifacts.items():
         csv_path = output_dir / FIGURE_DATA_FILES[name]
         df.to_csv(csv_path, index=False)
-        manifest["artifacts"][name] = _manifest_entry(csv_path, source, df, key_columns, boundary)
+        manifest["artifacts"][name] = _manifest_entry(csv_path, source, df, key_columns, boundary, root=root)
     for protocol_name, rel_path in PROTOCOL_SOURCES.items():
         source_path = root / rel_path
         if source_path.exists():
             manifest["artifacts"][protocol_name] = {
-                "file": str(source_path),
+                "file": _repo_relative(source_path, root),
+                "path_basis": _path_basis(_repo_relative(source_path, root), root),
+                "path_basis_root": ".",
                 "source_artifact": rel_path,
                 "row_count": len(source_path.read_text(encoding="utf-8").splitlines()),
                 "column_count": 0,
@@ -358,7 +384,8 @@ def build_figure_data_bundle(
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
     summary_path.write_text(_summary_markdown(manifest), encoding="utf-8")
     manifest["artifacts"]["manifest"] = {
-        "file": str(manifest_path),
+        "file": _repo_relative(manifest_path, root),
+        "path_basis": _path_basis(_repo_relative(manifest_path, root), root),
         "source_artifact": "generated manifest",
         "row_count": 1,
         "column_count": 0,
@@ -366,7 +393,8 @@ def build_figure_data_bundle(
         "evidence_boundary": manifest["global_evidence_boundary"],
     }
     manifest["artifacts"]["summary"] = {
-        "file": str(summary_path),
+        "file": _repo_relative(summary_path, root),
+        "path_basis": _path_basis(_repo_relative(summary_path, root), root),
         "source_artifact": "generated summary",
         "row_count": len(summary_path.read_text(encoding="utf-8").splitlines()),
         "column_count": 0,

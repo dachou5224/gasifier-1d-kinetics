@@ -243,6 +243,22 @@ def select_global_char_oxidation_alpha(
     return selected, [{column: row.get(column) for column in GLOBAL_CHAR_GRID_COLUMNS} for row in grid_rows]
 
 
+def _count_or_nan(value: Any) -> float:
+    """把收敛计数器转成 int，不可用时留 NaN。
+
+    不能写成 `int(value or 0)`：`_safe_solve` 在求解失败时把计数器置为
+    `math.nan`，而 NaN 为真值，`nan or 0` 仍是 NaN，`int(nan)` 会抛
+    ValueError 并中止整张预测表。
+    """
+    if value is None:
+        return math.nan
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return math.nan
+    return float(int(numeric)) if math.isfinite(numeric) else math.nan
+
+
 def char_oxidation_prediction_rows(
     model_case_rows_with_split: Sequence[Mapping[str, Any]],
     *,
@@ -275,8 +291,8 @@ def char_oxidation_prediction_rows(
                     "y_true": y_true_f,
                     "y_pred": y_pred_f,
                     "residual": y_pred_f - y_true_f,
-                    "fallback_count": int(result.get("fallback_count", 0) or 0),
-                    "poor_convergence_count": int(result.get("poor_convergence_count", 0) or 0),
+                    "fallback_count": _count_or_nan(result.get("fallback_count", 0)),
+                    "poor_convergence_count": _count_or_nan(result.get("poor_convergence_count", 0)),
                     "poor_convergence_cell_index": result.get("poor_convergence_cell_index", ""),
                     "cell0_cost": float(result.get("cell0_cost", math.nan)),
                     "cell0_max_abs_residual": float(result.get("cell0_max_abs_residual", math.nan)),

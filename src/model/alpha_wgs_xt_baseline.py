@@ -312,6 +312,11 @@ def select_alpha_wgs_xt_model(
 
 
 def _target_values(result: Mapping[str, Any]) -> dict[str, tuple[float, float]]:
+    """Extract (target, prediction) per target from a successful solve.
+
+    Only valid when the solve produced target and prediction fields; failed
+    solves are handled by ``_failed_target_values`` instead.
+    """
     target_h2co = float(result["target_H2_volpct_dry"]) / max(float(result["target_CO_volpct_dry"]), 1.0e-12)
     return {
         "CO_volpct_dry": (float(result["target_CO_volpct_dry"]), float(result["CO_volpct_dry"])),
@@ -319,6 +324,38 @@ def _target_values(result: Mapping[str, Any]) -> dict[str, tuple[float, float]]:
         "CO2_volpct_dry": (float(result["target_CO2_volpct_dry"]), float(result["CO2_volpct_dry"])),
         "H2_CO_ratio": (target_h2co, float(result["H2_CO_ratio"])),
     }
+
+
+def _count_or_nan(value: Any) -> float:
+    """收敛计数器转 int；不可用时留 NaN（`int(nan)` 会抛 ValueError）。"""
+    if value is None:
+        return math.nan
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return math.nan
+    return float(int(numeric)) if math.isfinite(numeric) else math.nan
+
+
+_TARGET_KEYS = ("CO_volpct_dry", "H2_volpct_dry", "CO2_volpct_dry", "H2_CO_ratio")
+
+
+def _failed_target_values(fixed_lookup: Mapping[tuple[str, str], Mapping[str, Any]],
+                          case_id: str) -> dict[str, tuple[float, float]]:
+    """Failed solve: keep whatever target the fixed baseline recorded, drop the prediction.
+
+    ``_safe_solve`` returns a failure record without target or prediction
+    fields, so indexing them directly raised KeyError and aborted the whole
+    artifact. Emitting NaN predictions with the preserved targets keeps the
+    case visible in the table with its failure status.
+    """
+    values: dict[str, tuple[float, float]] = {}
+    for target in _TARGET_KEYS:
+        fixed_row = fixed_lookup.get((case_id, target), {})
+        recorded = fixed_row.get("target_value", fixed_row.get("y_true"))
+        target_value = float(recorded) if recorded is not None else math.nan
+        values[target] = (target_value, math.nan)
+    return values
 
 
 def alpha_wgs_xt_prediction_rows(
@@ -352,11 +389,12 @@ def alpha_wgs_xt_prediction_rows(
         alpha = predict_alpha_for_feature_row(model, feature_row, scaler)
         bound_hit = math.isclose(alpha, ALPHA_WGS_LOW, rel_tol=0.0, abs_tol=1.0e-10) or math.isclose(alpha, ALPHA_WGS_HIGH, rel_tol=0.0, abs_tol=1.0e-10)
         result = _safe_solve(solver_fn, rows_by_case[case_id], alpha, n_cells)
-        values = _target_values(result)
+        solve_ok = str(result.get("solve_status", "ok")) == "ok"
+        values = _target_values(result) if solve_ok else _failed_target_values(fixed_lookup, case_id)
         for target, (target_value, alpha_prediction) in values.items():
-            fixed_row = fixed_lookup[(case_id, target)]
+            fixed_row = fixed_lookup.get((case_id, target), {})
             global_row = global_lookup.get((case_id, target), {})
-            fixed_prediction = float(fixed_row["y_pred"])
+            fixed_prediction = float(fixed_row["y_pred"]) if fixed_row else math.nan
             rows.append(
                 {
                     "case_id": case_id,
@@ -377,8 +415,8 @@ def alpha_wgs_xt_prediction_rows(
                     "split_role": feature_row.get("split_role"),
                     "global_wgs_prediction": float(global_row["y_pred"]) if global_row else math.nan,
                     "global_wgs_residual": float(global_row["residual"]) if global_row else math.nan,
-                    "fallback_count": int(result.get("fallback_count", 0) or 0),
-                    "poor_convergence_count": int(result.get("poor_convergence_count", 0) or 0),
+                    "fallback_count": _count_or_nan(result.get("fallback_count", 0)),
+                    "poor_convergence_count": _count_or_nan(result.get("poor_convergence_count", 0)),
                     "poor_convergence_cell_index": result.get("poor_convergence_cell_index", ""),
                     "cell0_cost": float(result.get("cell0_cost", math.nan)),
                 }
