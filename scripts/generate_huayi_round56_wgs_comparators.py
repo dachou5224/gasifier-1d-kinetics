@@ -382,6 +382,10 @@ def _selected_global_full(
             timeout_s=timeout_s,
         )
         full = pd.concat([train_preds, heldout_preds], ignore_index=True, sort=False)
+        # 两张子缓存各自带子集指纹（只含该子集的窗口 alpha）。合并后必须重写为
+        # 完整 alpha-map 指纹，否则下一次 _cache_has_windows 会因指纹不一致拒绝
+        # 这份缓存，导致留出段每轮都被重算。
+        full["cache_fingerprint"] = expected
         full.to_csv(full_cache, index=False)
         return full
     return _prediction_rows_for_alpha(
@@ -500,6 +504,8 @@ def _selected_xt_full(
             timeout_s=timeout_s,
         )
         full = pd.concat([train_preds, heldout_preds], ignore_index=True, sort=False)
+        # 同上：用完整 alpha-map 指纹覆盖两段子集指纹。
+        full["cache_fingerprint"] = expected
         full.to_csv(full_cache, index=False)
         return full
     return _prediction_rows_for_alpha(

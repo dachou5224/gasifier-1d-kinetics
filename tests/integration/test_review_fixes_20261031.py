@@ -279,3 +279,79 @@ def test_alpha_wgs_xt_prediction_rows_survive_a_failing_solver():
         assert math.isnan(row["alpha_residual"])
         # 真值从 fixed 基线保留下来，不因失败而丢失
         assert row["target_value"] == 51.0
+
+
+def test_subset_fingerprints_are_rejected_by_the_full_cache_check(tmp_path):
+    """前提验证：带子集指纹的缓存会被完整指纹校验拒绝。
+
+    这条不触达修复代码，只固定 `_cache_has_windows` 的行为契约：它要求整张表
+    只有一个指纹且等于期望值。这正是「合并两段子缓存后必须重写指纹」的原因；
+    修复本身由 `test_selected_global_full_writes_a_single_fingerprint` 端到端覆盖。
+    """
+    module = _load_round56()
+    targets = ("CO_dry_vol_pct", "H2_dry_vol_pct", "CO2_dry_vol_pct",
+               "H2_CO_ratio", "dry_syngas_flow")
+    train_ids, held_ids = ["w1", "w2"], ["w3"]
+    alpha = {w: 0.5 for w in train_ids + held_ids}
+
+    full_fp = module._cache_fingerprint("meth", alpha, "input_rows")
+    train_fp = module._cache_fingerprint("meth", {w: 0.5 for w in train_ids}, "input_rows")
+    held_fp = module._cache_fingerprint("meth", {w: 0.5 for w in held_ids}, "input_rows")
+    assert len({full_fp, train_fp, held_fp}) == 3
+
+    merged = pd.DataFrame([
+        {"window_id": w, "target": t, "status": "ok",
+         "cache_fingerprint": fp}
+        for w, fp in [(w, train_fp) for w in train_ids] + [(w, held_fp) for w in held_ids]
+        for t in targets
+    ])
+    # 写之前统一成完整指纹 —— 这是修复后的行为
+    merged["cache_fingerprint"] = full_fp
+    path = tmp_path / "_selected_full.csv"
+    merged.to_csv(path, index=False)
+
+    assert module._cache_has_windows(path, len(train_ids + held_ids), full_fp) is True
+    # 反向：若保留子集指纹，校验必须失败（这才是修复前的情况）
+    stale = merged.copy()
+    stale.loc[stale["window_id"].isin(held_ids), "cache_fingerprint"] = held_fp
+    stale_path = tmp_path / "_stale_full.csv"
+    stale.to_csv(stale_path, index=False)
+    assert module._cache_has_windows(stale_path, len(train_ids + held_ids), full_fp) is False
+
+
+def test_selected_global_full_writes_a_single_fingerprint(tmp_path):
+    """端到端：走 concat 路径后，full cache 里只应有一个指纹。"""
+    module = _load_round56()
+    targets = ("CO_dry_vol_pct", "H2_volpct_dry")  # 数量无关，这里只看指纹列
+
+    class FakeRound54:
+        N_CELLS = 1
+        TARGETS = tuple((t, "t", f"p_{t}") for t in
+                        ("CO_dry_vol_pct", "H2_dry_vol_pct", "CO2_dry_vol_pct",
+                         "H2_CO_ratio", "dry_syngas_flow"))
+
+    rows = [
+        {"window_id": "w1", "split_role": "train", "dataset_id": "d", "phase_number": 1, "t": 1.0},
+        {"window_id": "w2", "split_role": "test", "dataset_id": "d", "phase_number": 1, "t": 1.0},
+    ]
+
+    def fake_run_row(r, *, alpha, n_cells, timeout_s):
+        return {"status": "ok", "wall_time_s": 0.0,
+                **{f"p_{name}": 1.0 for name in
+                   ("CO_dry_vol_pct", "H2_dry_vol_pct", "CO2_dry_vol_pct",
+                    "H2_CO_ratio", "dry_syngas_flow")}}
+
+    module._run_row = fake_run_row
+
+    # 先造出 train 子缓存（模拟上一阶段已跑过训练段）
+    module._prediction_rows_for_alpha(
+        FakeRound54, [rows[0]], method="global_bounded_wgs_scalar",
+        alpha_by_window={"w1": 0.5}, output_dir=tmp_path,
+        cache_name="_global_grid_alpha_0.5.csv", timeout_s=1.0)
+
+    full = module._selected_global_full(
+        FakeRound54, rows, tmp_path, 1.0, 0.5)
+
+    stored = set(full["cache_fingerprint"].astype(str))
+    assert len(stored) == 1, f"full cache carries {len(stored)} fingerprints: {stored}"
+    assert full["window_id"].nunique() == 2
