@@ -1,0 +1,22 @@
+--- /dev/fd/63	2026-10-31 10:05:06
++++ source1.f	2026-10-31 10:05:06
+@@ -13,11 +13,14 @@
+       character*12 name
+       dimension ht(20),htup(30),cp(30),dtm(5)
+       dimension tgas(5), ftg(4),hbl(4),tsolid(5),fts(5),dfts(5),rk(5)
+-      dimension x1(120,2),y1(120,2),npt1(2),ic1(2)
+-      dimension x2(120,4),y2(120,4),npt2(4),ic2(4)
+-      dimension x3(120,3),y3(120,3),npt3(3),ic3(3)
+-      dimension x4(120,1),y4(120,1),npt4(1),ic4(1)
+-      dimension x5(120,2),y5(120,2),npt5(2),ic5(2)
++      dimension x1(120,2),y1(120,2),npt1(2)
++      dimension x2(120,4),y2(120,4),npt2(4)
++      dimension x3(120,3),y3(120,3),npt3(3)
++      dimension x4(120,1),y4(120,1),npt4(1)
++      dimension x5(120,2),y5(120,2),npt5(2)
++C     编译修复：ic1..ic5 只用于旧绘图标签，原代码把它们与 INTEGER 混在 DATA 里
++C     现代 gfortran 拒绝该类型。改为 CHARACTER*4，不涉及任何物理/数值逻辑。
++      character*4 ic1(2),ic2(4),ic3(3),ic4(1),ic5(2)
+       
+       common /s1/ fcoal,foxy,fsteam
+       common /s2/ tg, ts, dens, deng, cps, pt

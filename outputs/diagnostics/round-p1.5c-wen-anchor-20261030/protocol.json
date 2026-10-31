@@ -1,0 +1,53 @@
+{
+  "round": "P1.5-C / 2026-10-30",
+  "model_repo": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic",
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "compiler": "gfortran 16.1.0 (Homebrew GCC 16.1.0)",
+  "compile_command": "gfortran -std=legacy -O2 -ffixed-form -o wen.x source1.f",
+  "fortran_io_patch": "ic1..ic5 由 INTEGER 改为 CHARACTER*4（仅旧绘图标签，DATA 语句类型错误）；见 fortran_build/io_patch.diff",
+  "fortran_geometry": {
+    "L_m": 3.3,
+    "D_m": 1.524,
+    "P_atm": 24.0,
+    "lines": [
+      35
+    ]
+  },
+  "fortran_inlet_mapping": {
+    "coal_flow": "tfcoal/1000 [kg/s]，Mt=xmois*100",
+    "o2_flow": "foxy*tfcoal/1000（foxy 按纯 O2 处理）",
+    "steam_flow": "fsteam*tfcoal/1000",
+    "T_in": "tg1 质量加权（源程序行 185-187）",
+    "particle_diameter": "2*ri = 3.5e-4 m（行 57）",
+    "coal_ultimate": "干基 = (1-yash)*dmmf"
+  },
+  "anchor_tolerances": {
+    "X_C_pp": 2.0,
+    "CO_vol_pct": 2.0,
+    "H2_vol_pct": 2.0,
+    "CO2_vol_pct": 2.0,
+    "T_gas_K": 50.0,
+    "O2_drop_rel": 0.2
+  },
+  "n_list": [
+    40,
+    80,
+    160
+  ],
+  "n_reference": 160
+}

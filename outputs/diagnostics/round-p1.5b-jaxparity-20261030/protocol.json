@@ -1,0 +1,47 @@
+{
+  "round": "P1.5-B / 2026-10-30",
+  "model_repo": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic",
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "window": "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+  "n_cells": 40,
+  "f1_tolerances": {
+    "rtol": 1e-08,
+    "atol": 1e-10
+  },
+  "f4_rtol": 2e-06,
+  "fortran_lines": {
+    "cbco2_called_in_combustion": [
+      457,
+      485
+    ],
+    "poxyin_branch": [
+      348,
+      352
+    ],
+    "cbco2_guards": "ts<=850 K, pco2<=0, wl>=99.9"
+  },
+  "changes": [
+    "jax_residuals: 删除燃烧区 rCO2g 置零，与 NumPy/Fortran 对齐",
+    "jax_residuals: 删除 S_release（硫只由热解释放一次）",
+    "input_contract.resolve_f_s_coal: 非零直接 ValueError",
+    "jax_ift: 前向解非根时 VJP 返回 NaN",
+    "jax_residuals/jax_solver: 增加 ParticleSizeModel 开关（fortran_constant）"
+  ],
+  "f_s_coal_nonzero_raises": true,
+  "f5_status": "not implemented: Arrhenius A are module constants, not residual parameters"
+}

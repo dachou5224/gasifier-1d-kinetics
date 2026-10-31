@@ -1,0 +1,47 @@
+{
+  "round": "P2-A / 2026-10-30 (v2)",
+  "model_repo": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic",
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "window_source": "P0-A 的 m1_reference_window_ids 九窗",
+  "n_list": [
+    10,
+    20,
+    40,
+    80,
+    160
+  ],
+  "n_star": 160,
+  "n_star_status": "not_converged_within_scan",
+  "n_star_from_paired_subset": 40,
+  "n_star_basis": "主表用每个 N 上全部 completed 窗口的中位数（卡片口径）；表观阶与 Richardson 用固定样本（配对子集）",
+  "paired_window_count": 2,
+  "paired_window_ids": [
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002"
+  ],
+  "convergence_tolerances": {
+    "dry_flow_ratio": 0.01,
+    "X_C_implied": 0.01,
+    "H2_vol_pct": 0.2,
+    "CO_vol_pct": 0.2
+  },
+  "expected_rows": 54,
+  "actual_rows": 54,
+  "no_root_rows": 14,
+  "note": "no_root 行按卡片记录并继续；N_star 用全部网格都完成的配对比对窗计算中位数"
+}

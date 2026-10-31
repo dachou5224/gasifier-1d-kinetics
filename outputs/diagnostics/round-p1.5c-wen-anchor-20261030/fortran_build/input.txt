@@ -1,0 +1,30 @@
+&readdata name='texaco i-1',ta=505.22,tsteam=696.67,toxy=298.,
+yoxy=.0156956,yh=.0743163,yc=0.8802616,ys=0.0210464,yn=0.0084423,
+yash=.159,xmois=0.002,foxy=0.866,fsteam=0.241,tfcoal=76.66
+&end
+&readdata name='texaco i-2',ta=496.33,tsteam=676.33,toxy=298.,
+yoxy=.0205587,yh=.070383,yc=0.8833,ys=0.016568,yn=0.008828,
+yash=.1731,xmois=0.002,foxy=0.76818,fsteam=0.314,tfcoal=81.18
+&end
+&readdata name='texaco i-5c',ta=497.44,tsteam=714.67,toxy=298.,
+yoxy=.0268824,yh=.0665837,yc=0.874051,ys=0.022402,yn=0.0097075,
+yash=.1965,xmois=0.002,foxy=0.832,fsteam=0.429,tfcoal=56.264
+&end
+&readdata name='texaco i-10',ta=481.33,tsteam=708.,toxy=298.,
+yoxy=.0213949,yh=.069624,yc=0.88396,ys=0.0168,yn=0.0078568,
+yash=.1727,xmois=0.002,foxy=0.83457,fsteam=0.276,tfcoal=129.77
+&end
+&readdata name='texaco exxon',ta=505.22,tsteam=696.67,toxy=298.,
+yoxy=.04743,yh=.056076,yc=0.849423,ys=0.0329,yn=0.01417,
+yash=.1672,xmois=0.00,foxy=0.79,fsteam=0.5,tfcoal=126.11
+&end
+&readdata name='slurry western',ta=400.,tsteam=400.,toxy=600.,
+yoxy=.123599,yh=.05722,yc=0.803448,ys=0.004957,yn=0.010668,
+yash=.072,xmois=0.00,foxy=0.91,fsteam=0.52,tfcoal=186.78
+&end
+&readdata name='slurry eastern',ta=400.,tsteam=400.,toxy=600.,
+yoxy=.100033,yh=.055111,yc=0.796757,ys=0.03276,yn=0.015339,
+yash=.0873,xmois=0.00,foxy=0.87,fsteam=0.79,tfcoal=133.5
+&end
+
+

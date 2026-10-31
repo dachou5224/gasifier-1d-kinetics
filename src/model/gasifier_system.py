@@ -192,14 +192,35 @@ class GasifierSystem:
     def solve(self, N_cells=100, solver_method='minimize', use_jax_jacobian=False, jax_warmup=True, jacobian_mode=None):
         solver_method, jacobian_mode = self._normalize_solver_api(solver_method, use_jax_jacobian, jacobian_mode)
         L, D = self.geometry['L'], self.geometry['D']; A = np.pi * (D/2)**2
+        mesh_family = str(self.op_conds.get('MeshFamily', 'legacy')).lower()
+        allow_truncated = bool(self.op_conds.get('AllowTruncatedMesh', False))
         mesh_cfg = MeshConfig(
             total_length=L,
             n_cells=N_cells,
             ignition_zone_length=self.op_conds.get('FirstCellLength', 0.1),
             ignition_zone_res=self.op_conds.get('IgnitionZoneRes', 0.1),
             min_grid_size=0.001,
+            mesh_family=mesh_family,
         )
         dz_list, self.z_positions = AdaptiveMeshGenerator(mesh_cfg).generate()
+        # P1.5-A B1：网格必须铺满反应器。旧族在 3 <= N <= 20 时会被此断言拦下。
+        self.mesh_family = mesh_family
+        self.mesh_sum_dz = float(np.sum(dz_list))
+        self.mesh_cover_fraction = self.mesh_sum_dz / L
+        if abs(self.mesh_sum_dz - L) > 1e-9 * L and not allow_truncated:
+            raise ValueError(
+                "mesh does not cover the reactor: "
+                f"sum(dz)={self.mesh_sum_dz:.6f} m vs L={L:.6f} m "
+                f"(N_cells={N_cells}, family={mesh_family}). "
+                "Use MeshFamily='uniform_full_length' for paper rounds, or set "
+                "AllowTruncatedMesh=True to reproduce legacy (truncated) rounds."
+            )
+        # 每轮求解的接受状态与逐单元诊断（P1.5-A B2/B5/B6）
+        self.solve_stats = {"fallback_count": 0, "poor_convergence_count": 0}
+        self.cell_diagnostics = []
+        self.execution_status = "completed"
+        self.no_root_cell_index = None
+        self.cell0_branches = []
         inlet = self._initialize_inlet()
         if jax_warmup and solver_method == "jax_jit":
             from .jax_solver import warmup_jax
@@ -278,7 +299,8 @@ class GasifierSystem:
             float(hl_norm), float(hl_ref),
             float(self.coal_props.get('Hf_coal', 0.0)),
             float(self.coal_props.get('cp_char', 1300.0)), float(hhv_mj), float(inlet.T), float(f_ash),
-            float(ref_f), float(ref_e), float(self.char_Xc0), float(f_s_coal)
+            float(ref_f), float(ref_e), float(self.char_Xc0), float(f_s_coal),
+            float(str(self.op_conds.get("ParticleSizeModel", "shrinking_legacy")).lower() == "fortran_constant"),
         )
         self.results = []
         for i in range(N):
@@ -293,8 +315,14 @@ class GasifierSystem:
         ref_f = max(inlet.total_gas_moles, 1.0); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
         cell_ops = self.op_conds.copy()
         cell_ops["L_reactor"] = self.geometry["L"]
-        cell_ops["L_heatloss_norm"] = max(float(np.sum(dz_list)), 1e-9)
+        # 热损失归一化长度：均匀铺满网格下等于几何 L（P1.5-A B1）
+        if str(self.op_conds.get("MeshFamily", "legacy")).lower() == "uniform_full_length":
+            cell_ops["L_heatloss_norm"] = max(float(self.geometry["L"]), 1e-9)
+        else:
+            cell_ops["L_heatloss_norm"] = max(float(np.sum(dz_list)), 1e-9)
         cell_ops["pyrolysis_done"] = True
+        strict_root = bool(self.op_conds.get("SolverStrictRoot", False))
+        cost_threshold = 1e-4
 
         def _newton_solver():
             return NewtonSolver(
@@ -379,12 +407,22 @@ class GasifierSystem:
                         sol = _least_squares_with_optional_jac(func, x0_list[0], (lower, upper))
                 else:
                     best_sol, best_cost = None, 1e9
+                    branches = []
                     for t in guesses:
                         x0 = _make_cell0_x0(t)
                         sol_try = _least_squares_with_optional_jac(func, x0, (lower, upper))
-                        if sol_try.success and sol_try.cost < best_cost:
-                            best_sol, best_cost = sol_try, sol_try.cost
+                        # 与 solver.cost 同一口径：0.5*||F_scaled||^2
+                        c_try = float(0.5 * np.sum(np.asarray(func(sol_try.x), dtype=float) ** 2))
+                        branches.append({
+                            "guess_T": float(t),
+                            "cost": c_try,
+                            "T_cell0": float(sol_try.x[10]),
+                            "success": bool(sol_try.success),
+                        })
+                        if sol_try.success and c_try < best_cost:
+                            best_sol, best_cost = sol_try, c_try
                     sol = best_sol if best_sol is not None else sol_try
+                    self.cell0_branches = branches
             else:
                 x0 = current_inlet.to_array()
                 if solver_method == "newton_fd":
@@ -402,15 +440,102 @@ class GasifierSystem:
                 else:
                     sol = _least_squares_with_optional_jac(func, x0, (lower, upper))
 
-            if _needs_fallback(sol):
-                self.solve_stats["poor_convergence_count"] = int(self.solve_stats.get("poor_convergence_count", 0)) + 1
+            if sol is None or not hasattr(sol, "x"):
+                # 无任何可用解：无论是否严格模式都无法继续推进
+                self.execution_status = "no_root"
+                self.no_root_cell_index = i
+                self.cell_diagnostics.append({
+                    "cell_index": i, "dz_m": float(dz_list[i]),
+                    "residual_cost": float("inf"), "solver_success": False,
+                    "strict_no_root": True, "note": "solver returned no solution",
+                })
+                break
 
             sol_state = StateVector.from_array(sol.x, P=inlet.P, z=self.z_positions[i])
+            residuals_now = np.asarray(func(sol.x), dtype=float)
+            cell_cost = float(0.5 * np.sum(residuals_now ** 2))
+            solver_failed = not bool(getattr(sol, "success", True))
+
+            diag = self._build_cell_diagnostic(i, cell, sol_state, cell_cost, residuals_now, solver_failed)
+            self.cell_diagnostics.append(diag)
+
+            if solver_failed or cell_cost > cost_threshold:
+                self.solve_stats["poor_convergence_count"] = int(self.solve_stats.get("poor_convergence_count", 0)) + 1
+
+            # P1.5-A B2：严格模式拒绝非根解，停止向下游推进，不把非根解当作下一格入口
+            if strict_root and (solver_failed or cell_cost > cost_threshold):
+                self.execution_status = "no_root"
+                self.no_root_cell_index = i
+                logger.warning(
+                    "SolverStrictRoot: cell %d residual_cost=%.3e > %.0e, stopping.",
+                    i, cell_cost, cost_threshold,
+                )
+                break
+
             phys = cell._calc_physics_props(sol_state, self.W_dry*self.Cd_total)
             tau = dz_list[i] / max(phys['v_g'], 0.1)
-            _, Ts_out = cell._calc_particle_temperature(sol_state.T, current_inlet.T_solid_or_gas, tau, phys['d_p'], sol_state.solid_mass, sol_state.carbon_fraction)
+            _, Ts_out = cell._calc_particle_temperature(
+                sol_state.T, current_inlet.T_solid_or_gas, tau, phys['d_p'],
+                sol_state.solid_mass, sol_state.carbon_fraction,
+                rho_p=phys.get('rho_p'),
+            )
             sol_state.T_solid = Ts_out; self.results.append(sol_state); current_inlet = sol_state
         return self._package_results()
+
+    def _build_cell_diagnostic(self, i, cell, sol_state, cell_cost, residuals_now, solver_failed):
+        """P1.5-A B5/B6：逐单元记录残差成本、主残差分量与限幅激活布尔量。"""
+        names = (
+            tuple(f"gas_{n}" for n in SPECIES_NAMES)
+            + ("solid_mass", "carbon_fraction", "energy")
+        )
+        idx_max = int(np.argmax(np.abs(residuals_now))) if residuals_now.size else -1
+        row = {
+            "cell_index": int(i),
+            "dz_m": float(cell.dz),
+            "residual_cost": float(cell_cost),
+            "solver_success": not bool(solver_failed),
+            "strict_no_root": False,
+            "max_abs_scaled_residual": float(np.max(np.abs(residuals_now))) if residuals_now.size else float("nan"),
+            "dominant_residual": names[idx_max] if idx_max >= 0 else "",
+            "T_K": float(sol_state.T),
+            "solid_mass_kg_s": float(sol_state.solid_mass),
+            "carbon_fraction": float(sol_state.carbon_fraction),
+        }
+        try:
+            snap = cell.snapshot_with_limits(sol_state)
+            row.update({
+                "is_combustion_zone": bool(snap["limits"].get("is_combustion_zone", False)),
+                "d_p_m": float(snap["phys"]["d_p"]),
+                "rho_p_kg_m3": float(snap["phys"]["rho_p"]),
+                "S_total_m2": float(snap["phys"]["S_total"]),
+                "X_total": float(snap["phys"]["X_total"]),
+                "Ts_avg_K": float(snap["Ts_avg"]),
+                "phi": float(snap["phi"]),
+            })
+            row.update({k: bool(v) for k, v in snap["limits"].items() if k != "is_combustion_zone"})
+        except Exception as exc:  # 诊断失败不改变求解结果
+            row["diagnostic_error"] = f"{type(exc).__name__}: {exc}"
+        return row
+
+    @property
+    def cell0_n_distinct_roots(self) -> int:
+        """cell 0 的不同根个数：cost < 1e-10 且温度相差 > 50 K 的初值分支。"""
+        roots = [b for b in getattr(self, "cell0_branches", []) if float(b.get("cost", 1e18)) < 1e-10]
+        distinct = []
+        for b in roots:
+            if all(abs(float(b["T_cell0"]) - float(o["T_cell0"])) > 50.0 for o in distinct):
+                distinct.append(b)
+        return len(distinct)
+
+    @property
+    def n_cells_above_cost_threshold(self) -> int:
+        return sum(1 for d in getattr(self, "cell_diagnostics", []) if float(d.get("residual_cost", 0.0)) > 1e-4)
+
+    @property
+    def max_residual_cost(self) -> float:
+        costs = [float(d.get("residual_cost", float("nan"))) for d in getattr(self, "cell_diagnostics", [])]
+        costs = [c for c in costs if np.isfinite(c)]
+        return float(max(costs)) if costs else float("nan")
 
     def _package_results(self):
         rows = [s.to_array() for s in self.results]; return np.array(rows), self.z_positions

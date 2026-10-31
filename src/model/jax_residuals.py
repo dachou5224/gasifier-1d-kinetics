@@ -32,15 +32,25 @@ CONDUT_COEFF = 3.22168e-4
 TS_TRANSIENT_NC = 30
 
 @jit
-def _calc_physics_props_jax(x_9, inlet_9, C_fed_total, d_p0, epsilon, P, dz, A, f_ash):
+def _calc_physics_props_jax(x_9, inlet_9, C_fed_total, d_p0, epsilon, P, dz, A, f_ash,
+                            particle_model_fortran=0.0):
+    """与 Cell._calc_physics_props 同一套颗粒尺寸模型（P1.5-B）。
+
+    particle_model_fortran=0 → shrinking_legacy；1 → fortran_constant
+    （d_p 恒定、密度随剩余固体分数下降）。
+    """
     Ws, Xc, Tg = x_9[9], x_9[10], x_9[11]
     X_total = jnp.clip(1.0 - (Ws * Xc / (C_fed_total + 1e-12)), 0.0, 1.0)
-    d_p = d_p0 * (f_ash + (1.0 - f_ash) * (1.0 - X_total))**(1/3.0)
+    solids_fraction = jnp.maximum(f_ash + (1.0 - f_ash) * (1.0 - X_total), 1e-9)
+    is_fortran = particle_model_fortran > 0.5
+    d_p = jnp.where(is_fortran, d_p0, d_p0 * solids_fraction ** (1.0 / 3.0))
     d_p = jnp.maximum(d_p, 1e-6)
+    rho_p = jnp.where(is_fortran, PARTICLE_DENSITY * solids_fraction, PARTICLE_DENSITY)
+    rho_p = jnp.maximum(rho_p, 1e-6)
     F_total = jnp.maximum(jnp.sum(x_9[:9]), 1e-9)
     v_g = (F_total * R_CONST * Tg) / (P * A * epsilon + 1e-9)
     tau = dz / jnp.maximum(v_g, MIN_SLIP_VELOCITY)
-    S_total = (6.0 * Ws * tau) / (PARTICLE_DENSITY * d_p + 1e-9)
+    S_total = (6.0 * Ws * tau) / (rho_p * d_p + 1e-9)
     molar_masses = jnp.array([31.998, 16.04, 28.01, 44.01, 18.015, 2.016, 28.013, 34.08, 60.07])
     M_avg = jnp.sum(x_9[:9] * molar_masses) / F_total
     rho_g = (P * M_avg * 1e-3) / (R_CONST * Tg)
@@ -48,7 +58,7 @@ def _calc_physics_props_jax(x_9, inlet_9, C_fed_total, d_p0, epsilon, P, dz, A, 
     Re = (rho_g * MIN_SLIP_VELOCITY * d_p) / (mu_g + 1e-9)
     D_ref = calculate_diffusion_coefficient_jax(Tg, P, 0)
     Sc = mu_g / (jnp.maximum(rho_g, 1e-3) * D_ref + 1e-12)
-    return X_total, d_p, S_total, Re, Sc, v_g, tau
+    return X_total, d_p, S_total, Re, Sc, v_g, tau, rho_p
 
 @partial(jit, static_argnums=(9,))
 def _calc_particle_temperature_jax(Tg, Ts_in, tau, d_p, dens, cps, ef, sigma, condut_coeff, nc=30):
@@ -72,10 +82,13 @@ def cell_residuals_jax_flat(
     Hf_coal, cp_char, HHV_mj, f_ash,
     ref_flow, ref_energy, char_Xc0_global,
     f_s_coal,
+    particle_model_fortran=0.0,
 ):
     Tg = x_9[11]
-    X_total, d_p, S_tot, Re, Sc, v_g, tau = _calc_physics_props_jax(x_9, inlet_9, C_fed_total, d_p0, epsilon, P, dz, A, f_ash)
-    Ts_avg, Ts_out = _calc_particle_temperature_jax(Tg, Ts_in, tau, d_p, PARTICLE_DENSITY, cp_char, EF_PARTICLE_TRANSIENT, STEFAN_BOLTZMANN, CONDUT_COEFF, nc=TS_TRANSIENT_NC)
+    X_total, d_p, S_tot, Re, Sc, v_g, tau, rho_p = _calc_physics_props_jax(
+        x_9, inlet_9, C_fed_total, d_p0, epsilon, P, dz, A, f_ash, particle_model_fortran
+    )
+    Ts_avg, Ts_out = _calc_particle_temperature_jax(Tg, Ts_in, tau, d_p, rho_p, cp_char, EF_PARTICLE_TRANSIENT, STEFAN_BOLTZMANN, CONDUT_COEFF, nc=TS_TRANSIENT_NC)
     
     r_het = heterogeneous_rates_jax(x_9[:9], P, Tg, d_p, S_tot, X_total, Ts_avg, Re=Re, Sc=Sc, char_combustion_factor=CharCombFac)
     r_homo = homogeneous_rates_jax(
@@ -114,10 +127,15 @@ def cell_residuals_jax_flat(
     r1, r2, r3, r5, r6 = r_ho[0], r_ho[1], r_ho[2], r_ho[3], r_ho[4]
     rH2Og = jnp.minimum(r_het[1], avail[4] * 0.99)
     rCO2g = jnp.minimum(r_het[2], avail[3] * 0.99)
-    # 与主线首格燃烧区行为对齐：高 pO2 点火/燃烧区中，Boudouard 支路应被强烈抑制，
-    # 否则会在 cell0 人为额外生成 CO 并过度消耗固相，导致 CO/Ws/Xc 残差整体偏离。
-    rCO2g = jnp.where(is_comb, 0.0, rCO2g)
-    rH2g = jnp.minimum(r_het[3], avail[5] * 0.5 * 0.99)
+    # 燃烧区 C+CO2（P1.5-B B4）：Fortran 的 cbco2 在燃烧区照常调用（源程序 L457/L485，
+    # 只按 ts<=850 K、pco2<=0、wl>=99.9 判据屏蔽），poxyin>0.05 只用于选择热损闭合
+    # （L348-352）。因此这里不再置零，与 NumPy Cell 一致。
+    # 与 Cell.limit_h2_consumers_after_oxidation 相同：剩余氢气从 avail[5] - r_H2_ox 起，
+    # 先扣 C+H2，再只截断负向净 WGS。不新增 RWGS，不改 S_release。
+    rem_h2 = jnp.maximum(avail[5] - r2, 0.0)
+    rH2g = jnp.minimum(r_het[3], rem_h2 * 0.5 * 0.99)
+    rem_h2 = jnp.maximum(rem_h2 - 2.0 * rH2g, 0.0)
+    r3 = jnp.where(r3 < 0.0, jnp.maximum(r3, -rem_h2 * 0.99), r3)
 
     # 对齐 Cell._calc_rates：MSR 受“剩余 CH4 与剩余 H2O”双约束
     # rem_CH4 = max(avail['CH4'] - r_homo['CH4_Ox'], 0)
@@ -128,16 +146,17 @@ def cell_residuals_jax_flat(
     r6 = jnp.minimum(r6, r6_cap)
     
     W_surf = (rCOmb + rH2Og + rCO2g + rH2g) * 0.012011
-    S_release = W_surf * (f_s_coal / 32.06)
-    
+    # 硫只释放一次（P1.5-B A2）：PyrolysisService 已把煤中全部硫作为 H2S 写入气相源项，
+    # 这里的表面释放项是重复释放，已删除。f_s_coal 由 input_contract.resolve_f_s_coal
+    # 在非零时直接报错，避免静默双计。
     dO2 = -(rCOmb/phi + 0.5*f*r1 + 0.5*r2 + (1.5+0.5*f)*r5)
     dCH4 = rH2g - (r5 + r6)
     dCO = (2.0-2.0/phi)*rCOmb + rH2Og + 2*rCO2g + r6 + (1.0-f)*r5 - (f*r1 + r3)
     dCO2 = (2.0/phi-1.0)*rCOmb + f*r1 + r3 + f*r5 - rCO2g
     dH2O = r2 + 2*r5 - (rH2Og + r3 + r6)
-    dH2 = rH2Og + r3 + 3*r6 - (2*rH2g + r2 + S_release)
-    
-    deltas = jnp.array([dO2, dCH4, dCO, dCO2, dH2O, dH2, 0.0, S_release, 0.0])
+    dH2 = rH2Og + r3 + 3*r6 - (2*rH2g + r2)
+
+    deltas = jnp.array([dO2, dCH4, dCO, dCO2, dH2O, dH2, 0.0, 0.0, 0.0])
     res_gas = x_9[:9] - (inlet_9[:9] + g_src_9 + deltas)
     
     res_Ws = x_9[9] - (inlet_9[9] + s_src - W_surf)

@@ -358,6 +358,7 @@ def reactor_solve_v4(
     ref_e,
     xc0,
     f_s_coal,
+    particle_model_fortran=0.0,
 ):
     def scan_body(carry, inputs):
         prev_x, prev_ts = carry
@@ -393,6 +394,7 @@ def reactor_solve_v4(
                 ref_e,
                 xc0,
                 f_s_coal,
+                particle_model_fortran,
             )
         # reg：略增大以减轻病态 J 导致 jnp.linalg.solve 出 NaN（工业大流量工况）
         x_sol, conv, _ = lax.cond(

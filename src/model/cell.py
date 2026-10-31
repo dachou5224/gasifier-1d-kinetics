@@ -5,7 +5,7 @@ from model.material import MaterialService, SPECIES_NAMES
 from model.input_contract import ash_mass_fraction_dry
 from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
-from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient
+from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient, R_CONST
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -44,13 +44,27 @@ class Cell:
         if C_fed_total < 1e-9: C_fed_total = 1e-9
         X_total = np.clip(1.0 - (C_local / C_fed_total), 0.0, 1.0)
         
-        # 2. Particle Diameter (Shrinking Core vs Ash skeleton)
+        # 2. Particle size model（P1.5-A，2026-10-30）
+        #   shrinking_legacy : d_p 随转化收缩，颗粒密度恒定（现行诊断行为）
+        #   fortran_constant : 颗粒半径按膨胀系数定值后恒定（Fortran L130 rp = ri*(swell**0.333)），
+        #                      颗粒密度随转化下降（Fortran densp），未反应核 Y 不变。
         d_p0 = self.op_conds.get('particle_diameter', 100e-6)
         Ash_d = ash_mass_fraction_dry(self.coal_props)
         Cd_total = self.coal_props.get('Cd', 60.0) / 100.0
         f_ash_coal = Ash_d / (Cd_total + Ash_d + 1e-9)
-        d_p = d_p0 * (f_ash_coal + (1.0 - f_ash_coal) * (1.0 - X_total))**(1/3.0)
+        # 单位原始固体质量中剩余的“碳+灰”分数；颗粒数守恒时也等于颗粒质量分数
+        solids_fraction = f_ash_coal + (1.0 - f_ash_coal) * (1.0 - X_total)
+        solids_fraction = max(float(solids_fraction), 1e-9)
+        particle_model = str(self.op_conds.get('ParticleSizeModel', 'shrinking_legacy')).lower()
+        swell = max(float(self.op_conds.get('ParticleSwellFactor', 1.0)), 1e-6)
+        if particle_model == 'fortran_constant':
+            d_p = d_p0 * swell**(1.0 / 3.0)
+            rho_p = PhysicalConstants.PARTICLE_DENSITY * solids_fraction
+        else:
+            d_p = d_p0 * solids_fraction**(1.0 / 3.0)
+            rho_p = float(PhysicalConstants.PARTICLE_DENSITY)
         d_p = max(d_p, 1e-6)
+        rho_p = max(float(rho_p), 1e-6)
         
         # 3. Gas Dynamics & Transport (Based on User Formula: u_g = F_total * R * T / (P * A * epsilon))
         # Where F_total is local molar flow (mol/s)
@@ -60,7 +74,8 @@ class Cell:
         epsilon = self.op_conds.get('epsilon', 1.0) # Entrained flow voidage approx 1.0
         
         # u_g [m/s] = (mol/s * J/mol.K * K) / (Pa * m2) = m/s
-        v_g = (F_total * 8.314 * T_local) / (P_local * self.A * epsilon + 1e-9)
+        # 用 physics.R_CONST（8.3144626）与 JAX 路径保持一致；原先此处字面量 8.314 会让两条路径差 5.6e-5
+        v_g = (F_total * R_CONST * T_local) / (P_local * self.A * epsilon + 1e-9)
         
         # Residence Time (Local approach: tau = dz / u_g)
         tau = self.dz / max(v_g, PhysicalConstants.MIN_SLIP_VELOCITY)
@@ -68,10 +83,12 @@ class Cell:
         # S_total = 几何外表面积 = N_particles * pi * d_p^2
         # 公式: S = 6*m_hold/(rho_p*d_p)，源自 N = m/(rho*pi/6*d^3)，S = N*pi*d^2
         # 注意: 不乘孔隙率、BET；calculate_total_rate 内部已含 1/(k_s*Y^2)，此处必须用外表面积
-        S_total = (6 * m_hold) / (PhysicalConstants.PARTICLE_DENSITY * d_p + 1e-9)
+        # fortran_constant 下 d_p 恒定而 rho_p 随转化下降，因此 S_total 相对 shrinking_legacy
+        # 大 (f_ash + (1-f_ash)(1-X))^(-2/3)。
+        S_total = (6 * m_hold) / (rho_p * d_p + 1e-9)
         
         # 4. Transport Properties
-        rho_gas = (P_local * (np.sum(current.gas_moles * self.MOLAR_MASSES)/F_total) * 1e-3) / (8.314 * T_local)
+        rho_gas = (P_local * (np.sum(current.gas_moles * self.MOLAR_MASSES)/F_total) * 1e-3) / (R_CONST * T_local)
         mu_g = calculate_gas_viscosity(T_local)
         v_slip = PhysicalConstants.MIN_SLIP_VELOCITY
         Re_p = (rho_gas * v_slip * d_p) / (mu_g + 1e-9)
@@ -79,7 +96,8 @@ class Cell:
         Sc_p = mu_g / (max(rho_gas, 1e-3) * D_ref + 1e-12)
         
         return {
-            'X_total': X_total, 'd_p': d_p, 'S_total': S_total, 
+            'X_total': X_total, 'd_p': d_p, 'S_total': S_total,
+            'rho_p': rho_p, 'ParticleSizeModel': particle_model,
             'Re_p': Re_p, 'Sc_p': Sc_p, 'v_g': v_g
         }
 
@@ -92,7 +110,8 @@ class Cell:
                                    current: 'StateVector' = None,
                                    phys: dict = None,
                                    gas_src: np.ndarray = None,
-                                   is_combustion_zone: bool = False) -> tuple:
+                                   is_combustion_zone: bool = False,
+                                   rho_p: float = None) -> tuple:
         """
         Fortran 式颗粒瞬态传热。
         - 气化区：简单指数衰减 Ts(t+Δt) = Tg - (Tg - Ts(t)) × exp(ct)
@@ -105,7 +124,9 @@ class Cell:
         deltim = tau / max(nc, 1)
         
         r = d_p / 2.0  # 半径 [m]
-        dens = PhysicalConstants.PARTICLE_DENSITY
+        # 颗粒密度：fortran_constant 下随转化下降，由 _calc_physics_props 传入
+        dens = float(rho_p) if rho_p is not None else PhysicalConstants.PARTICLE_DENSITY
+        dens = max(dens, 1e-6)
         cps = self.coal_props.get('cp_char', PhysicalConstants.HEAT_CAPACITY_SOLID)
         ef = PhysicalConstants.EF_PARTICLE_TRANSIENT
         sigma = PhysicalConstants.STEFAN_BOLTZMANN  # W/(m²·K⁴)
@@ -211,6 +232,17 @@ class Cell:
             return tsolid[0]
         return ts_new
 
+    @staticmethod
+    def limit_h2_consumers_after_oxidation(avail_h2: float, r_h2_ox: float, r_c_h2: float, r_wgs: float) -> tuple:
+        """瞬时氧化之后按剩余氢气顺序限制 C+H2 和负向净 WGS。正的 WGS 不截断。"""
+        rem_h2 = max(float(avail_h2) - float(r_h2_ox), 0.0)
+        limited_c_h2 = min(float(r_c_h2), rem_h2 * 0.5 * 0.99)
+        rem_h2 = max(rem_h2 - 2.0 * limited_c_h2, 0.0)
+        limited_wgs = float(r_wgs)
+        if limited_wgs < 0.0:
+            limited_wgs = max(limited_wgs, -rem_h2 * 0.99)
+        return limited_c_h2, limited_wgs
+
     def _instant_volatile_combustion(self, avail: dict) -> tuple:
         """
         Fortran 式挥发分瞬时燃烧：仅用化学计量 + O2 availability，无动力学。
@@ -244,9 +276,10 @@ class Cell:
         r_H2 = min(H2, max(remaining_O2, 0.0) / dem_H2)
         return r_CH4, r_CO, r_H2
 
-    def _calc_rates(self, current, phys, gas_src, Ts_avg: float = None):
+    def _calc_rates(self, current, phys, gas_src, Ts_avg: float = None, collect_limits: bool = False):
         """Calculates Heterogeneous and Homogeneous reaction rates.
         Ts_avg: 颗粒平均温度，用于异相反应；None 时用 current.T（向后兼容）
+        collect_limits: 记录各限幅是否处于激活态（只记录，不改行为；P1.5-A B5）
         """
         T_het = Ts_avg if Ts_avg is not None else current.T
         # 1. Base Rates：异相用 Ts_avg，均相用 Tg (current.T)
@@ -278,6 +311,12 @@ class Cell:
         avail = {sp: max(self.inlet.gas_moles[i] + gas_src[i], 0.0) for i, sp in enumerate(SPECIES_NAMES)}
         O2_budget = avail['O2']
         raw_C_O2 = r_het['C+O2']
+        raw_C_H2O = r_het['C+H2O']
+        raw_C_CO2 = r_het['C+CO2']
+        raw_C_H2 = r_het['C+H2']
+        raw_WGS = r_homo['WGS']
+        raw_MSR = r_homo['MSR']
+        h2_ox_factor_for_diag = self.op_conds.get('H2_OxidationFactor', 1.0)
 
         # ========================================================================
         # Fortran 分区: poxyin > 0.05 atm → 燃烧区（挥发分瞬时完全燃烧）
@@ -290,6 +329,9 @@ class Cell:
         p_o2_atm = self.op_conds.get('P_O2_Combustion_atm', 0.05)
         threshold_Pa = p_o2_atm * 101325.0
         is_combustion_zone = pO2_Pa > threshold_Pa
+        # 诊断开关：只关闭燃烧区分段，不改平衡系数、phi、f_co2 或氧化因子。缺省时与原判据相同。
+        if self.op_conds.get("diagnostic_disable_combustion_zone", False):
+            is_combustion_zone = False
 
         if is_combustion_zone:
             # 燃烧区：挥发分瞬时燃烧（无动力学），CH4 > CO > H2 分配 O2
@@ -317,10 +359,12 @@ class Cell:
         # NON-O2 REACTION LIMITS (GASIFICATION & MSR)
         # ========================================================================
         
-        # 5. Char Gasification
+        # 5. Char Gasification。C+H2 用瞬时氧化之后的剩余氢气，不再用未扣减的 avail['H2']。
         r_het['C+H2O'] = min(r_het['C+H2O'], avail['H2O'] * 0.99)
         r_het['C+CO2'] = min(r_het['C+CO2'], avail['CO2'] * 0.99)
-        r_het['C+H2'] = min(r_het['C+H2'], avail['H2'] * 0.5 * 0.99) # C + 2H2 -> CH4
+        r_het['C+H2'], r_homo['WGS'] = self.limit_h2_consumers_after_oxidation(
+            avail['H2'], r_homo['H2_Ox'], r_het['C+H2'], r_homo['WGS']
+        )
         
         # 6. MSR: CH4 + H2O -> CO + 3H2
         # Remaining reactants after oxidation/gasification
@@ -335,7 +379,47 @@ class Cell:
             logger.debug(f"         Volatile Ox (instant): CH4={r_homo['CH4_Ox']:.2f} H2={r_homo['H2_Ox']:.2f} CO={r_homo['CO_Ox']:.2f}")
             logger.debug(f"         Het: C+O2={r_het['C+O2']:.2f}, C+H2O={r_het['C+H2O']:.2f}")
         
-        # WGS/RWGS are typically slower, no constraint needed
+        # 正的净 WGS 不截断。RWGS 键仍由动力学写成 0，逆向水煤气在 WGS 的负值里。
+
+        if collect_limits:
+            def _is_limited(limited, raw):
+                scale = max(abs(float(raw)), 1e-12)
+                return bool(abs(float(limited) - float(raw)) > 1e-9 * scale)
+
+            self.last_limit_flags = {
+                # 每个布尔量的判据：限幅后值与限幅前值相对差 > 1e-9
+                "C_O2_LimitedByO2": _is_limited(r_het['C+O2'], raw_C_O2),
+                "C_H2O_LimitedByH2O": _is_limited(r_het['C+H2O'], raw_C_H2O),
+                "C_CO2_LimitedByCO2": _is_limited(r_het['C+CO2'], raw_C_CO2),
+                "C_H2_LimitedByH2": _is_limited(r_het['C+H2'], raw_C_H2),
+                "WGS_NegativeTruncated": bool(raw_WGS < 0.0 and _is_limited(r_homo['WGS'], raw_WGS)),
+                "MSR_Limited": _is_limited(r_homo['MSR'], raw_MSR),
+                "H2Ox_AtCap099": bool(
+                    avail['H2'] > 0.0
+                    and float(r_homo['H2_Ox']) > 1e-12
+                    and abs(float(r_homo['H2_Ox']) - 0.99 * h2_ox_factor_for_diag * avail['H2'])
+                    <= 1e-9 * max(0.99 * h2_ox_factor_for_diag * avail['H2'], 1e-12)
+                ),
+                "is_combustion_zone": bool(is_combustion_zone),
+            }
+            self.last_raw_rates = {
+                "C+O2": float(raw_C_O2),
+                "C+H2O": float(raw_C_H2O),
+                "C+CO2": float(raw_C_CO2),
+                "C+H2": float(raw_C_H2),
+                "WGS": float(raw_WGS),
+                "MSR": float(raw_MSR),
+                "H2_Ox": float(r_homo['H2_Ox']),
+            }
+            self.last_limited_rates = {
+                "C+O2": float(r_het['C+O2']),
+                "C+H2O": float(r_het['C+H2O']),
+                "C+CO2": float(r_het['C+CO2']),
+                "C+H2": float(r_het['C+H2']),
+                "WGS": float(r_homo['WGS']),
+                "MSR": float(r_homo['MSR']),
+                "H2_Ox": float(r_homo['H2_Ox']),
+            }
 
         return r_het, r_homo, phi
 
@@ -492,12 +576,14 @@ class Cell:
         pO2_Pa = current.P * (max(self.inlet.gas_moles[0] + g_src[0], 0) / F_total_in)
         p_o2_atm = self.op_conds.get('P_O2_Combustion_atm', 0.05)
         is_combustion = pO2_Pa > (p_o2_atm * 101325.0)
+        if self.op_conds.get("diagnostic_disable_combustion_zone", False):
+            is_combustion = False
         
         Ts_avg, Ts_out = self._calc_particle_temperature(
             current.T, Ts_in, tau, phys['d_p'],
             current.solid_mass, current.carbon_fraction,
             current=current, phys=phys, gas_src=g_src,
-            is_combustion_zone=is_combustion
+            is_combustion_zone=is_combustion, rho_p=phys.get('rho_p')
         )
         
         r_het, r_homo, phi = self._calc_rates(current, phys, g_src, Ts_avg=Ts_avg)
@@ -693,9 +779,42 @@ class Cell:
         return {
             'd_p': phys['d_p'],
             'S_total': phys['S_total'],
+            'rho_p': phys['rho_p'],
             'X_total': phys['X_total'],
             'v_g': phys['v_g'],
             'Rates_Het': r_het,
             'Rates_Homo': r_homo,
             'phi': phi,
+        }
+
+    def snapshot_with_limits(self, state: 'StateVector') -> dict:
+        """P1.5-A B5：在给定状态上重算并在限幅处记录布尔量。只记录，不改行为。"""
+        g_src = np.zeros(8)
+        s_src = 0.0
+        for src in self.sources:
+            g, sm, _ = src.get_sources(self.idx, self.z, self.dz)
+            g_src += g
+            s_src += sm
+        C_fed = self.coal_flow_dry * (self.coal_props.get('Cd', 60.0) / 100.0)
+        phys = self._calc_physics_props(state, C_fed)
+        Ts_in = self.inlet.T_solid_or_gas
+        tau = self.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
+        Ts_avg, Ts_out = self._calc_particle_temperature(
+            state.T, Ts_in, tau, phys['d_p'],
+            state.solid_mass, state.carbon_fraction,
+            rho_p=phys.get('rho_p'),
+        )
+        r_het, r_homo, phi = self._calc_rates(
+            state, phys, g_src, Ts_avg=Ts_avg, collect_limits=True
+        )
+        return {
+            'phys': phys,
+            'Ts_avg': float(Ts_avg),
+            'Ts_out': float(Ts_out),
+            'limits': dict(self.last_limit_flags),
+            'raw_rates': dict(self.last_raw_rates),
+            'limited_rates': dict(self.last_limited_rates),
+            'r_het': dict(r_het),
+            'r_homo': dict(r_homo),
+            'phi': float(phi),
         }

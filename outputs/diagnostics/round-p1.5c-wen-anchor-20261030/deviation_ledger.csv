@@ -1,0 +1,15 @@
+item,fortran_behavior,python_mainline,switch,in_compat_mode
+particle size model,rp = ri*(swell**0.333) 后恒定，densp 随转化下降（行 130、419、442、755）；swell=1.0（行 96）,ParticleSizeModel='fortran_constant'（P1.5-A 起为默认），cell.py _calc_physics_props,ParticleSizeModel,True
+heterogeneous diffusion coefficient,kdiff 形式（combus L1179-1181、cbstm L1218、cbco2 L1249、cbhym L1334）,Fuller + Sh，use_fortran_diffusion=False,UseFortranDiffusion,True
+WGS equilibrium constant,exp(-3.6893 + 7234/(1.8*T_mean))（wgshift L1271-1281）,kinetics.calculate_wgs_equilibrium(T),none,False
+WGS rat factor,rat = exp(-8.91 + 5553/ts)（L1271-1281）,WGS_RatFactor=False（因子=1）,WGS_RatFactor,True
+WGS catalytic factor,0.2（wgshift）,WGS_CatalyticFactor 缺省 0.2,WGS_CatalyticFactor,True
+char combustion rate factor,无 0.3 缩放（combus 直接算速率）,CharCombustionRateFactor=0.3,CharCombustionRateFactor,True
+hydrogen consumption limit after instant oxidation,combus 内部按可用 O2 分配，无额外 H2 限幅,Cell.limit_h2_consumers_after_oxidation 截断 C+H2 与负向 WGS,none,False
+combustion-zone C+CO2,cbco2 只按 pO2 分区调用（L1232-1258、poxyin L345）,NumPy Cell 两条路径均不置零；JAX 侧仍置零（P1.5-B 待对齐）,none,False
+particle temperature reaction heat,燃烧区 RK-Gill 含反应热（L459-475）,USE_RK_GILL_COMBUSTION=False，指数弛豫（constants.py）,none,False
+pyrolysis product split,pyroly（L1032）按 fc、vm0 分配,PyrolysisService.calc_yields,none,False
+heat loss closure,燃烧区 hl=30% 反应热；气化区 u0 气壁换热（L774-780）,HeatLossPercent=2% × HHV × dz/L × (T/1800)^4,none,False
+MSR temperature threshold,ts <= 1000 K 时 rate=0（ch4ref L1353）,MSR_Tmin_K=1000（缺省一致）,MSR_Tmin_K,True
+pressure-driven vs concentration-driven rate conversion,以分压 + rg=82.06 计算（L1180 等）,以浓度 + R=8.314 计算，两者等价,none,False
+inlet temperature split,气相 tg1（行 185-187）；颗粒入口 ta（行 179 tsin=ta）,单一 T_in，气固同温,none,False

@@ -42,13 +42,23 @@ def heat_loss_ref_temp_k(op_conds: Mapping[str, Any]) -> float:
 
 def resolve_f_s_coal(coal_props: Mapping[str, Any], op_conds: Mapping[str, Any]) -> float:
     """
-    颗粒表面碳氧化时硫向气相释放的有效系数（JAX 残差中 ``S_release`` 用）。
+    颗粒表面碳氧化时硫向气相释放的系数。
 
-    默认 **0**：与当前主线 ``Cell``（无显式 ``S_release`` 项）短期等价；
-    可通过 ``op_conds['f_s_coal']`` 或 ``coal_props['f_s_coal']`` 显式开启。
+    P1.5-B（2026-10-30）起：``PyrolysisService`` 已把煤中全部硫作为 H2S 写入气相源项，
+    JAX 残差里的 ``S_release`` 会造成**重复释放**，该项已删除。为避免调用方仍以为
+    可以打开表面硫释放，显式设置非零值直接报错。
+
+    默认返回 **0.0**。
     """
+    value = 0.0
     if "f_s_coal" in op_conds:
-        return float(op_conds["f_s_coal"])
-    if "f_s_coal" in coal_props:
-        return float(coal_props["f_s_coal"])
+        value = float(op_conds["f_s_coal"])
+    elif "f_s_coal" in coal_props:
+        value = float(coal_props["f_s_coal"])
+    if value != 0.0:
+        raise ValueError(
+            "f_s_coal != 0 is not supported: sulfur is fully released as H2S by "
+            "PyrolysisService, and the JAX S_release term was removed in P1.5-B "
+            "to avoid double counting."
+        )
     return 0.0
