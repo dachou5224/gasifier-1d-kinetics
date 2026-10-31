@@ -1,0 +1,42 @@
+{
+  "evidence_boundary": "Huayi four-phase dry-powder fixed-physics diagnostic coverage only; not calibrated accuracy, hybrid validation, carbon closure, or Yulin/slurry generalization.",
+  "artifacts": {
+    "huayi_expanded_fig2_baseline_mismatch": {
+      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/huayi_expanded_fig2_baseline_mismatch.csv",
+      "row_count": 220,
+      "source_artifact": "outputs/diagnostics/huayi_expanded_fixed_physics_diagnostic_baseline.csv",
+      "key_columns": [
+        "phase",
+        "case_id",
+        "N_cells",
+        "target_name",
+        "predicted_value",
+        "target_value",
+        "delta_pred_minus_target"
+      ]
+    },
+    "huayi_expanded_table_carbon_sanity": {
+      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/huayi_expanded_table_carbon_sanity.csv",
+      "row_count": 22,
+      "source_artifact": "outputs/diagnostics/huayi_expanded_carbon_balance_diagnostic.csv",
+      "key_columns": [
+        "phase",
+        "case_id",
+        "apparent_gas_phase_C_recovery",
+        "gross_recovery_if_c_f_monitoring_sum_used"
+      ]
+    },
+    "huayi_expanded_table_contract_audit": {
+      "file": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/figures_data/huayi_expanded_table_contract_audit.csv",
+      "row_count": 22,
+      "source_artifact": "outputs/diagnostics/huayi_expanded_model_case_contract_audit.csv",
+      "key_columns": [
+        "phase",
+        "case_id",
+        "adapter_uses_primary_coal_flow",
+        "adapter_avoids_c_f_monitoring_sum",
+        "adapter_uses_zero_steam_feed"
+      ]
+    }
+  }
+}
