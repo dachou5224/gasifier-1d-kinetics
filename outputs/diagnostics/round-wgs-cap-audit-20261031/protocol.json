@@ -1,0 +1,19 @@
+{
+  "round": "WGS cap audit / 2026-10-31",
+  "trigger": "test_validation_config Texaco_I-3 and Texaco_I-6 exceed the 3000 K sanity bound",
+  "files_read": [
+    "outputs/diagnostics/round-p2a-fullmesh-20261030/fullmesh_cells.csv",
+    "tests/integration/test_validation_config.py"
+  ],
+  "cell_constant": "Cell.limit_h2_consumers_after_oxidation swapped at runtime; no source edit",
+  "variants": {
+    "A_cH2_only_no_wgs_cap": "keep tightened C+H2 limit, drop the negative-WGS truncation",
+    "B_wgs_cap_only": "keep the negative-WGS truncation, restore the old C+H2 limit",
+    "C_current_both": "current HEAD"
+  },
+  "thresholds": {
+    "root_cost": 0.0001,
+    "test_T_upper_K": 3000.0
+  },
+  "frozen": "no equation changed, no tolerance relaxed, no parameter tuned"
+}
