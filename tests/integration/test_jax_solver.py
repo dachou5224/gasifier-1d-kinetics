@@ -40,6 +40,9 @@ def _build_system(case_name: str) -> GasifierSystem:
         "T_in": inputs.get("T_in_K", inputs.get("TIN")),
         "HeatLossPercent": inputs.get("HeatLossPercent", 1.0),
         "epsilon": inputs.get("Voidage", 1.0),
+        # 这些是候选并行求解器在同一截断网格上的对比用例（N_cells=20 → 只覆盖 2.0 m），
+        # 保留旧网格族是为了让两个求解器看到同一套单元；不是论文轮次，故显式放行。
+        "AllowTruncatedMesh": True,
     }
     if case_name == "Paper_Case_6":
         op_conds["SlurryConcentration"] = inputs.get("SlurryConcentration", 62.0)

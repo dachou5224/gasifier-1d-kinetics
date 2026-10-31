@@ -18,6 +18,7 @@ from .engineering_coordinate_influence import (
     ENGINEERING_COORDINATE_PARAMETERS,
 )
 from .gasifier_system import GasifierSystem
+from .revision_evidence_common import legacy_mesh_op_conds
 from .model_case_adapter import build_gasifier_inputs_from_model_case
 from .model_case_diagnostic_baseline import (
     POOR_CONVERGENCE_COST_THRESHOLD,
@@ -152,7 +153,7 @@ def _dry_syngas_kpis(profile: np.ndarray) -> dict[str, float]:
 
 def _solve_built_case(built: Mapping[str, Any], n_cells: int) -> dict[str, Any]:
     start = time.perf_counter()
-    system = GasifierSystem(built["geometry"], built["coal_props"], built["op_conds"])
+    system = GasifierSystem(built["geometry"], built["coal_props"], legacy_mesh_op_conds(built["op_conds"]))
     profile, _z = system.solve(N_cells=n_cells, solver_method="minimize", jacobian_mode="scipy", jax_warmup=False)
     runtime_s = time.perf_counter() - start
     residual_quality = cell_residual_quality(system, profile)

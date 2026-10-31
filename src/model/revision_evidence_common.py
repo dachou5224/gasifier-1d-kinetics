@@ -51,6 +51,19 @@ def source_commit(repo: Path | None = None) -> str:
         return "unknown"
 
 
+def legacy_mesh_op_conds(op_conds: Mapping[str, Any]) -> dict[str, Any]:
+    """历史轮次显式放行截断网格。
+
+    P1.5-A 起 ``GasifierSystem.solve`` 对 ``|sum(dz) - L| > 1e-9 L`` 直接报错。
+    2026-10-30 之前的所有诊断都跑在旧网格族上（3 <= N <= 20 时只覆盖反应器入口
+    一小段），要复现它们的产物必须显式打开这个开关。论文轮次不得使用本函数，
+    应改用 ``p1_5_round_20261030.paper_op_conds``。
+    """
+    out = dict(op_conds)
+    out.setdefault("AllowTruncatedMesh", True)
+    return out
+
+
 def residual_quality_status(cell0_cost: float) -> str:
     if not math.isfinite(float(cell0_cost)):
         return "unknown"

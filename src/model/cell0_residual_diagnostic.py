@@ -13,6 +13,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 from .gasifier_system import GasifierSystem
+from .revision_evidence_common import legacy_mesh_op_conds
 from .material import SPECIES_NAMES
 from .model_case_adapter import build_gasifier_inputs_from_model_case
 from .model_case_diagnostic_baseline import POOR_CONVERGENCE_COST_THRESHOLD
@@ -118,7 +119,7 @@ def _top_components(residual: np.ndarray, n: int = 3) -> list[dict[str, Any]]:
 def build_cell0_residual_row(model_case_row: Mapping[str, Any], n_cells: int) -> dict[str, Any]:
     """Solve one ModelCase and return one cell-0 residual decomposition row."""
     built = build_gasifier_inputs_from_model_case(model_case_row)
-    system = GasifierSystem(built["geometry"], built["coal_props"], built["op_conds"])
+    system = GasifierSystem(built["geometry"], built["coal_props"], legacy_mesh_op_conds(built["op_conds"]))
     inlet = system._initialize_inlet()
     carrier_mapping_ok = bool(inlet.gas_moles[3] > 0.0 and inlet.gas_moles[6] == 0.0)
 
