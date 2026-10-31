@@ -1,0 +1,15 @@
+---
+description: 模型 agent 向论文 agent 回传结果，不写下一轮交接
+alwaysApply: true
+---
+
+# 给论文 agent 的结果汇报
+
+本对话是模型 agent。论文 agent 写 `model-side-handoff-*.md`。模型 agent 执行，并把结果写给论文 agent。
+
+用户问结果、下一轮、或一轮已结束时，交付物是结果汇报，不是新的交接指令。
+
+- 写到 `papers/jax-gasifier-cascade-hybrid/revision-evidence-20260930/` 下与该轮对应的目录。
+- 写事实、判断句是否成立、停止原因、产物哈希。不替论文 agent 起草下一轮任务。
+- 汇报和回传文件不写绝对路径、workbook 路径或现场路由。
+- 执行计算仍只改模型仓。用户没有要求提交时不提交。

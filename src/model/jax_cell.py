@@ -44,7 +44,9 @@ def make_cell_residuals_jax(
     @jax.custom_jvp
     def residuals_jax(x):
         x = jnp.asarray(x, dtype=out_dtype)
-        return jax.pure_callback(residuals_host, out_shape, x)
+        # vmap_method 必须显式给出：jax.jacfwd 是 jvp 的 vmap，新版 JAX 不再允许
+        # 未声明 vmap 语义的 host callback（旧版会走 legacy_vectorized）。
+        return jax.pure_callback(residuals_host, out_shape, x, vmap_method="sequential")
 
     @residuals_jax.defjvp
     def residuals_jax_jvp(primals, tangents):
@@ -62,8 +64,8 @@ def make_cell_residuals_jax(
         x_plus = x + dx
         x_minus = x - dx
 
-        y_plus = jax.pure_callback(residuals_host, out_shape, x_plus)
-        y_minus = jax.pure_callback(residuals_host, out_shape, x_minus)
+        y_plus = jax.pure_callback(residuals_host, out_shape, x_plus, vmap_method="sequential")
+        y_minus = jax.pure_callback(residuals_host, out_shape, x_minus, vmap_method="sequential")
 
         den = 2.0 * jnp.max(jnp.abs(dx))
         den_safe = jnp.where(den == 0.0, 1.0, den)  # 切掉 0/0（x_dot 全 0 时 numerator 也为 0）
