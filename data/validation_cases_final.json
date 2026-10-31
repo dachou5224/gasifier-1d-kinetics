@@ -135,7 +135,10 @@
           "steam_temperature_K": 696.67,
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "outlet_temperature_C": 1370.0,
@@ -164,7 +167,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-2": {
         "name": "Texaco_I-2",
@@ -182,7 +188,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 292.24800000000005,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "outlet_temperature_C": 1333.0,
@@ -207,7 +216,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-3": {
         "name": "Texaco_I-3",
@@ -225,7 +237,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 295.9272,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.28,
@@ -242,7 +257,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-4A": {
         "name": "Texaco_I-4A",
@@ -260,7 +278,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 286.0416,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 97.24,
@@ -277,7 +298,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-4B": {
         "name": "Texaco_I-4B",
@@ -295,7 +319,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 294.6456,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 97.34,
@@ -312,7 +339,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-5A": {
         "name": "Texaco_I-5A",
@@ -330,7 +360,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 257.904,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.875,
@@ -347,7 +380,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-5B": {
         "name": "Texaco_I-5B",
@@ -365,7 +401,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 234.0,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.868,
@@ -382,7 +421,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-5C": {
         "name": "Texaco_I-5C",
@@ -398,7 +440,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 202.55040000000002,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.885,
@@ -417,7 +462,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-6": {
         "name": "Texaco_I-6",
@@ -435,7 +483,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 315.828,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 97.122,
@@ -452,7 +503,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-7A": {
         "name": "Texaco_I-7A",
@@ -470,7 +524,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 327.5064,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 96.826,
@@ -487,7 +544,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-7B": {
         "name": "Texaco_I-7B",
@@ -505,7 +565,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 343.4112,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 96.992,
@@ -522,7 +585,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-8A": {
         "name": "Texaco_I-8A",
@@ -540,7 +606,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 331.668,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.641,
@@ -557,7 +626,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-8B": {
         "name": "Texaco_I-8B",
@@ -575,7 +647,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 342.252,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.663,
@@ -592,7 +667,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-8C": {
         "name": "Texaco_I-8C",
@@ -610,7 +688,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 334.296,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.605,
@@ -627,7 +708,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-9": {
         "name": "Texaco_I-9",
@@ -645,7 +729,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 316.044,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 97.45,
@@ -662,7 +749,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-10": {
         "name": "Texaco_I-10",
@@ -678,7 +768,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 467.172,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.158,
@@ -702,7 +795,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_I-11": {
         "name": "Texaco_I-11",
@@ -720,7 +816,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 478.044,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.187,
@@ -737,7 +836,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Illinois_No6",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-1": {
         "name": "Texaco_W-1",
@@ -755,7 +857,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 309.6,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.98,
@@ -772,7 +877,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-2": {
         "name": "Texaco_W-2",
@@ -790,7 +898,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 314.0316,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.17,
@@ -807,7 +918,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-3A": {
         "name": "Texaco_W-3A",
@@ -825,7 +939,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 462.564,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.393,
@@ -842,7 +959,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-3B": {
         "name": "Texaco_W-3B",
@@ -860,7 +980,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 463.212,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.395,
@@ -877,7 +1000,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-4": {
         "name": "Texaco_W-4",
@@ -895,7 +1021,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 452.376,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.765,
@@ -912,7 +1041,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-5": {
         "name": "Texaco_W-5",
@@ -930,7 +1062,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 467.3736,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 98.211,
@@ -947,7 +1082,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-6": {
         "name": "Texaco_W-6",
@@ -965,7 +1103,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 478.152,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 97.9,
@@ -982,7 +1123,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_W-7": {
         "name": "Texaco_W-7",
@@ -1000,7 +1144,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 488.304,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.676,
@@ -1017,7 +1164,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "H-coal_residue_Wyodak",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "Texaco_Exxon": {
         "name": "Texaco_Exxon",
@@ -1033,7 +1183,10 @@
           "oxygen_temperature_K": 298.0,
           "heat_loss_percent": 3.0,
           "coal_feed_rate_kg_hr": 453.996,
-          "pressure_Pa": 2431800.0
+          "pressure_Pa": 2431800.0,
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "carbon_conversion_pct": 99.0,
@@ -1056,7 +1209,10 @@
         "coal": {},
         "feedstock_type_orig": "molten_residue",
         "capacity": "Pilot",
-        "feed_type": "Dry-fed"
+        "feed_type": "Dry-fed",
+        "coal_type": "Exxon_DSP_vacuum_tower_bottoms",
+        "solver_compat_mode": "fortran",
+        "solver_compat_note": "Wen & Chaung (1979) 小试的 Fortran 兼容设置：UseFortranDiffusion=True、WGS_RatFactor=True、CharCombustionRateFactor=1.0。这些算例的参考值来自 Fortran 程序，用主线设置（模式 M）时 26 个算例只有 9 个收敛。"
       },
       "slurry western": {
         "name": "slurry western",
@@ -1211,8 +1367,9 @@
           "heat_loss_percent": 1.2,
           "slurry_concentration_pct": 66.0,
           "O2_purity": 0.98,
-          "L_reactor_m": 6.87,
-          "D_reactor_m": 1.68
+          "L_reactor_m": 3.3,
+          "D_reactor_m": 1.524,
+          "reactor_geometry_note": "以 reference_fortran/Source1_副本.for 行 32 的 height=330 cm、dt=152.4 cm 为准。论文表头写 20 ft x 5 ft（6.096 x 1.524 m），与本程序自身不一致；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 round-texaco-input-fix-20261031）。原 JSON 的 6.0 x 2.0 m 两处都与来源不符。"
         },
         "expected_results": {
           "outlet_temperature_C": 1350.0,
