@@ -307,20 +307,78 @@ class GasifierSystem:
             row = all_jnp[i]
             gas = np.asarray(jax9_to_mainline_gas8(row[:9]))
             self.results.append(StateVector(gas_moles=gas, solid_mass=float(row[9]), carbon_fraction=float(row[10]), T=float(row[11]), P=inlet.P, z=self.z_positions[i]))
+        # jax_jit 是一次性打包求解，不逐个单元推进；这里按与顺序路径相同的阈值
+        # 复核每一格是否为根，并在首个非根处截断。否则指定 SolverStrictRoot=True
+        # 后切到 jax_jit 会把非根解当作对下游有效并报告 completed。
+        self._enforce_strict_root_on_states(dz_list, inlet, A, N)
         return self._package_results()
 
-    def _solve_sequential(self, dz_list, inlet, A, solver_method, jacobian_mode):
-        N_cells = len(dz_list); current_inlet = inlet; self.results = []; self.cells = []
-        F_H2O_evap = (self.tmp_W_liq_evap / 18.015) * 1000.0; L_evap = self.op_conds.get("L_evap_m", 1e-6)
-        ref_f = max(inlet.total_gas_moles, 1.0); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
+    def _cell_ops_for_solve(self, dz_list):
+        """与 _solve_sequential 相同的单元级 op_conds（热损归一化长度随网格族取值）。"""
         cell_ops = self.op_conds.copy()
         cell_ops["L_reactor"] = self.geometry["L"]
-        # 热损失归一化长度：均匀铺满网格下等于几何 L（P1.5-A B1）
         if str(self.op_conds.get("MeshFamily", "legacy")).lower() == "uniform_full_length":
             cell_ops["L_heatloss_norm"] = max(float(self.geometry["L"]), 1e-9)
         else:
             cell_ops["L_heatloss_norm"] = max(float(np.sum(dz_list)), 1e-9)
         cell_ops["pyrolysis_done"] = True
+        return cell_ops
+
+    def _make_cell(self, i, dz_list, A, current_inlet, inlet, cell_ops, ref_f, ref_e):
+        F_H2O_evap = (self.tmp_W_liq_evap / 18.015) * 1000.0
+        L_evap = self.op_conds.get("L_evap_m", 1e-6)
+        cell = Cell(
+            i, self.z_positions[i], dz_list[i], A * dz_list[i], A, current_inlet,
+            self.kinetics, self.coal_props, cell_ops,
+            sources=[
+                EvaporationSource(F_H2O_evap, L_evap_m=L_evap),
+                PyrolysisSource(self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T),
+            ],
+        )
+        cell.coal_flow_dry = self.W_dry
+        cell.Cd_total = self.Cd_total
+        cell.char_Xc0 = self.char_Xc0
+        cell.ref_flow, cell.ref_energy = ref_f, ref_e
+        return cell
+
+    def _enforce_strict_root_on_states(self, dz_list, inlet, A, N):
+        """对 batch 求解结果执行严格根复核（P1.5-A B2 在 jax_jit 上的等价实现）。
+
+        未开启 SolverStrictRoot 时只记录逐单元成本，不改变结果。
+        """
+        strict_root = bool(self.op_conds.get("SolverStrictRoot", False))
+        cost_threshold = 1e-4
+        cell_ops = self._cell_ops_for_solve(dz_list)
+        ref_f = max(inlet.total_gas_moles, 1.0)
+        ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
+        current_inlet = inlet
+        for i in range(N):
+            cell = self._make_cell(i, dz_list, A, current_inlet, inlet, cell_ops, ref_f, ref_e)
+            state = self.results[i]
+            x = state.to_array()
+            residuals_now = np.asarray(cell.residuals(x), dtype=float)
+            cell_cost = float(0.5 * np.sum(residuals_now ** 2))
+            diag = self._build_cell_diagnostic(i, cell, state, cell_cost, residuals_now, False)
+            self.cell_diagnostics.append(diag)
+            if cell_cost > cost_threshold:
+                self.solve_stats["poor_convergence_count"] = int(
+                    self.solve_stats.get("poor_convergence_count", 0)) + 1
+                if strict_root:
+                    self.execution_status = "no_root"
+                    self.no_root_cell_index = i
+                    logger.warning(
+                        "SolverStrictRoot (jax_jit): cell %d residual_cost=%.3e > %.0e, truncating.",
+                        i, cell_cost, cost_threshold,
+                    )
+                    # 截断到首个非根之前：下游结果来自非根解，不能当作有效出口
+                    self.results = self.results[:i]
+                    return
+            current_inlet = state
+
+    def _solve_sequential(self, dz_list, inlet, A, solver_method, jacobian_mode):
+        N_cells = len(dz_list); current_inlet = inlet; self.results = []; self.cells = []
+        ref_f = max(inlet.total_gas_moles, 1.0); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
+        cell_ops = self._cell_ops_for_solve(dz_list)
         strict_root = bool(self.op_conds.get("SolverStrictRoot", False))
         cost_threshold = 1e-4
 
@@ -381,8 +439,7 @@ class GasifierSystem:
         lower[10] = 300.0; upper[10] = 4000.0
 
         for i in range(N_cells):
-            cell = Cell(i, self.z_positions[i], dz_list[i], A*dz_list[i], A, current_inlet, self.kinetics, self.coal_props, cell_ops, sources=[EvaporationSource(F_H2O_evap, L_evap_m=L_evap), PyrolysisSource(self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T)])
-            cell.coal_flow_dry = self.W_dry; cell.Cd_total = self.Cd_total; cell.char_Xc0 = self.char_Xc0; cell.ref_flow, cell.ref_energy = ref_f, ref_e
+            cell = self._make_cell(i, dz_list, A, current_inlet, inlet, cell_ops, ref_f, ref_e)
             self.cells.append(cell)
             def func(x): return cell.residuals(x)
 

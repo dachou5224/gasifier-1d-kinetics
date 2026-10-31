@@ -788,7 +788,13 @@ class Cell:
         }
 
     def snapshot_with_limits(self, state: 'StateVector') -> dict:
-        """P1.5-A B5：在给定状态上重算并在限幅处记录布尔量。只记录，不改行为。"""
+        """P1.5-A B5：在给定状态上重算并在限幅处记录布尔量。只记录，不改行为。
+
+        必须与 `residuals` 传同一套上下文：`current/phys/gas_src/is_combustion_zone`
+        决定颗粒温度走哪条路径（`USE_RK_GILL_COMBUSTION` 开启时燃烧区含反应热），
+        省略它们会让 Ts_avg 与真实方程不同，进而使这里的反应速率与限幅标志
+        不再是实际求解所用方程的值。逐个布尔量因此会误导 B5 证据。
+        """
         g_src = np.zeros(8)
         s_src = 0.0
         for src in self.sources:
@@ -799,10 +805,18 @@ class Cell:
         phys = self._calc_physics_props(state, C_fed)
         Ts_in = self.inlet.T_solid_or_gas
         tau = self.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
+        # 与 residuals 同一判据（入口 pO2 阈值），供颗粒温度选择分区路径。
+        F_total_in = max(sum(self.inlet.gas_moles[i] + g_src[i] for i in range(8)), 1e-9)
+        pO2_Pa = state.P * (max(self.inlet.gas_moles[0] + g_src[0], 0.0) / F_total_in)
+        p_o2_atm = self.op_conds.get('P_O2_Combustion_atm', 0.05)
+        is_combustion = pO2_Pa > (p_o2_atm * 101325.0)
+        if self.op_conds.get("diagnostic_disable_combustion_zone", False):
+            is_combustion = False
         Ts_avg, Ts_out = self._calc_particle_temperature(
             state.T, Ts_in, tau, phys['d_p'],
             state.solid_mass, state.carbon_fraction,
-            rho_p=phys.get('rho_p'),
+            current=state, phys=phys, gas_src=g_src,
+            is_combustion_zone=is_combustion, rho_p=phys.get('rho_p'),
         )
         r_het, r_homo, phi = self._calc_rates(
             state, phys, g_src, Ts_avg=Ts_avg, collect_limits=True
