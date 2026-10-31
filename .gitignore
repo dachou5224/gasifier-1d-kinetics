@@ -150,5 +150,18 @@ results/
 *.png
 *.csv
 
+# 论文轮次产物：CSV 明细必须入库，否则同目录的 sha256.txt 无法在仓库内复核，
+# 且 figure_data_bundle 等模块会直接按相对路径读取这些 CSV。
+# 放行范围仅限 outputs/ 下的证据表；其他位置的 *.csv 仍按上面的规则忽略。
+!outputs/diagnostics/*.csv
+!outputs/diagnostics/round-*/
+!outputs/diagnostics/round-*/*.csv
+!outputs/diagnostics/round-*/**/*.csv
+!outputs/figures_data/
+!outputs/figures_data/*.csv
+
+# Fortran 编译产物：可执行文件不入库（源码副本、输入副本与 io_patch.diff 保留以便复现）
+*.x
+
 # 一次性验证报告草稿（避免误提交）
 **/_tmp*.md
