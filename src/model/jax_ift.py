@@ -7,15 +7,17 @@ one scalar parameter, one residual system, and one fixed-branch solve function.
 """
 from __future__ import annotations
 
-import numpy as np
 
+def _root_guard_mask(residual, root_tol):
+    """与 residual_cost 同一缩放：‖F‖∞ / max(1, ‖F‖₂)。返回「是否为根」的布尔数组。
 
-def _root_guard_norm(residual):
-    """与 residual_cost 同一缩放：‖F‖∞ / max(1, ‖F‖2)。"""
+    trace 安全：不做 Python 标量转换，可直接用于 ``jnp.where``。
+    """
     import jax.numpy as jnp
 
     r = jnp.asarray(residual)
-    return jnp.max(jnp.abs(r)) / jnp.maximum(1.0, jnp.linalg.norm(r))
+    norm = jnp.max(jnp.abs(r)) / jnp.maximum(1.0, jnp.linalg.norm(r))
+    return jnp.isfinite(norm) & (norm <= root_tol)
 
 
 def make_single_parameter_ift_solve(residual_fn, solve_fn, *, root_tol: float = 1e-6):
@@ -48,15 +50,14 @@ def make_single_parameter_ift_solve(residual_fn, solve_fn, *, root_tol: float = 
 
     def solve_ift_bwd(saved, x_bar):
         x_sol, theta = saved
-        # 根守卫（P1.5-B B7）：前向解不是根时返回 NaN，不给无意义的梯度
-        norm = _root_guard_norm(residual_fn(x_sol, theta))
-        if not bool(np.isfinite(norm)) or float(norm) > root_tol:
-            return (jnp.full_like(theta, jnp.nan),)
+        # 根守卫（P1.5-B B7）：前向解不是根时返回 NaN，不给无意义的梯度。
+        # 用 jnp.where 而不是 Python 分支，保证在 scan / vmap / jit 下仍可 trace。
+        is_root = _root_guard_mask(residual_fn(x_sol, theta), root_tol)
         F_x = jax.jacfwd(lambda x: residual_fn(x, theta))(x_sol)
         F_theta = jax.jacfwd(lambda t: residual_fn(x_sol, t))(theta)
         lam = jnp.linalg.solve(F_x.T, x_bar)
         theta_bar = -jnp.vdot(lam, F_theta)
-        return (theta_bar,)
+        return (jnp.where(is_root, theta_bar, jnp.nan),)
 
     solve_ift.defvjp(solve_ift_fwd, solve_ift_bwd)
     return solve_ift
@@ -84,13 +85,12 @@ def make_single_parameter_ift_solve_with_args(residual_fn, solve_fn, *, root_tol
 
     def solve_ift_bwd(saved, x_bar):
         x_sol, theta, args = saved
-        norm = _root_guard_norm(residual_fn(x_sol, theta, *args))
-        if not bool(np.isfinite(norm)) or float(norm) > root_tol:
-            return (jnp.full_like(theta, jnp.nan),) + tuple(jnp.full_like(a, jnp.nan) for a in args)
+        is_root = _root_guard_mask(residual_fn(x_sol, theta, *args), root_tol)
         F_x = jax.jacfwd(lambda x: residual_fn(x, theta, *args))(x_sol)
         lam = jnp.linalg.solve(F_x.T, x_bar)
         _, pullback = jax.vjp(lambda t, *a: residual_fn(x_sol, t, *a), theta, *args)
-        return pullback(-lam)
+        grads = pullback(-lam)
+        return tuple(jnp.where(is_root, g, jnp.nan) for g in grads)
 
     solve_ift.defvjp(solve_ift_fwd, solve_ift_bwd)
     return solve_ift
