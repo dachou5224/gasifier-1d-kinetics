@@ -1,0 +1,31 @@
+{
+  "acceptance": "every cell residual_cost <= 1e-4 and element identity <= 1e-2 mol/s",
+  "change": "after H2_Ox, cap C+H2 and negative net WGS on remaining H2; positive WGS is not capped",
+  "dataset_id": "R52-C-75",
+  "full_split_passed_grids": [
+    3,
+    5,
+    9
+  ],
+  "handoff_model_head": "98ad47c",
+  "identity_max_abs_mol_s": 8.200894163756805e-08,
+  "jax_change": "same negative WGS cap using avail[5] - r_H2_ox, then C+H2; no new RWGS; S_release unchanged",
+  "previous_rwgs_stage1_executed": false,
+  "representative_passed_grids": [
+    3,
+    5,
+    9
+  ],
+  "selected_N": 3,
+  "solver_modules_match_handoff_head": true,
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "stage0_csv_preserved": true,
+  "stoichiometry_difference": "numpy H2 balance has no S_release; JAX dH2 includes S_release",
+  "unchanged": [
+    "H2_OxidationFactor",
+    "pyrolysis yields",
+    "phi",
+    "f_co2",
+    "P_O2_Combustion_atm=0.05"
+  ]
+}

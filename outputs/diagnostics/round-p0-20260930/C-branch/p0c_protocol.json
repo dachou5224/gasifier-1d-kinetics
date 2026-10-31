@@ -1,0 +1,36 @@
+{
+  "N_cells": 1,
+  "combustion_branch": "rate branch enters when inlet-available pO2 > 0.05 atm and replaces CH4_Ox, CO_Ox, H2_Ox with instant volatile oxidation",
+  "dataset_id": "R52-C-75",
+  "diagnostic_switch": "diagnostic_disable_combustion_zone forces the existing gasification branch in both the rate selector and the particle-temperature selector",
+  "element_identity_atol_mol_s": 1e-08,
+  "element_identity_holds_after_combustion_off": true,
+  "element_identity_max_abs_mol_s": 2.27018404075352e-11,
+  "flat_relative_drop": 0.001,
+  "flat_rule": "no_root_after_limits when cost > 1e-4 and no feasible probe reduces cost by 0.1 percent; otherwise stopped_early",
+  "handoff_model_head": "98ad47c",
+  "mesh_started": false,
+  "n_windows": 9,
+  "reference_h2_match_max_abs_mol_s": 0.0,
+  "solver_modules_match_handoff_head": true,
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "unchanged": [
+    "_calc_balances coefficients",
+    "pyrolysis yields",
+    "phi",
+    "f_co2",
+    "H2_OxidationFactor",
+    "residual_cost threshold 1e-4"
+  ],
+  "window_ids": [
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002"
+  ]
+}
