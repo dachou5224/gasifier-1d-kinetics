@@ -1,0 +1,61 @@
+{
+  "round": "Wen Fortran reference for Texaco I-1 / I-3 / I-6 / 2026-10-31",
+  "trigger": "test_validation_config Texaco_I-3 and Texaco_I-6 exit at 3400 K / 3479 K",
+  "fortran_source": "reference_fortran/Source1_副本.for",
+  "fortran_original_input": "reference_fortran/input_副本.txt (7 cases only)",
+  "cases_added_to_input": [
+    "texaco i-3",
+    "texaco i-6"
+  ],
+  "added_case_basis": "operating conditions from data/validation_cases_final.json; coal from the Fortran i-1 namelist, which matches H-coal_residue_Illinois_No6 in data/archive/validation_cases_OriginalPaper.json after dmmf normalisation",
+  "coal_parameters_used": {
+    "yoxy": 0.0156956,
+    "yh": 0.0743163,
+    "yc": 0.8802616,
+    "ys": 0.0210464,
+    "yn": 0.0084423,
+    "yash": 0.159,
+    "xmois": 0.002
+  },
+  "coal_consistency_check": "C=74.05/84.10=0.8805 vs yc=0.88026; O=1.32/84.10=0.0157 vs yoxy=0.015696; H=6.25/84.10=0.0743 vs yh=0.074316; S=1.77/84.10=0.02105 vs ys=0.021046; N=0.71/84.10=0.00844 vs yn=0.008442",
+  "only_source_patch": "ic1..ic5 INTEGER -> CHARACTER*4 (legacy plotting labels only)",
+  "compiler": "GNU Fortran (Homebrew GCC 16.1.0) 16.1.0",
+  "fortran_geometry": {
+    "height_cm": 330,
+    "dt_cm": 152.4,
+    "P_atm": 24.0,
+    "source_line": 32
+  },
+  "paper_geometry": {
+    "length_m": 6.096,
+    "diameter_m": 1.524,
+    "source": "paper metadata 20 ft x 5 ft"
+  },
+  "json_geometry": {
+    "length_m": 6.0,
+    "diameter_m": 2.0,
+    "source": "data/validation_cases_final.json"
+  },
+  "json_coal_problem": {
+    "coal_field": "empty object {}",
+    "fallback": "validation_loader.normalize_final_case_to_legacy -> CASE_TO_COAL_MAP -> Paper_Base_Coal",
+    "paper_base_coal": {
+      "Cd": 77.56,
+      "Hd": 4.67,
+      "Od": 9.44,
+      "Sd": 0.4,
+      "Nd": 0.82,
+      "Ad": 7.11,
+      "Mt": 4.53
+    },
+    "wen_coal": {
+      "C": 74.05,
+      "H": 6.25,
+      "O": 1.32,
+      "S": 1.77,
+      "N": 0.71,
+      "Ash": 15.53
+    }
+  },
+  "frozen": "no equation, tolerance or parameter changed; the only edit is the Fortran compile patch"
+}
