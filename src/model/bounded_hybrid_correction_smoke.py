@@ -32,6 +32,9 @@ CORRECTION_NAME = "WGS_CatalyticFactor_bounded_reaction_family"
 CORRECTION_TARGET = "weighted_outlet_CO_H2_CO2_squared_error"
 CORRECTION_BOUND_LOW = 0.02
 CORRECTION_BOUND_HIGH = 2.0
+# 判定「目标确实下降」的绝对容差。小于该量的变化视为无改善，避免把平坦目标
+# 或求值噪声记成下降；线搜索也用它，防止 theta 在零增益时沿方向漂移。
+LOSS_DECREASE_ABS_TOL = 1.0e-12
 
 BOUNDED_CORRECTION_SUMMARY_COLUMNS: tuple[str, ...] = (
     "correction_name",
@@ -63,6 +66,7 @@ BOUNDED_CORRECTION_SUMMARY_COLUMNS: tuple[str, ...] = (
     "poor_convergence_cell_index_final",
     "cell0_cost_final",
     "status",
+    "failure_reason",
     "evidence_boundary",
 )
 
@@ -71,6 +75,7 @@ BOUNDED_CORRECTION_BATCH_COLUMNS: tuple[str, ...] = (
     "phase",
     "n_cases",
     "n_ok",
+    "n_failed",
     "n_loss_decreased",
     "median_loss_delta",
     "median_relative_loss_delta",
@@ -214,6 +219,27 @@ def solve_with_wgs_correction(
     return out
 
 
+def _strictly_decreased(final_loss: float, initial_loss: float) -> bool:
+    """仅当最终损失比初始损失低出一个容差以上时才判为下降。
+
+    非有限值（求解失败）一律判为未下降，不能用 NaN 比较得出结论。
+    """
+    final_value = float(final_loss)
+    initial_value = float(initial_loss)
+    if not (math.isfinite(final_value) and math.isfinite(initial_value)):
+        return False
+    return final_value < initial_value - LOSS_DECREASE_ABS_TOL
+
+
+def _finite_or_none(value: Any) -> float | None:
+    """把可能缺失或非有限的诊断量转成 float 或 None，供汇总统计安全读取。"""
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    return numeric if math.isfinite(numeric) else None
+
+
 def _loss(model_case_row: Mapping[str, Any], value: float, n_cells: int) -> dict[str, Any]:
     try:
         return solve_with_wgs_correction(model_case_row, value, n_cells=n_cells)
@@ -225,6 +251,57 @@ def _loss(model_case_row: Mapping[str, Any], value: float, n_cells: int) -> dict
             "solve_status": "failed",
             "failure_reason": f"{type(exc).__name__}: {exc}",
         }
+
+
+def _build_summary_row(
+    *,
+    model_case_row: Mapping[str, Any],
+    n_cells: int,
+    bound_low: float,
+    bound_high: float,
+    initial_value: float,
+    final_value: float,
+    initial_loss: float,
+    latest_eval: Mapping[str, Any],
+    steps_accepted: int,
+    final_loss: float,
+    status: str,
+    failure_reason: str | None,
+) -> dict[str, Any]:
+    """构造一行 case 级摘要。
+
+    status 必须以 `ok` 或 `failed` 开头：批次汇总按前缀区分成功案例，
+    求解失败的案例不得混入成功统计。
+    """
+    delta = final_loss - initial_loss
+    return {
+        "correction_name": CORRECTION_NAME,
+        "correction_layer": "existing WGS reaction-family multiplier via op_conds.WGS_CatalyticFactor",
+        "bound_low": float(bound_low),
+        "bound_high": float(bound_high),
+        "initial_theta": float(initial_value),
+        "final_theta": float(final_value),
+        "initial_value": float(initial_value),
+        "final_value": float(final_value),
+        "loss_initial": initial_loss,
+        "loss_final": final_loss,
+        "loss_delta": delta,
+        "relative_loss_delta": delta / max(abs(initial_loss), 1.0e-12) if math.isfinite(initial_loss) else math.nan,
+        "loss_decreased": _strictly_decreased(final_loss, initial_loss),
+        "steps": int(steps_accepted),
+        "steps_completed": int(steps_accepted),
+        "hit_lower_bound": math.isclose(float(final_value), float(bound_low), rel_tol=0.0, abs_tol=1.0e-10),
+        "hit_upper_bound": math.isclose(float(final_value), float(bound_high), rel_tol=0.0, abs_tol=1.0e-10),
+        "target": CORRECTION_TARGET,
+        **{key: latest_eval.get(key) for key in ("case_id", "phase", "dataset_id", "source_candidate_id", "independence_group", "N_cells")},
+        "fallback_count_final": latest_eval.get("fallback_count"),
+        "poor_convergence_count_final": latest_eval.get("poor_convergence_count"),
+        "poor_convergence_cell_index_final": latest_eval.get("poor_convergence_cell_index"),
+        "cell0_cost_final": latest_eval.get("cell0_cost"),
+        "status": status,
+        "failure_reason": failure_reason,
+        "evidence_boundary": BOUNDED_CORRECTION_EVIDENCE_BOUNDARY,
+    }
 
 
 def run_bounded_wgs_correction_smoke(
@@ -245,11 +322,35 @@ def run_bounded_wgs_correction_smoke(
         first_eval = _loss(model_case_row, theta, n_cells)
         initial_loss = float(first_eval["loss"])
         latest_eval = first_eval
+        if not math.isfinite(initial_loss):
+            # 初始求解就失败：不再做任何梯度步，也不产出轨迹行。
+            # 状态必须以 failed 开头，否则会被批次汇总当成成功案例。
+            summaries.append(
+                _build_summary_row(
+                    model_case_row=model_case_row,
+                    n_cells=n_cells,
+                    bound_low=bound_low,
+                    bound_high=bound_high,
+                    initial_value=initial_value,
+                    final_value=theta,
+                    initial_loss=initial_loss,
+                    latest_eval=latest_eval,
+                    steps_accepted=0,
+                    final_loss=initial_loss,
+                    status="failed_initial_solve",
+                    failure_reason=str(first_eval.get("failure_reason") or "non-finite initial loss"),
+                )
+            )
+            continue
+        steps_accepted = 0
         for step in range(int(steps)):
             minus_theta, plus_theta = finite_difference_points(theta, bound_low, bound_high, fd_fraction)
             minus_eval = _loss(model_case_row, minus_theta, n_cells)
             plus_eval = _loss(model_case_row, plus_theta, n_cells)
             gradient = (float(plus_eval["loss"]) - float(minus_eval["loss"])) / (plus_theta - minus_theta)
+            if not math.isfinite(gradient):
+                # 差分点求解失败，梯度不可用：停在当前点，不再推进。
+                break
             proposed_step = -float(learning_rate) * gradient
             trials = 0
             accepted_theta = theta
@@ -264,12 +365,15 @@ def run_bounded_wgs_correction_smoke(
                 if (
                     candidate_eval.get("solve_status") == "ok"
                     and math.isfinite(float(candidate_eval["loss"]))
-                    and float(candidate_eval["loss"]) <= float(latest_eval["loss"]) + 1.0e-12
+                    # 必须严格下降才接受，否则平坦目标下 theta 会一直沿方向漂移。
+                    and _strictly_decreased(float(candidate_eval["loss"]), float(latest_eval["loss"]))
                 ):
                     accepted_theta = candidate_theta
                     accepted_eval = candidate_eval
                     accepted_step_size = candidate_theta - theta
                     break
+            if accepted_step_size != 0.0:
+                steps_accepted += 1
             trajectory.append(
                 {
                     "correction_name": CORRECTION_NAME,
@@ -302,34 +406,22 @@ def run_bounded_wgs_correction_smoke(
             latest_eval = accepted_eval
 
         final_loss = float(latest_eval["loss"])
+        decreased = _strictly_decreased(final_loss, initial_loss)
         summaries.append(
-            {
-                "correction_name": CORRECTION_NAME,
-                "correction_layer": "existing WGS reaction-family multiplier via op_conds.WGS_CatalyticFactor",
-                "bound_low": float(bound_low),
-                "bound_high": float(bound_high),
-                "initial_theta": float(initial_value),
-                "final_theta": float(theta),
-                "initial_value": float(initial_value),
-                "final_value": float(theta),
-                "loss_initial": initial_loss,
-                "loss_final": final_loss,
-                "loss_delta": final_loss - initial_loss,
-                "relative_loss_delta": (final_loss - initial_loss) / max(abs(initial_loss), 1.0e-12),
-                "loss_decreased": final_loss <= initial_loss,
-                "steps": int(steps),
-                "steps_completed": int(steps),
-                "hit_lower_bound": math.isclose(float(theta), float(bound_low), rel_tol=0.0, abs_tol=1.0e-10),
-                "hit_upper_bound": math.isclose(float(theta), float(bound_high), rel_tol=0.0, abs_tol=1.0e-10),
-                "target": CORRECTION_TARGET,
-                **{key: latest_eval.get(key) for key in ("case_id", "phase", "dataset_id", "source_candidate_id", "independence_group", "N_cells")},
-                "fallback_count_final": latest_eval.get("fallback_count"),
-                "poor_convergence_count_final": latest_eval.get("poor_convergence_count"),
-                "poor_convergence_cell_index_final": latest_eval.get("poor_convergence_cell_index"),
-                "cell0_cost_final": latest_eval.get("cell0_cost"),
-                "status": "ok_loss_decreased" if final_loss <= initial_loss else "ok_no_loss_decrease",
-                "evidence_boundary": BOUNDED_CORRECTION_EVIDENCE_BOUNDARY,
-            }
+            _build_summary_row(
+                model_case_row=model_case_row,
+                n_cells=n_cells,
+                bound_low=bound_low,
+                bound_high=bound_high,
+                initial_value=initial_value,
+                final_value=theta,
+                initial_loss=initial_loss,
+                latest_eval=latest_eval,
+                steps_accepted=steps_accepted,
+                final_loss=final_loss,
+                status="ok_loss_decreased" if decreased else "ok_no_loss_decrease",
+                failure_reason=None,
+            )
         )
 
     return (
@@ -364,16 +456,18 @@ def build_bounded_correction_batch_summary(summaries: Sequence[Mapping[str, Any]
 
     out: list[dict[str, Any]] = []
     for scope, phase, rows in groups:
+        # 只有 status 以 ok 开头的才是成功案例；failed_* 不参与成功统计。
         ok_rows = [row for row in rows if str(row.get("status", "")).startswith("ok")]
-        loss_delta = [float(row["loss_delta"]) for row in ok_rows if math.isfinite(float(row["loss_delta"]))]
-        rel_delta = [float(row["relative_loss_delta"]) for row in ok_rows if math.isfinite(float(row["relative_loss_delta"]))]
-        cell0 = [float(row["cell0_cost_final"]) for row in ok_rows if math.isfinite(float(row["cell0_cost_final"]))]
+        loss_delta = [v for v in (_finite_or_none(row.get("loss_delta")) for row in ok_rows) if v is not None]
+        rel_delta = [v for v in (_finite_or_none(row.get("relative_loss_delta")) for row in ok_rows) if v is not None]
+        cell0 = [v for v in (_finite_or_none(row.get("cell0_cost_final")) for row in ok_rows) if v is not None]
         out.append(
             {
                 "scope": scope,
                 "phase": phase,
                 "n_cases": len(rows),
                 "n_ok": len(ok_rows),
+                "n_failed": sum(1 for row in rows if str(row.get("status", "")).startswith("failed")),
                 "n_loss_decreased": sum(1 for row in ok_rows if bool(row.get("loss_decreased"))),
                 "median_loss_delta": float(np.median(loss_delta)) if loss_delta else math.nan,
                 "median_relative_loss_delta": float(np.median(rel_delta)) if rel_delta else math.nan,

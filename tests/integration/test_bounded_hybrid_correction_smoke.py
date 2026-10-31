@@ -59,6 +59,7 @@ def test_bounded_correction_schema_and_boundary_from_fixture_rows():
         "poor_convergence_cell_index_final": "0",
         "cell0_cost_final": 0.01,
         "status": "ok_loss_decreased",
+        "failure_reason": None,
         "evidence_boundary": BOUNDED_CORRECTION_EVIDENCE_BOUNDARY,
     }
     trajectory = {
@@ -106,3 +107,88 @@ def test_bounded_correction_schema_and_boundary_from_fixture_rows():
     assert "Batch summary" in text
     assert "first-cell source-term correction remains design-only" in text
     assert "not a trained hybrid" in text
+
+
+def _fake_loss_context(monkeypatch_loss):
+    """Patch the objective used by the smoke loop so cases need no solver run."""
+    import model.bounded_hybrid_correction_smoke as module
+
+    module._loss = monkeypatch_loss
+    return module
+
+
+def test_flat_objective_is_not_reported_as_decreased():
+    """恒定损失不得记成「下降」，theta 也不应沿梯度方向漂移。
+
+    回归 Codex 审查意见（P2）：原实现用 `final_loss <= initial_loss`，
+    平坦目标下 loss_delta=0 仍被标为 ok_loss_decreased，批次推荐还会给出
+    supplementary_feasibility_figure_candidate。
+    """
+    module = _fake_loss_context(lambda row, value, n_cells: {
+        "case_id": "case_flat", "phase": "phase1", "dataset_id": "d",
+        "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3,
+        "loss": 1.0, "solve_status": "ok", "cell0_cost": 0.01,
+    })
+    summaries, trajectory = module.run_bounded_wgs_correction_smoke([{}], n_cells=3, steps=4)
+    row = summaries[0]
+    assert row["loss_delta"] == 0.0
+    assert row["loss_decreased"] is False
+    assert row["status"] == "ok_no_loss_decrease"
+    # 严格下降才接受步长，因此参数不动、也没有已完成的步
+    assert row["final_value"] == row["initial_value"]
+    assert row["steps_completed"] == 0
+    assert all(item["accepted_step_size"] == 0.0 for item in trajectory)
+
+    batch = module.build_bounded_correction_batch_summary(summaries)
+    assert batch[0]["n_loss_decreased"] == 0
+    assert batch[0]["recommendation"] == "feasibility_note_only"
+
+
+def test_failed_initial_solve_is_reported_and_does_not_break_batch():
+    """初始求解失败必须传播为 failed 状态，且不炸掉批次汇总。
+
+    回归 Codex 审查意见（P2）：原实现把失败案例标成 ok_no_loss_decrease，
+    批次汇总再把缺失的 cell0_cost_final 拿去 float(None)，整张报表生成失败。
+    """
+    module = _fake_loss_context(lambda row, value, n_cells: {
+        "case_id": "case_bad", "phase": "phase1", "dataset_id": "d",
+        "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3,
+        "loss": float("nan"), "solve_status": "failed", "failure_reason": "RuntimeError: boom",
+    })
+    summaries, trajectory = module.run_bounded_wgs_correction_smoke([{}], n_cells=3, steps=4)
+    row = summaries[0]
+    assert row["status"].startswith("failed")
+    assert row["failure_reason"] == "RuntimeError: boom"
+    assert row["loss_decreased"] is False
+    assert row["steps_completed"] == 0
+    assert trajectory == []  # 初始就失败，不产出梯度轨迹
+
+    batch = module.build_bounded_correction_batch_summary(summaries)
+    assert batch[0]["n_cases"] == 1
+    assert batch[0]["n_ok"] == 0
+    assert batch[0]["n_failed"] == 1
+    assert batch[0]["recommendation"] == "blocked_no_cases"
+
+
+def test_failed_case_does_not_break_mixed_batch():
+    """一个失败案例不应让同批次其他成功案例的汇总生成失败。"""
+    module = _fake_loss_context(lambda row, value, n_cells: {
+        "case_id": "mixed", "phase": "phase1", "dataset_id": "d",
+        "source_candidate_id": "s", "independence_group": "IG001", "N_cells": 3,
+        "loss": float("nan"), "solve_status": "failed", "failure_reason": "boom",
+    })
+    failures, _ = module.run_bounded_wgs_correction_smoke([{}], n_cells=3, steps=1)
+    ok_summary = {
+        **{col: None for col in module.BOUNDED_CORRECTION_SUMMARY_COLUMNS},
+        "phase": "phase1",
+        "loss_initial": 2.0, "loss_final": 1.0, "loss_delta": -1.0,
+        "relative_loss_delta": -0.5, "loss_decreased": True,
+        "status": "ok_loss_decreased", "cell0_cost_final": 0.02,
+        "hit_lower_bound": False, "hit_upper_bound": False,
+    }
+    batch = module.build_bounded_correction_batch_summary([failures[0], ok_summary])
+    overall = batch[0]
+    assert overall["n_cases"] == 2
+    assert overall["n_ok"] == 1
+    assert overall["n_failed"] == 1
+    assert overall["n_loss_decreased"] == 1
