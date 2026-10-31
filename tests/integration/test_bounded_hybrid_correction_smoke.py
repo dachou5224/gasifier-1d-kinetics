@@ -259,3 +259,65 @@ def test_patched_loss_is_restored_after_test(request):
     assert module._loss is not original
     mp.undo()
     assert module._loss is original
+
+
+def test_status_whitelist_is_explicit_and_consistent():
+    """成功/失败状态必须显式登记，且两集合不相交。"""
+    import model.bounded_hybrid_correction_smoke as module
+
+    assert module.STATUS_OK == ("ok_loss_decreased", "ok_no_loss_decrease")
+    assert module.STATUS_FAILED == ("failed_initial_solve", "failed_probe")
+    assert not set(module.STATUS_OK) & set(module.STATUS_FAILED)
+
+
+def test_unknown_status_is_rejected_at_construction():
+    """未登记的状态必须在构造摘要时立即报错，而不是被静默归入某一侧。"""
+    import pytest
+
+    import model.bounded_hybrid_correction_smoke as module
+
+    with pytest.raises(ValueError, match="unknown summary status"):
+        module._check_status("skipped_out_of_range", None)
+
+
+def test_failed_status_requires_a_reason():
+    import pytest
+
+    import model.bounded_hybrid_correction_smoke as module
+
+    with pytest.raises(ValueError, match="requires a failure_reason"):
+        module._check_status("failed_probe", None)
+
+
+def test_ok_status_must_not_carry_a_reason():
+    import pytest
+
+    import model.bounded_hybrid_correction_smoke as module
+
+    with pytest.raises(ValueError, match="must not carry a failure_reason"):
+        module._check_status("ok_loss_decreased", "boom")
+
+
+def test_unregistered_status_is_treated_as_failed_by_batch_summary():
+    """批次汇总只认白名单；未登记状态算失败，不静默计为改善。
+
+    用 `ok_partial` 而不是别的名字：它以 "ok" 开头，前缀匹配会误判为成功，
+    正是白名单要防的场景。
+    """
+    import model.bounded_hybrid_correction_smoke as module
+
+    # 绕过 _check_status 直接构造一行，模拟外部传入的陌生状态
+    row = {
+        **{col: None for col in module.BOUNDED_CORRECTION_SUMMARY_COLUMNS},
+        "phase": "phase1",
+        "status": "ok_partial",
+        "loss_initial": 2.0, "loss_final": 1.0, "loss_delta": -1.0,
+        "relative_loss_delta": -0.5, "loss_decreased": True,
+        "cell0_cost_final": 0.02,
+        "hit_lower_bound": False, "hit_upper_bound": False,
+    }
+    batch = module.build_bounded_correction_batch_summary([row])
+    assert batch[0]["n_ok"] == 0
+    assert batch[0]["n_failed"] == 1
+    assert batch[0]["n_loss_decreased"] == 0
+    assert batch[0]["recommendation"] == "blocked_no_cases"

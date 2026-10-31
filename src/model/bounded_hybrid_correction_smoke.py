@@ -36,6 +36,12 @@ CORRECTION_BOUND_HIGH = 2.0
 # 或求值噪声记成下降；线搜索也用它，防止 theta 在零增益时沿方向漂移。
 LOSS_DECREASE_ABS_TOL = 1.0e-12
 
+# case 级状态的白名单。批次汇总只把这两个状态算作成功案例。
+# 采用显式列举而非 `startswith("ok")` 前缀约定：将来新增 skipped_*/partial_*
+# 之类状态时，宁可默认归入失败侧、逼调用方显式登记，也不要静默算成成功。
+STATUS_OK: tuple[str, ...] = ("ok_loss_decreased", "ok_no_loss_decrease")
+STATUS_FAILED: tuple[str, ...] = ("failed_initial_solve", "failed_probe")
+
 BOUNDED_CORRECTION_SUMMARY_COLUMNS: tuple[str, ...] = (
     "correction_name",
     "correction_layer",
@@ -317,10 +323,29 @@ def _build_summary_row(
         "poor_convergence_count_final": latest_eval.get("poor_convergence_count"),
         "poor_convergence_cell_index_final": latest_eval.get("poor_convergence_cell_index"),
         "cell0_cost_final": latest_eval.get("cell0_cost"),
-        "status": status,
+        "status": _check_status(status, failure_reason),
         "failure_reason": failure_reason,
         "evidence_boundary": BOUNDED_CORRECTION_EVIDENCE_BOUNDARY,
     }
+
+
+def _check_status(status: str, failure_reason: str | None) -> str:
+    """确保 status 属于白名单，失败状态必须带原因，成功状态不得带原因。
+
+    这条校验把白名单变成硬约束：新增状态若未登记，构造摘要时立即报错，
+    而不是等到批次汇总时静默归入某一侧。
+    """
+    if status in STATUS_FAILED:
+        if not failure_reason:
+            raise ValueError(f"failed status {status!r} requires a failure_reason")
+        return status
+    if status in STATUS_OK:
+        if failure_reason:
+            raise ValueError(f"ok status {status!r} must not carry a failure_reason")
+        return status
+    raise ValueError(
+        f"unknown summary status {status!r}; add it to STATUS_OK or STATUS_FAILED"
+    )
 
 
 def run_bounded_wgs_correction_smoke(
@@ -486,8 +511,9 @@ def build_bounded_correction_batch_summary(summaries: Sequence[Mapping[str, Any]
 
     out: list[dict[str, Any]] = []
     for scope, phase, rows in groups:
-        # 只有 status 以 ok 开头的才是成功案例；failed_* 不参与成功统计。
-        ok_rows = [row for row in rows if str(row.get("status", "")).startswith("ok")]
+        # 只把白名单内的成功状态计入成功统计；未登记的状态视同失败，
+        # 不会被静默算作改善。
+        ok_rows = [row for row in rows if str(row.get("status", "")) in STATUS_OK]
         loss_delta = [v for v in (_finite_or_none(row.get("loss_delta")) for row in ok_rows) if v is not None]
         rel_delta = [v for v in (_finite_or_none(row.get("relative_loss_delta")) for row in ok_rows) if v is not None]
         cell0 = [v for v in (_finite_or_none(row.get("cell0_cost_final")) for row in ok_rows) if v is not None]
@@ -497,7 +523,7 @@ def build_bounded_correction_batch_summary(summaries: Sequence[Mapping[str, Any]
                 "phase": phase,
                 "n_cases": len(rows),
                 "n_ok": len(ok_rows),
-                "n_failed": sum(1 for row in rows if str(row.get("status", "")).startswith("failed")),
+                "n_failed": sum(1 for row in rows if str(row.get("status", "")) not in STATUS_OK),
                 "n_loss_decreased": sum(1 for row in ok_rows if bool(row.get("loss_decreased"))),
                 "median_loss_delta": float(np.median(loss_delta)) if loss_delta else math.nan,
                 "median_relative_loss_delta": float(np.median(rel_delta)) if rel_delta else math.nan,
