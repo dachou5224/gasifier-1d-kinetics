@@ -1,0 +1,20 @@
+{
+  "round": "Texaco input data repair / 2026-10-31",
+  "defects_fixed": {
+    "coal_fallback": "data/validation_cases_final.json 的 26 个 Texaco 条目 coal 为空对象，CASE_TO_COAL_MAP 回落到 Paper_Base_Coal（Od=9.44, Ad=7.11），而实际进料是 H-coal residue Illinois No.6（Od=1.32, Ad=15.53），氧差 7 倍、灰分差一倍",
+    "geometry": "原 JSON 用 L=6.0 m、D=2.0 m；reference_fortran 行 32 为 height=330 cm、dt=152.4 cm",
+    "test_criterion": "原测试直接断言 1000 K < T_out < 3000 K，掩盖了未收敛；改为先判模型自身的 residual cost ≤ 1e-4，再对收敛解做物理断言"
+  },
+  "new_coal_entries": [
+    "H-coal_residue_Illinois_No6",
+    "H-coal_residue_Wyodak",
+    "Exxon_DSP_vacuum_tower_bottoms"
+  ],
+  "coal_source": "data/archive/validation_cases_OriginalPaper.json 的 coal_database",
+  "fc_derivation": "原始 JSON 的 proximate 块与 ultimate 灰分矛盾（proximate ash=7.35 vs ultimate ash=15.53），判定为母煤数据。改用 reference_fortran 行 55 的 fc=65.0（dmmf 基），换算 FCd = 65*(100-Ad)/100，Vd = 100-FCd-Ad",
+  "moisture_decision": "取论文 JSON 的 moisture_wt_pct=4.53，不取 Fortran 的 xmois=0.002。按 Fortran 值会让 I-1 发散，那属于用参数拟合参考实现。",
+  "geometry_decision": "取 reference_fortran 自身几何 3.3 x 1.524 m。论文表头 20 ft x 5 ft 与该程序冲突；用 6.096 m 时出口温度比 Fortran 低约 190 K（见 python_vs_fortran.csv）",
+  "compat_mode_marked": "data/validation_cases_final.json 的 solver_compat_mode='fortran'（26 个算例）",
+  "frozen": "未改任何 Arrhenius 常数、phi、热损系数或方程形式；未按参考值调参",
+  "verification": "tests/integration 全量 105 passed"
+}

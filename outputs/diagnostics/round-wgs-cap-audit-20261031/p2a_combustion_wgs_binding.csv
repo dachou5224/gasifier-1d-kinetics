@@ -1,0 +1,5 @@
+execution_status,is_combustion_zone,n_cells,dz_total_m,wgs_truncated_dz_m,wgs_truncated_dz_fraction
+completed,False,2238,302.0475,0.0,0.0
+completed,True,62,17.252499999999998,8.819374999999999,0.5111940298507462
+no_root,False,13,2.124375,0.0,0.0
+no_root,True,28,18.668749999999996,9.91375,0.5310344827586209

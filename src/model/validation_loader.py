@@ -152,9 +152,14 @@ def normalize_final_case_to_legacy(case_name: str, case_data: Dict[str, Any]) ->
 
         coal_type = CASE_TO_COAL_MAP.get(case_name)
 
+    # Wen & Chaung (1979) 的 Fortran 算例需要用兼容开关才能与参考实现比较；
+    # 主线设置（模式 M）在这些算例上大量不收敛。见 round-wen-fortran-texaco-20261031。
+    compat = case_data.get("solver_compat_mode")
+
     return {
         "name": case_name,
         "coal_type": coal_type,
+        "solver_compat_mode": compat,
         "inputs": {
             "coal": coal_type,
             "FeedRate_kg_h": feed_rate_kg_h,
@@ -182,6 +187,7 @@ def normalize_final_case_to_legacy(case_name: str, case_data: Dict[str, Any]) ->
         "expected_results": expected_results,
         "capacity": case_data.get("capacity"),
         "feed_type": case_data.get("feed_type"),
+        "solver_compat_note": case_data.get("solver_compat_note"),
     }
 
 
