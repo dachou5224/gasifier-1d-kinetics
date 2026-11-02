@@ -37,6 +37,70 @@ _NAME_RE = re.compile(r'NAME="([^"]*)"')
 _PARAM_RE = re.compile(r"^\s*([A-Z]+)=\s*([-\d.E+]+)\s*,?\s*$")
 _NUM = r"([-\d.eE+]+)"
 
+# P1.6-A（2026-11-02）：锚点输入一律取 namelist 原值与源程序第 32 行的几何，
+# 不经 ``load_case_from_repo``（那是“模型对实验值”的口径，水分取论文的 4.53%）。
+NAMELIST_PATH = Path(__file__).resolve().parents[2] / "reference_fortran" / "input_副本.txt"
+FORTRAN_SOURCE_PATH = Path(__file__).resolve().parents[2] / "reference_fortran" / "Source1_副本.for"
+GEOMETRY_DATA_LINE = 32  # data vis,at,dt,pt,height/6.e-4,18241.5,152.4,24.,330./
+
+_NML_KEYS = ("name", "ta", "tsteam", "toxy", "yoxy", "yh", "yc", "ys", "yn",
+             "yash", "xmois", "foxy", "fsteam", "tfcoal")
+
+
+def parse_namelist_cases(path: Path | str = NAMELIST_PATH) -> list[dict[str, Any]]:
+    """直接解析 ``input_副本.txt`` 的 &readdata namelist，返回原值（含 xmois）。"""
+    text = Path(path).read_text(errors="replace")
+    cases: list[dict[str, Any]] = []
+    for block in text.split("&readdata")[1:]:
+        body = block.split("&end")[0]
+        flat = re.sub(r"\s+", " ", body.replace("\n", " "))
+        name_m = re.search(r"name\s*=\s*'([^']*)'", flat)
+        if not name_m:
+            continue
+        rec: dict[str, Any] = {"case_name": name_m.group(1).strip()}
+        for key in _NML_KEYS[1:]:
+            m = re.search(rf"{key}\s*=\s*([-\d.eE+]+)", flat)
+            if m:
+                rec[key] = float(m.group(1))
+                rec[f"{key}_raw"] = m.group(1).strip()
+        cases.append(rec)
+    return cases
+
+
+def parse_fortran_geometry(path: Path | str = FORTRAN_SOURCE_PATH) -> dict[str, Any]:
+    """从源程序第 32 行的 ``data vis,at,dt,pt,height/.../`` 取几何与压力。
+
+    单位：dt 与 height 为 cm → m；pt 为 atm。
+    """
+    lines = Path(path).read_text(errors="replace").splitlines()
+    line = lines[GEOMETRY_DATA_LINE - 1]
+    m = re.search(r"/\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*,\s*([-\d.eE+]+)\s*/\s*!initial code data", line)
+    if not m:
+        raise ValueError(f"cannot parse geometry data statement at line {GEOMETRY_DATA_LINE}: {line!r}")
+    vis, at, dt_cm, pt_atm, height_cm = (float(x) for x in m.groups())
+    return {
+        "L_m": height_cm / 100.0,
+        "D_m": dt_cm / 100.0,
+        "P_atm": pt_atm,
+        "vis": vis,
+        "at": at,
+        "source_line": GEOMETRY_DATA_LINE,
+        "raw_line": line.strip(),
+    }
+
+
+def anchor_cases(
+    namelist_path: Path | str = NAMELIST_PATH,
+    source_path: Path | str = FORTRAN_SOURCE_PATH,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """namelist 原值 + 源程序几何；每个算例带上 geometry 字段。"""
+    geometry = parse_fortran_geometry(source_path)
+    cases = parse_namelist_cases(namelist_path)
+    for case in cases:
+        case["geometry"] = dict(geometry)
+        case["is_dry_powder"] = case["case_name"] in DRY_POWDER_CASES
+    return cases, geometry
+
 
 def _num(text: str) -> float:
     return float(text)
@@ -152,54 +216,68 @@ def parse_fortran_log(log_path: Path) -> tuple[list[dict[str, Any]], list[dict[s
 
 def fortran_gas_inlet_temperature(case: Mapping[str, Any]) -> float:
     """行 185-187：tg1 为 O2 与蒸汽的质量加权入口温度。"""
-    goxyin = float(case["foxy_g_per_g"]) * float(case["tfcoal_g_s"])   # 行 134
-    gh2oin = (float(case["fsteam_g_per_g"]) + float(case["xmois"])) * float(case["tfcoal_g_s"])  # 行 135
+    foxy = float(case["foxy_g_per_g"]) if "foxy_g_per_g" in case else float(case["foxy"])
+    tfcoal = float(case["tfcoal_g_s"]) if "tfcoal_g_s" in case else float(case["tfcoal"])
+    fsteam = float(case["fsteam_g_per_g"]) if "fsteam_g_per_g" in case else float(case["fsteam"])
+    toxy = float(case["toxy_K"]) if "toxy_K" in case else float(case["toxy"])
+    tsteam = float(case["tsteam_K"]) if "tsteam_K" in case else float(case["tsteam"])
+    goxyin = foxy * tfcoal   # 行 134
+    gh2oin = (fsteam + float(case["xmois"])) * tfcoal  # 行 135
     num = (
-        goxyin * FORTRAN_CPOXY * float(case["toxy_K"]) / 32.0
-        + gh2oin * FORTRAN_CPSTM * float(case["tsteam_K"]) / 18.0
+        goxyin * FORTRAN_CPOXY * toxy / 32.0
+        + gh2oin * FORTRAN_CPSTM * tsteam / 18.0
     )
     den = goxyin * FORTRAN_CPOXY / 32.0 + gh2oin * FORTRAN_CPSTM / 18.0
     return float(num / den)
 
 
-def build_case_inputs(case: Mapping[str, Any]) -> dict[str, Any]:
+def build_case_inputs(case: Mapping[str, Any], geometry: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """把 Fortran 算例参数映射成 GasifierSystem 的 geometry / coal_props / op_conds。
 
     口径说明（写进 protocol.json）：
     - yc/yh/ys/yn/yoxy 是 dmmf 煤的元素质量分数；yash 为收到基灰分，fcoal 已扣除灰与水分。
     - 干煤质量 = tfcoal*(1-xmois)；干基元素分数 = (1-yash)*y。
     - 氧化剂按纯 O2 处理（foxy g O2 / g 煤），蒸汽按 fsteam g / g 煤；煤中水分由 Mt 承担。
+    - geometry 缺省取源程序第 32 行（3.3 m × 1.524 m, 24 atm）。
     """
-    yash = float(case["yash_ar"])
-    tfcoal = float(case["tfcoal_g_s"])
+    geo = dict(geometry) if geometry is not None else parse_fortran_geometry()
+    yash = float(case["yash_ar"]) if "yash_ar" in case else float(case["yash"])
+    tfcoal = float(case["tfcoal_g_s"]) if "tfcoal_g_s" in case else float(case["tfcoal"])
     xmois = float(case["xmois"])
+    foxy = float(case["foxy_g_per_g"]) if "foxy_g_per_g" in case else float(case["foxy"])
+    fsteam = float(case["fsteam_g_per_g"]) if "fsteam_g_per_g" in case else float(case["fsteam"])
+    yc = float(case["yc_dmmf"]) if "yc_dmmf" in case else float(case["yc"])
+    yh = float(case["yh_dmmf"]) if "yh_dmmf" in case else float(case["yh"])
+    yoxy = float(case["yoxy_coal_O"]) if "yoxy_coal_O" in case else float(case["yoxy"])
+    yn = float(case["yn_dmmf"]) if "yn_dmmf" in case else float(case["yn"])
+    ys = float(case["ys_dmmf"]) if "ys_dmmf" in case else float(case["ys"])
     dry = tfcoal * (1.0 - xmois)
     dmmf_to_dry = 1.0 - yash
     coal_props = {
-        "Cd": dmmf_to_dry * float(case["yc_dmmf"]) * 100.0,
-        "Hd": dmmf_to_dry * float(case["yh_dmmf"]) * 100.0,
-        "Od": dmmf_to_dry * float(case["yoxy_coal_O"]) * 100.0,
-        "Nd": dmmf_to_dry * float(case["yn_dmmf"]) * 100.0,
-        "Sd": dmmf_to_dry * float(case["ys_dmmf"]) * 100.0,
+        "Cd": dmmf_to_dry * yc * 100.0,
+        "Hd": dmmf_to_dry * yh * 100.0,
+        "Od": dmmf_to_dry * yoxy * 100.0,
+        "Nd": dmmf_to_dry * yn * 100.0,
+        "Sd": dmmf_to_dry * ys * 100.0,
         "Ad": yash * 100.0,
         "Mt": xmois * 100.0,
         # Fortran 未给 HHV；热损在 Fortran 里按反应热比例处理（见台账 none 项）
         "HHV_d": 30.0,
     }
-    geometry = {"L": FORTRAN_L_M, "D": FORTRAN_D_M}
+    geom_out = {"L": float(geo["L_m"]), "D": float(geo["D_m"])}
     op_conds = {
         "coal_flow": tfcoal / 1000.0,
-        "o2_flow": float(case["foxy_g_per_g"]) * tfcoal / 1000.0,
-        "steam_flow": float(case["fsteam_g_per_g"]) * tfcoal / 1000.0,
+        "o2_flow": foxy * tfcoal / 1000.0,
+        "steam_flow": fsteam * tfcoal / 1000.0,
         "carrier_gas_type": "CO2",
         "carrier_gas_flow": 0.0,
-        "P": FORTRAN_P_ATM * 101325.0,
+        "P": float(geo["P_atm"]) * 101325.0,
         "T_in": fortran_gas_inlet_temperature(case),
         "particle_diameter": 2.0 * FORTRAN_RI_CM * 1e-2,
         "epsilon": 1.0,
         "P_O2_Combustion_atm": 0.05,
     }
-    return {"geometry": geometry, "coal_props": coal_props, "op_conds": op_conds, "dry_coal_g_s": dry}
+    return {"geometry": geom_out, "coal_props": coal_props, "op_conds": op_conds, "dry_coal_g_s": dry}
 
 
 def solve_fortran_case(
@@ -209,9 +287,15 @@ def solve_fortran_case(
     mode: str,
     switches: Mapping[str, Any] | None = None,
     coal_overrides: Mapping[str, Any] | None = None,
+    geometry: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """mode: 'M'（论文主线）或 'F'（Fortran 兼容）。"""
-    built = build_case_inputs(case)
+    """mode: 'M'（论文主线）或 'F'（Fortran 兼容）。
+
+    P1.6-A：``solids`` 口径由 ``switches`` 里的 ``SolidEnthalpyModel`` /
+    ``HetConversionCutoff`` / ``WGS_Keq_Model`` 控制；模式 F 默认把 WGS 平衡常数
+    切到 Fortran 式，模式 M 用模型自身的 Gibbs 自由能。
+    """
+    built = build_case_inputs(case, geometry=geometry)
     if coal_overrides:
         built["coal_props"] = {**built["coal_props"], **dict(coal_overrides)}
     extra: dict[str, Any] = {}
@@ -221,6 +305,7 @@ def solve_fortran_case(
                 "UseFortranDiffusion": True,
                 "WGS_RatFactor": True,
                 "CharCombustionRateFactor": 1.0,
+                "WGS_Keq_Model": "fortran",
             }
         )
     if switches:

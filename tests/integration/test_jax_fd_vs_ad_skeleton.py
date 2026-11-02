@@ -326,7 +326,7 @@ def test_heat_loss_percent_two_cell_scan_ift_temperature_fd_matches_ad():
         x_sol, _, _ = _newton_loop_12(
             residual_x,
             prev_x,
-            n_iter=10,
+            n_iter=80,
             damper=0.8,
             tol=1e-10,
             reg=1e-8,

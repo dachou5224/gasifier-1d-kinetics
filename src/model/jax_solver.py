@@ -359,10 +359,17 @@ def reactor_solve_v4(
     xc0,
     f_s_coal,
     particle_model_fortran=0.0,
+    solid_hf_inlet_list=None,
+    solid_enthalpy_legacy=0.0,
+    wgs_keq_model_id=0.0,
+    het_conversion_cutoff_legacy=0.0,
 ):
+    if solid_hf_inlet_list is None:
+        solid_hf_inlet_list = jnp.zeros_like(dz_list).at[0].set(1.0)
+
     def scan_body(carry, inputs):
         prev_x, prev_ts = carry
-        dz, g9, s, e, z, idx = inputs
+        dz, g9, s, e, z, idx, hf_in = inputs
         def res_fn(x):
             return cell_residuals_jax_flat(
                 x,
@@ -395,6 +402,10 @@ def reactor_solve_v4(
                 xc0,
                 f_s_coal,
                 particle_model_fortran,
+                hf_in,
+                solid_enthalpy_legacy,
+                wgs_keq_model_id,
+                het_conversion_cutoff_legacy,
             )
         # reg：略增大以减轻病态 J 导致 jnp.linalg.solve 出 NaN（工业大流量工况）
         x_sol, conv, _ = lax.cond(
@@ -423,7 +434,7 @@ def reactor_solve_v4(
         )
         return (x_sol, Ts_out), x_sol
 
-    return lax.scan(scan_body, (inlet_12, ts_in_0), (dz_list, g_src_9_list, s_src_list, e_src_list, mesh_z, jnp.arange(dz_list.shape[0])))[1]
+    return lax.scan(scan_body, (inlet_12, ts_in_0), (dz_list, g_src_9_list, s_src_list, e_src_list, mesh_z, jnp.arange(dz_list.shape[0]), solid_hf_inlet_list))[1]
 
 def jax_solve_cell_bridge(cell, x0, lower, upper, x0_list=None, **kwargs):
     if x0_list:

@@ -196,7 +196,7 @@ def build_gradient_parity_rows(
             x_sol, _converged, _res_norm = _newton_loop_12(
                 residual_x,
                 prev_x,
-                n_iter=10,
+                n_iter=60,
                 damper=0.8,
                 tol=1e-10,
                 reg=1e-8,

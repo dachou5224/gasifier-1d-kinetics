@@ -5,11 +5,14 @@ from model.material import MaterialService, SPECIES_NAMES
 from model.input_contract import (
     PARTICLE_MODEL_DEFAULT,
     ash_mass_fraction_dry,
+    resolve_het_conversion_cutoff,
     resolve_particle_model,
+    resolve_solid_enthalpy_model,
 )
 from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
 from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient, R_CONST
+from model.source_terms import PyrolysisSource
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -40,6 +43,14 @@ class Cell:
         # Intentionally NOT given a default so that any accidental early call to residuals()
         # raises AttributeError instead of silently using a wrong value.
         self.char_Xc0 = self.inlet.carbon_fraction  # safe fallback; overridden externally
+
+        # P1.6-A（B9）固相焓口径：本单元是否把原煤送入（即热解发生在本单元）。
+        # 入口原煤保留 Hf_coal；出口固体是热解后的焦炭，生成焓为 0（碳取石墨）。
+        self.solid_enthalpy_model = resolve_solid_enthalpy_model(op_conds)
+        self.solid_inlet_is_coal = any(
+            isinstance(s, PyrolysisSource) and getattr(s, "target_idx", None) == cell_index
+            for s in self.sources
+        )
 
     def _calc_physics_props(self, current, C_fed_total):
         """Calculates physical properties and transport coefficients."""
@@ -289,18 +300,21 @@ class Cell:
         # 1. Base Rates：异相用 Ts_avg，均相用 Tg (current.T)
         char_fac = self.op_conds.get('CharCombustionRateFactor')  # 工况级 C+O2 因子，缓解燃烧区过短
         use_fortran_diff = self.op_conds.get('UseFortranDiffusion', False)
+        het_cutoff = resolve_het_conversion_cutoff(self.op_conds)
         r_het = self.kinetics.calc_heterogeneous_rates(
             current, phys['d_p'], phys['S_total'],
             X_total=phys['X_total'], Re=phys['Re_p'], Sc=phys['Sc_p'],
             T_particle=T_het,
             char_combustion_factor=char_fac,
-            use_fortran_diffusion=use_fortran_diff
+            use_fortran_diffusion=use_fortran_diff,
+            conversion_cutoff=het_cutoff,
         )
         phi = r_het.pop('phi', 1.0)
         wgs_rat = self.op_conds.get('WGS_RatFactor', False)
         msr_tmin = self.op_conds.get('MSR_Tmin_K', 1000.0)
         wgs_cat = self.op_conds.get('WGS_CatalyticFactor')  # None 时用默认 0.2
         wgs_k = self.op_conds.get('WGS_K_Factor')  # None 时用 1.0；<1 强化逆向 WGS
+        wgs_keq_model = self.op_conds.get('WGS_Keq_Model')  # None 时用缺省 "thermo"
         r_homo = self.kinetics.calc_homogeneous_rates(
             current, self.V,
             inlet_state=self.inlet,
@@ -309,7 +323,8 @@ class Cell:
             wgs_rat_factor=wgs_rat,
             msr_tmin_k=msr_tmin,
             wgs_catalytic_factor=wgs_cat,
-            wgs_k_factor=wgs_k
+            wgs_k_factor=wgs_k,
+            wgs_keq_model=wgs_keq_model,
         )
 
         avail = {sp: max(self.inlet.gas_moles[i] + gas_src[i], 0.0) for i, sp in enumerate(SPECIES_NAMES)}
@@ -478,15 +493,36 @@ class Cell:
         Computes enthalpy residual for the cell.
         Ts_out: 出口颗粒温度；若提供则 H_out 固相用 Ts_out，否则用 current.T
         gas_src: 保留接口（temperature_diagnosis 兼容）
+
+        P1.6-A（B9）固相焓口径：入口若为原煤（本单元含热解源）则保留 Hf_coal；
+        出口固体是热解之后的焦炭，碳取石墨生成焓 0、灰只计显热，故不含生成焓项。
+        热解热由 PyrolysisSource 计入 energy_src。
         """
-        H_in = MaterialService.get_total_enthalpy(self.inlet, self.coal_props)  # W (J/s)
-        H_out = MaterialService.get_total_enthalpy(current, self.coal_props, T_solid_override=Ts_out)
-        
+        if self.solid_enthalpy_model == "legacy_coal_hf":
+            # 修改前口径：入口出口都按每 kg 固体的 Hf_coal 计生成焓
+            include_hf_inlet, include_hf_out = True, True
+        else:
+            # P1.6-A：入口若是原煤（本单元含热解源）保留 Hf_coal；出口固体是焦炭，生成焓为 0
+            include_hf_inlet, include_hf_out = self.solid_inlet_is_coal, False
+        H_in = MaterialService.get_total_enthalpy(
+            self.inlet, self.coal_props, include_formation_enthalpy=include_hf_inlet
+        )  # W (J/s)
+        H_out = MaterialService.get_total_enthalpy(
+            current, self.coal_props, T_solid_override=Ts_out,
+            include_formation_enthalpy=include_hf_out,
+        )
+
         # === Detailed Energy Audit ===
         H_gas_in = MaterialService.get_gas_enthalpy(self.inlet)
-        H_solid_in = MaterialService.get_solid_enthalpy(self.inlet, self.coal_props, T_solid_override=self.inlet.T_solid_or_gas)
+        H_solid_in = MaterialService.get_solid_enthalpy(
+            self.inlet, self.coal_props, T_solid_override=self.inlet.T_solid_or_gas,
+            include_formation_enthalpy=include_hf_inlet,
+        )
         H_gas_out = MaterialService.get_gas_enthalpy(current)
-        H_solid_out = MaterialService.get_solid_enthalpy(current, self.coal_props, T_solid_override=Ts_out)
+        H_solid_out = MaterialService.get_solid_enthalpy(
+            current, self.coal_props, T_solid_override=Ts_out,
+            include_formation_enthalpy=include_hf_out,
+        )
         
         # Heat Loss: 文献为入炉煤 HHV 的 X%，按 dz 比例摊分到各格
         # L_heatloss_norm 默认为网格总长；未提供时退回几何总长 L_reactor

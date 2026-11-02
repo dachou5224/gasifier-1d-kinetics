@@ -28,3 +28,5 @@ P1.5-B 在 P1.5-A 的网格族、颗粒尺寸开关与 Shomate 多段之上完�
 ## 6. 停止条件
 
 **F1 触发停止条件**：按卡片要求不放宽容差、继续报告。当前最大超差在能量残差（分量 10，最大 1.681e-03，缩放口径），其次是 gas_CO；两者在燃烧区与气化区单元上都出现，说明剩余的差异在均相速率/能量项，而不是已经对齐的 Boudouard、硫与几何。F4 中 JAX 在气化区单元的 `C+O2` 返回 0，NumPy 返回约 3e-4 mol/s，是同一批残差差异的局部表现。下一步应逐项比对 `homogeneous_rates_jax` 与 `KineticsService.calc_homogeneous_rates` 的浓度基准与 WGS 因子，以及能量项里热损与颗粒温度路径的差别。
+
+*2026-11-02 回填（P1.6-A 修订第 1 条）：本轮代码落点为 `3131418`（feat: add full-reactor mesh family and Wen/Fortran anchor rounds）一系——本文件由该提交生成，并随该提交落盘；原文未改。*

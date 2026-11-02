@@ -37,6 +37,48 @@ def uses_fortran_default_model(op_conds: Mapping[str, Any]) -> bool:
     return resolve_particle_model(op_conds) == PARTICLE_MODEL_DEFAULT
 
 
+# ---------------------------------------------------------------------------
+# P1.6-A（2026-11-02）方程修正开关
+# ---------------------------------------------------------------------------
+
+# 1a 固相焓口径（审计 B9）。
+#   char_formation_zero : 入炉煤按 LHV 口径的 Hf_coal 计焓；热解后的焦炭碳取石墨生成焓 0、
+#                         灰只计显热；入炉煤焓与（焦炭焓 + 挥发分焓）之差作为热解热进源项。
+#   legacy_coal_hf      : 修改前的口径——焦炭沿用每 kg 固体的 Hf_coal，热解热不显式计入。
+SOLID_ENTHALPY_MODEL_DEFAULT = "char_formation_zero"
+SOLID_ENTHALPY_MODEL_LEGACY = "legacy_coal_hf"
+VALID_SOLID_ENTHALPY_MODELS = (SOLID_ENTHALPY_MODEL_DEFAULT, SOLID_ENTHALPY_MODEL_LEGACY)
+
+# 2 异相速率里的碳转化率硬截断。
+#   smooth     : 去掉 X_total >= 0.999 的硬截断，让 1/(k_s Y^2) 在 Y -> 0 时把速率按 Y^2 压到 0。
+#   hard_0999  : 修改前的行为，X_total >= 0.999 时四条异相速率直接置 0（含 C+H2 的 0.999 判据）。
+HET_CONVERSION_CUTOFF_DEFAULT = "smooth"
+HET_CONVERSION_CUTOFF_LEGACY = "hard_0999"
+VALID_HET_CONVERSION_CUTOFFS = (HET_CONVERSION_CUTOFF_DEFAULT, HET_CONVERSION_CUTOFF_LEGACY)
+
+
+def _resolve_choice(op_conds: Mapping[str, Any], key: str, default: str, valid: tuple[str, ...]) -> str:
+    raw = op_conds.get(key, default)
+    value = str(raw).lower()
+    if value not in valid:
+        raise ValueError(f"{key} must be one of {valid}, got {raw!r}")
+    return value
+
+
+def resolve_solid_enthalpy_model(op_conds: Mapping[str, Any]) -> str:
+    """解析 1a 的固相焓口径。非法值直接报错，避免静默退回缺省。"""
+    return _resolve_choice(
+        op_conds, "SolidEnthalpyModel", SOLID_ENTHALPY_MODEL_DEFAULT, VALID_SOLID_ENTHALPY_MODELS
+    )
+
+
+def resolve_het_conversion_cutoff(op_conds: Mapping[str, Any]) -> str:
+    """解析 2 的碳转化率截断口径。非法值直接报错。"""
+    return _resolve_choice(
+        op_conds, "HetConversionCutoff", HET_CONVERSION_CUTOFF_DEFAULT, VALID_HET_CONVERSION_CUTOFFS
+    )
+
+
 def ash_mass_fraction_dry(coal_props: Mapping[str, Any]) -> float:
     """
     干基灰分质量分数 [0,1]。

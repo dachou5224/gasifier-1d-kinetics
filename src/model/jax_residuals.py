@@ -83,6 +83,10 @@ def cell_residuals_jax_flat(
     ref_flow, ref_energy, char_Xc0_global,
     f_s_coal,
     particle_model_fortran=0.0,
+    solid_hf_inlet=0.0,
+    solid_enthalpy_legacy=0.0,
+    wgs_keq_model_id=0.0,
+    het_conversion_cutoff_legacy=0.0,
 ):
     Tg = x_9[11]
     X_total, d_p, S_tot, Re, Sc, v_g, tau, rho_p = _calc_physics_props_jax(
@@ -90,7 +94,11 @@ def cell_residuals_jax_flat(
     )
     Ts_avg, Ts_out = _calc_particle_temperature_jax(Tg, Ts_in, tau, d_p, rho_p, cp_char, EF_PARTICLE_TRANSIENT, STEFAN_BOLTZMANN, CONDUT_COEFF, nc=TS_TRANSIENT_NC)
     
-    r_het = heterogeneous_rates_jax(x_9[:9], P, Tg, d_p, S_tot, X_total, Ts_avg, Re=Re, Sc=Sc, char_combustion_factor=CharCombFac)
+    r_het = heterogeneous_rates_jax(
+        x_9[:9], P, Tg, d_p, S_tot, X_total, Ts_avg, Re=Re, Sc=Sc,
+        char_combustion_factor=CharCombFac,
+        hard_conversion_cutoff=het_conversion_cutoff_legacy,
+    )
     r_homo = homogeneous_rates_jax(
         x_9[:9],
         Tg,
@@ -99,6 +107,7 @@ def cell_residuals_jax_flat(
         inlet_moles_9=inlet_9[:9] + g_src_9,
         wgs_catalytic=WGS_CatFac,
         Ts_particle=Ts_avg,
+        wgs_keq_model_id=wgs_keq_model_id,
     )
     
     avail = jnp.maximum(inlet_9[:9] + g_src_9, 0.0)
@@ -164,7 +173,14 @@ def cell_residuals_jax_flat(
     res_Xc = (x_9[9] * x_9[10]) - (inlet_9[9] * inlet_9[10] - C_pyro - W_surf)
     
     H_g_in, H_g_out = calculate_enthalpy_mixture_jax(inlet_9[:9], inlet_9[11]), calculate_enthalpy_mixture_jax(x_9[:9], Tg)
-    H_s_in, H_s_out = inlet_9[9]*(cp_char*(Ts_in-298.15)+Hf_coal), x_9[9]*(cp_char*(Ts_out-298.15)+Hf_coal)
+    # P1.6-A（B9）固相焓口径：入口若是原煤（solid_hf_inlet=1，仅 cell 0）保留 Hf_coal；
+    # 出口固体是热解后的焦炭，碳取石墨生成焓 0、灰惰性只计显热，故默认不含生成焓项。
+    # solid_enthalpy_legacy=1 复现修改前口径（两侧都带 Hf_coal）。
+    legacy = solid_enthalpy_legacy > 0.5
+    hf_in = jnp.where(legacy, Hf_coal, Hf_coal * solid_hf_inlet)
+    hf_out = jnp.where(legacy, Hf_coal, 0.0)
+    H_s_in = inlet_9[9] * (cp_char * (Ts_in - 298.15) + hf_in)
+    H_s_out = x_9[9] * (cp_char * (Ts_out - 298.15) + hf_out)
     # Q_loss：与 Cell._calc_energy_balance 一致 — 湿煤流量×HHV、dz/L_total、T^4 权重（相对 HeatLossRefTemp）
     t_weight = jnp.clip((Tg / (HeatLossRefTemp + 1e-9)) ** 4.0, 0.1, 5.0)
     Q_loss = (

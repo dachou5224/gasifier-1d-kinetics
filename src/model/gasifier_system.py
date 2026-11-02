@@ -13,6 +13,7 @@ from .grid_service import AdaptiveMeshGenerator, MeshConfig
 from .source_terms import EvaporationSource, PyrolysisSource
 from .species_bridge import mainline_gas8_to_jax9, jax9_to_mainline_gas8
 from .input_contract import (
+    SOLID_ENTHALPY_MODEL_DEFAULT,
     ash_mass_fraction_dry,
     coal_flow_kg_s_for_heat_loss,
     heat_loss_norm_length_m,
@@ -31,6 +32,10 @@ _LEGACY_SOLVER_ALIASES = {
     "jax_newton": "newton_fd",
     "jax_pure": "newton_fd",
 }
+
+# WGS 平衡常数式子 → jax_kinetics 的整数 id（P1.6-A）。在此重复一份是为了避免
+# 在 gasifier_system 导入期把 jax 拉进来，那会绕过 jax_enable_x64 的时序。
+_WGS_KEQ_MODEL_IDS = {"thermo": 0, "legacy_fit": 1, "fortran": 2}
 
 class GasifierSystem:
     def __init__(self, geometry, coal_props, op_conds):
@@ -112,7 +117,12 @@ class GasifierSystem:
             self.op_conds,
             sources=[
                 EvaporationSource(F_H2O_evap, L_evap_m=L_evap),
-                PyrolysisSource(self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T),
+                PyrolysisSource(
+                    self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T,
+                    coal_mass_flow_kg_s=self.W_dry, coal_props=self.coal_props,
+                    solid_enthalpy_model=self.op_conds.get(
+                        "SolidEnthalpyModel", SOLID_ENTHALPY_MODEL_DEFAULT),
+                ),
             ],
         )
         cell.coal_flow_dry = self.W_dry
@@ -231,6 +241,14 @@ class GasifierSystem:
             return self._solve_jax_v4(dz_list, inlet, A)
         return self._solve_sequential(dz_list, inlet, A, solver_method, jacobian_mode)
 
+    def _pyrolysis_source(self) -> PyrolysisSource:
+        """P1.6-A（B9）：NumPy/JAX 两条路径共用的热解源（含热解热口径）。"""
+        return PyrolysisSource(
+            self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=self.op_conds["T_in"],
+            coal_mass_flow_kg_s=self.W_dry, coal_props=self.coal_props,
+            solid_enthalpy_model=self.op_conds.get("SolidEnthalpyModel", SOLID_ENTHALPY_MODEL_DEFAULT),
+        )
+
     def _solve_jax_v4(self, dz_list, inlet, A):
         # 须先加载 jax_solver，其内会 jax_enable_x64；否则此处先 import jax.numpy 会锁在 float32
         from .jax_solver import reactor_solve_v4
@@ -247,7 +265,12 @@ class GasifierSystem:
                 # 须用 +=：与 Cell 内 EvaporationSource + PyrolysisSource 一致，勿整行覆盖以致丢失蒸发 H2O
                 g_src_9[i, :] = g_src_9[i, :] + mainline_gas8_to_jax9(v)
                 s_src[i] = -self.tmp_W_vol
-                e_src[i] += sum(v[j]*get_enthalpy_molar(sp, inlet.T) for j, sp in enumerate(SPECIES_NAMES) if v[j]>0)
+                # P1.6-A（B9）：热解热与挥发分焓直接复用 NumPy 侧的 PyrolysisSource，
+                # 保证两条路径共用同一份口径（legacy 口径下退化为仅挥发分焓）。
+                e_src[i] += self._pyrolysis_source().energy_src_W
+
+        solid_hf_inlet = np.zeros(N)
+        solid_hf_inlet[0] = 1.0
 
         f_s_coal = resolve_f_s_coal(self.coal_props, self.op_conds)
         def make_x12(t):
@@ -303,6 +326,10 @@ class GasifierSystem:
             float(self.coal_props.get('cp_char', 1300.0)), float(hhv_mj), float(inlet.T), float(f_ash),
             float(ref_f), float(ref_e), float(self.char_Xc0), float(f_s_coal),
             float(uses_fortran_default_model(self.op_conds)),
+            jnp.asarray(solid_hf_inlet, dtype=jnp.float64),
+            float(self.op_conds.get("SolidEnthalpyModel", SOLID_ENTHALPY_MODEL_DEFAULT) == "legacy_coal_hf"),
+            float(_WGS_KEQ_MODEL_IDS.get(str(self.op_conds.get("WGS_Keq_Model", "thermo")).lower(), 0)),
+            float(self.op_conds.get("HetConversionCutoff", "smooth") == "hard_0999"),
         )
         self.results = []
         for i in range(N):
@@ -334,7 +361,11 @@ class GasifierSystem:
             self.kinetics, self.coal_props, cell_ops,
             sources=[
                 EvaporationSource(F_H2O_evap, L_evap_m=L_evap),
-                PyrolysisSource(self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T),
+                PyrolysisSource(
+                    self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T,
+                    coal_mass_flow_kg_s=self.W_dry, coal_props=self.coal_props,
+                    solid_enthalpy_model=cell_ops.get("SolidEnthalpyModel", SOLID_ENTHALPY_MODEL_DEFAULT),
+                ),
             ],
         )
         cell.coal_flow_dry = self.W_dry
