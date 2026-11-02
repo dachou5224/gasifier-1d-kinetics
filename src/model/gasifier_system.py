@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.optimize import least_squares
+import math
 import warnings
 from .state import StateVector
 from .cell import Cell
@@ -342,13 +343,21 @@ class GasifierSystem:
         cell.ref_flow, cell.ref_energy = ref_f, ref_e
         return cell
 
+    @staticmethod
+    def _is_no_root(cell_cost: float) -> bool:
+        """判定一个单元是否为「无根」。
+
+        非有限成本（NaN/Inf）一律视为无根。`NaN > 1e-4` 为 False，
+        若只用阈值比较，含 NaN 的状态会被当作合格的根保留下来并报告 completed。
+        """
+        return (not math.isfinite(float(cell_cost))) or float(cell_cost) > 1e-4
+
     def _enforce_strict_root_on_states(self, dz_list, inlet, A, N):
         """对 batch 求解结果执行严格根复核（P1.5-A B2 在 jax_jit 上的等价实现）。
 
         未开启 SolverStrictRoot 时只记录逐单元成本，不改变结果。
         """
         strict_root = bool(self.op_conds.get("SolverStrictRoot", False))
-        cost_threshold = 1e-4
         cell_ops = self._cell_ops_for_solve(dz_list)
         ref_f = max(inlet.total_gas_moles, 1.0)
         ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
@@ -357,19 +366,20 @@ class GasifierSystem:
             cell = self._make_cell(i, dz_list, A, current_inlet, inlet, cell_ops, ref_f, ref_e)
             state = self.results[i]
             x = state.to_array()
+            # 状态本身含 NaN 时残差必为 NaN，成本判定会走 _is_no_root 的同一分支。
             residuals_now = np.asarray(cell.residuals(x), dtype=float)
             cell_cost = float(0.5 * np.sum(residuals_now ** 2))
             diag = self._build_cell_diagnostic(i, cell, state, cell_cost, residuals_now, False)
             self.cell_diagnostics.append(diag)
-            if cell_cost > cost_threshold:
+            if self._is_no_root(cell_cost):
                 self.solve_stats["poor_convergence_count"] = int(
                     self.solve_stats.get("poor_convergence_count", 0)) + 1
                 if strict_root:
                     self.execution_status = "no_root"
                     self.no_root_cell_index = i
                     logger.warning(
-                        "SolverStrictRoot (jax_jit): cell %d residual_cost=%.3e > %.0e, truncating.",
-                        i, cell_cost, cost_threshold,
+                        "SolverStrictRoot (jax_jit): cell %d residual_cost=%s, truncating.",
+                        i, cell_cost,
                     )
                     # 截断到首个非根之前：下游结果来自非根解，不能当作有效出口
                     self.results = self.results[:i]
@@ -517,11 +527,14 @@ class GasifierSystem:
             diag = self._build_cell_diagnostic(i, cell, sol_state, cell_cost, residuals_now, solver_failed)
             self.cell_diagnostics.append(diag)
 
-            if solver_failed or cell_cost > cost_threshold:
+            # 非有限成本同样是无根：NaN 与阈值比较为 False，若只比阈值会放过它。
+            no_root = solver_failed or self._is_no_root(cell_cost)
+
+            if no_root:
                 self.solve_stats["poor_convergence_count"] = int(self.solve_stats.get("poor_convergence_count", 0)) + 1
 
             # P1.5-A B2：严格模式拒绝非根解，停止向下游推进，不把非根解当作下一格入口
-            if strict_root and (solver_failed or cell_cost > cost_threshold):
+            if strict_root and no_root:
                 self.execution_status = "no_root"
                 self.no_root_cell_index = i
                 logger.warning(

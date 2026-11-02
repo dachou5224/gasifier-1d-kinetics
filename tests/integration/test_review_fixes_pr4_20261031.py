@@ -220,3 +220,79 @@ def test_snapshot_takes_the_combustion_zone_branch_like_residuals():
     for token in ("current=state", "phys=phys", "gas_src=g_src",
                   "is_combustion_zone=is_combustion"):
         assert token in src, f"snapshot_with_limits must pass {token}"
+
+
+# ------------------------------------------- 3. non-finite cost counts as no_root
+
+def test_non_finite_cost_is_treated_as_no_root():
+    """NaN/Inf 成本必须判为无根。
+
+    回归复审意见（2026-10-31 P1）：`cell_cost > 1e-4` 对 NaN 为 False，
+    于是含 NaN 的批次状态会被当作合格的根保留并报告 completed、
+    poor_convergence_count=0。
+    """
+    from model.gasifier_system import GasifierSystem
+
+    assert GasifierSystem._is_no_root(float("nan")) is True
+    assert GasifierSystem._is_no_root(float("inf")) is True
+    assert GasifierSystem._is_no_root(float("-inf")) is True
+    # 有限值的原语义不变
+    assert GasifierSystem._is_no_root(0.0) is False
+    assert GasifierSystem._is_no_root(9.9e-5) is False
+    assert GasifierSystem._is_no_root(1.1e-4) is True
+
+
+@pytest.mark.skipif(not _jax_available(), reason="jax not installed")
+def test_jax_batch_with_nan_state_reports_no_root(monkeypatch):
+    """端到端：批次结果含 NaN 时必须截断并报 no_root，而不是 completed。
+
+    构造一个残差全为 NaN 的 Cell 残余，模拟 JAX 批次输出的 NaN 状态。
+    """
+    import numpy as np
+
+    from model.cell import Cell
+    from model.gasifier_system import GasifierSystem
+
+    def nan_residuals(self, x):
+        # 前 n-1 位为 1（bad），末 3 位为 NaN
+        arr = np.ones(11, dtype=float)
+        arr[:9] = np.nan
+        return arr
+
+    monkeypatch.setattr(Cell, "residuals", nan_residuals)
+
+    system = _simple_system(SolverStrictRoot=True)
+    system._initialize_inlet()
+    system.z_positions = np.array([0.5, 1.5])
+    from model.state import StateVector
+
+    system.results = [
+        StateVector(gas_moles=np.full(8, 10.0), solid_mass=1.0, carbon_fraction=0.7,
+                    T=1500.0, P=2.0e6, z=0.5),
+        StateVector(gas_moles=np.full(8, 10.0), solid_mass=1.0, carbon_fraction=0.7,
+                    T=1500.0, P=2.0e6, z=1.5),
+    ]
+    system.execution_status = "completed"
+    system.cell_diagnostics = []
+    system.solve_stats = {"fallback_count": 0, "poor_convergence_count": 0}
+
+    system._enforce_strict_root_on_states(
+        np.array([1.0, 1.0]), system.results[0],
+        math.pi * (1.5 / 2) ** 2, 2)
+
+    assert system.execution_status == "no_root", system.execution_status
+    assert system.no_root_cell_index == 0
+    assert len(system.results) == 0
+    assert system.solve_stats["poor_convergence_count"] >= 1
+
+
+def test_sequential_path_uses_the_same_non_finite_rule():
+    """顺序路径必须共用 `_is_no_root`，不能各自写阈值比较。"""
+    import inspect
+
+    from model.gasifier_system import GasifierSystem
+
+    src = inspect.getsource(GasifierSystem._solve_sequential)
+    assert "_is_no_root" in src
+    # 不允许再出现裸的阈值比较
+    assert "cell_cost > cost_threshold" not in src
