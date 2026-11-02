@@ -42,7 +42,7 @@ COAL_DATABASE = {
     # 氧差 7 倍、灰分差一半，会让算例根本不可解。
     #
     # ---------------------------------------------------------------------------
-    # 逐字段溯源：哪些是实测，哪些是参考实现的假设
+    # 逐字段溯源：哪些是实测，哪些是假设
     # ---------------------------------------------------------------------------
     # 归档 JSON 只给 H-coal_residue_Illinois_No6 提供了 proximate 与发热量；
     # Wyodak 与 Exxon 只有 ultimate。因此：
@@ -51,18 +51,28 @@ COAL_DATABASE = {
     #   -------------------------------  ------------------------------  ------------------------------
     #   C/H/O/N/S   JSON ultimate           实测  JSON ultimate           实测
     #   Ad          JSON ultimate           实测  JSON ultimate           实测
-    #   FCd / Vd    fc=65.0 dmmf 推导，与    实测  fc=65.0 dmmf 推导，      假设（借用同一 fc）
-    #               JSON proximate 吻合            无独立 proximate 支持
+    #   FCd / Vd    fc=65.0 dmmf 推导       假设  fc=65.0 dmmf 推导       假设
     #   Mt          4.53（JSON moisture）   实测  4.53                      假设（借用 Illinois）
     #   HHV_d       29800（JSON HHV）       实测  29800                     假设（借用 Illinois）
     #
+    # 关键更正（2026-11-02 复审）：Illinois 的 FCd/Vd **也是假设，不是实测**。
+    # 早先注释写成"与 JSON proximate 吻合"是错的：
+    #   归档 JSON proximate = FC 61.41 / VM 31.24 / ash 7.35
+    #   本表写入            = FC 54.90 / VM 29.57 / ash 15.53
+    # 两者不吻合。原因是该 proximate 块的 ash 7.35 与其自身 ultimate 的 ash 15.53
+    # 矛盾，判定为母煤数据而非残渣数据，故不采用；FCd/Vd 改由 Fortran 的
+    # fc = 65.0 换算得到。所以三者**没有任何一个**有独立 proximate 锚定。
+    #
     # 依据：Source1_副本.for 行 55 对所有算例用同一个 `fc = 65.0`（dmmf），
-    # 且 namelist 不带逐算例水分与发热量，所以程序本身就无法区分这三者。
+    # 且 namelist 不带逐算例水分与发热量，所以程序本身无法区分这三者。
     #
     # 结论（写论文时必须区分）：
-    #   * 5 个 Illinois residue 算例（I-1/2/5C/10 等）在 proximate 与发热量上有独立锚定；
-    #   * Wyodak（W-*）与 Exxon 算例只是同一条代码路径的一致性检查，
-    #     其 FCd/Vd/Mt/HHV 是假设值，不能声称"经过 Wen 实验验证"。
+    #   * Illinois residue 算例在 **ultimate 与发热量**上有独立锚定，
+    #     其 FCd/Vd 与其余两者一样是 fc=65.0 的推导值；
+    #   * Wyodak（W-*）与 Exxon 算例除 ultimate 外全部为借用值，
+    #     只是同一条代码路径的一致性检查；
+    #   * 三个煤种都不能声称"经过 Wen 实验的工业分析验证"——
+    #     归档中的 proximate 数据要么缺失，要么自相矛盾。
     #
     # 水分说明：取论文 JSON 的 4.53。Fortran namelist 用 xmois=0.002，两者冲突；
     # 未按 Fortran 值调参，因为那会变成用参数拟合参考实现（试过：I-1 发散到 1818 K）。
