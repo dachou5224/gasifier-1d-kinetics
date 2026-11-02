@@ -32,6 +32,7 @@ COAL_DATABASE = {
         "HHV_d": 31000.0,
     },
     # --- Wen & Chaung (1979) Texaco 小试的三类进料 ---
+    #
     # Ultimate 来自 data/archive/validation_cases_OriginalPaper.json 的 coal_database，
     # 与 reference_fortran/Source1_副本.for 的 namelist 一致：
     #   C=74.05/(C+H+O+N+S=84.10) = 0.8805 vs yc = 0.88026（差 0.03%，源表取整）
@@ -40,12 +41,36 @@ COAL_DATABASE = {
     # 不要用 Illinois_No6（原煤，Od=9.42）代替 H-coal residue（Od=1.32）：
     # 氧差 7 倍、灰分差一半，会让算例根本不可解。
     #
-    # 水分取原始论文 JSON 的 moisture_wt_pct=4.53。Fortran namelist 用 xmois=0.002，
-    # 两者冲突；未按 Fortran 值调参，因为那会变成用参数拟合参考实现。
+    # ---------------------------------------------------------------------------
+    # 逐字段溯源：哪些是实测，哪些是参考实现的假设
+    # ---------------------------------------------------------------------------
+    # 归档 JSON 只给 H-coal_residue_Illinois_No6 提供了 proximate 与发热量；
+    # Wyodak 与 Exxon 只有 ultimate。因此：
     #
-    # 固定碳：原始 JSON 的 proximate 块与 ultimate 的灰分自相矛盾（proximate ash=7.35 而
-    # ultimate ash=15.53），说明该块是母煤的数据。改用 Fortran 自己的口径：行 55 `fc = 65.0`
-    # 是 dmmf 基固定碳，三个算例共用。换算到干基：FCd = 65*(100-Ad)/100，Vd = 100-FCd-Ad。
+    #   字段        Illinois residue              Wyodak / Exxon
+    #   -------------------------------  ------------------------------  ------------------------------
+    #   C/H/O/N/S   JSON ultimate           实测  JSON ultimate           实测
+    #   Ad          JSON ultimate           实测  JSON ultimate           实测
+    #   FCd / Vd    fc=65.0 dmmf 推导，与    实测  fc=65.0 dmmf 推导，      假设（借用同一 fc）
+    #               JSON proximate 吻合            无独立 proximate 支持
+    #   Mt          4.53（JSON moisture）   实测  4.53                      假设（借用 Illinois）
+    #   HHV_d       29800（JSON HHV）       实测  29800                     假设（借用 Illinois）
+    #
+    # 依据：Source1_副本.for 行 55 对所有算例用同一个 `fc = 65.0`（dmmf），
+    # 且 namelist 不带逐算例水分与发热量，所以程序本身就无法区分这三者。
+    #
+    # 结论（写论文时必须区分）：
+    #   * 5 个 Illinois residue 算例（I-1/2/5C/10 等）在 proximate 与发热量上有独立锚定；
+    #   * Wyodak（W-*）与 Exxon 算例只是同一条代码路径的一致性检查，
+    #     其 FCd/Vd/Mt/HHV 是假设值，不能声称"经过 Wen 实验验证"。
+    #
+    # 水分说明：取论文 JSON 的 4.53。Fortran namelist 用 xmois=0.002，两者冲突；
+    # 未按 Fortran 值调参，因为那会变成用参数拟合参考实现（试过：I-1 发散到 1818 K）。
+    #
+    # 固定碳说明：原始 JSON 的 proximate 块与 ultimate 的灰分自相矛盾
+    # （proximate ash=7.35 而 ultimate ash=15.53），判定该块是母煤数据而非残渣数据。
+    # 改用 Fortran 口径：FCd = 65*(100-Ad)/100，Vd = 100-FCd-Ad。
+    # FCd 会被 PyrolysisService 使用（C_vol_potential = Cd - FCd），不能随手填。
     "H-coal_residue_Illinois_No6": {
         "Cd": 74.05, "Hd": 6.25, "Od": 1.32, "Nd": 0.71, "Sd": 1.77,
         "Ad": 15.53, "Vd": 29.57, "FCd": 54.90,

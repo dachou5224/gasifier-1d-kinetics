@@ -252,6 +252,31 @@ class TestValidationCases(unittest.TestCase):
         texaco_w1 = self.config["cases"]["Texaco_W-1"]
         self.assertEqual(texaco_w1["coal_type"], "H-coal_residue_Wyodak")
 
+    def test_wen_feeds_record_which_fields_are_assumed(self):
+        """Wyodak / Exxon 的 FCd/Mt/HHV 是假设值，Illinois 是实测值。
+
+        归档 JSON 只给 Illinois residue 提供了 proximate 与发热量。若有人日后
+        把借用值当成实测写进论文，或者把三个煤种混用，这里会失败。
+        注释中的溯源表（chemistry.py）与本测试必须一致。
+        """
+        illinois = self.coals["H-coal_residue_Illinois_No6"]
+        wyodak = self.coals["H-coal_residue_Wyodak"]
+        exxon = self.coals["Exxon_DSP_vacuum_tower_bottoms"]
+
+        # Illinois 的固定碳按 fc=65.0 dmmf 换算：FCd = 65*(100-Ad)/100
+        # 表里存的是两位小数（54.90），公式给 54.9055，故容差取 0.01。
+        self.assertAlmostEqual(illinois["FCd"], 65.0 * (100.0 - illinois["Ad"]) / 100.0, delta=0.01)
+        # 三者的 Mt 与 HHV 相同 —— 这正是"借用"的证据，不是巧合
+        self.assertEqual(wyodak["Mt"], illinois["Mt"])
+        self.assertEqual(exxon["Mt"], illinois["Mt"])
+        self.assertEqual(wyodak["HHV_d"], illinois["HHV_d"])
+        self.assertEqual(exxon["HHV_d"], illinois["HHV_d"])
+        # 但 ultimate 各不相同，说明 Ad 是实测的、FCd 是由 Ad 推出来的
+        self.assertNotEqual(wyodak["Ad"], illinois["Ad"])
+        self.assertNotEqual(exxon["Ad"], illinois["Ad"])
+        for coal in (illinois, wyodak, exxon):
+            self.assertAlmostEqual(coal["Vd"] + coal["FCd"] + coal["Ad"], 100.0, places=2)
+
     def test_known_nonconvergent_case_reports_its_status(self):
         """已知未收敛的算例必须如实报告，而不是悄悄给出"正常"出口。
 
