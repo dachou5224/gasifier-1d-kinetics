@@ -1,0 +1,139 @@
+{
+  "round": "P1.6-A / 2026-10-31（2026-11-02 修订执行）",
+  "model_repo": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic",
+  "source_commit": "d5fd8bcb6a960c27e5ac7ee304e124d1ce7c0ac2",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "source_commit_note": "生成本轮全部产物的代码提交；产物本身随后另起一次仅含 outputs 的提交",
+  "equation_changes": {
+    "1a_solid_enthalpy": "入炉煤保留 Hf_coal；热解后焦炭碳取石墨生成焓 0、灰只计显热。开关 SolidEnthalpyModel ∈ {char_formation_zero(缺省), legacy_coal_hf}。",
+    "1b_wgs_keq": "缺省 WGS_Keq_Model='thermo'：K=exp(-ΔG/RT)，G 由 physics.get_gibbs_free_energy；保留 'legacy_fit'=exp(4578/T-4.33) 与 'fortran'=exp(-3.6893+7234/(1.8T))。",
+    "2_het_cutoff": "去掉异相速率里 X_total>=0.999 的硬截断（开关 HetConversionCutoff ∈ {smooth(缺省), hard_0999}）；完全转化时由 1/(k_s*Y^2) 让速率按 Y^2 趋零。"
+  },
+  "frozen_items_untouched": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor / CO_OxidationFactor",
+    "pyrolysis yields",
+    "USE_RK_GILL_COMBUSTION = False",
+    "ParticleSizeModel = fortran_constant",
+    "steam_flow = 0",
+    "negative-WGS hydrogen truncation（本轮不改，作为显式假设登记）"
+  ],
+  "anchor_inputs": {
+    "source": "reference_fortran/input_副本.txt namelist 原值（含 xmois）+ Source1_副本.for 第 32 行几何",
+    "geometry_line": 32,
+    "geometry": {
+      "L_m": 3.3,
+      "D_m": 1.524,
+      "P_atm": 24.0,
+      "source_line": 32
+    },
+    "not_via": "load_case_from_repo",
+    "hhv_d_mj_per_kg": 30.0,
+    "hhv_note": "namelist 无 HHV；沿用 P1.5-C 的 30 MJ/kg 占位值以保持可比，仅影响热损基准与 Hf_coal 的量级"
+  },
+  "unit_check_tolerances": {
+    "energy_closure_rel": 1e-09,
+    "reaction_heat_rel": 1e-06,
+    "wgs_keq_rel": 1e-10
+  },
+  "unit_checks_all_pass": true,
+  "anchor_tolerances": {
+    "X_C_pp": 2.0,
+    "CO_vol_pct": 2.0,
+    "H2_vol_pct": 2.0,
+    "CO2_vol_pct": 2.0,
+    "T_gas_K": 50.0,
+    "O2_drop_rel": 0.2
+  },
+  "anchor_n_list": [
+    40,
+    80,
+    160
+  ],
+  "anchor_n_reference": 160,
+  "baseline_n_list": [
+    40,
+    80
+  ],
+  "baseline_windows": [
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002",
+    "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001"
+  ],
+  "solver": {
+    "solver_method": "minimize",
+    "jacobian_mode": "scipy",
+    "MeshFamily": "uniform_full_length",
+    "SolverStrictRoot": true
+  },
+  "xcap_windows": [
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+    "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+    "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001"
+  ],
+  "noroot_windows_pre_fix": [
+    "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001"
+  ],
+  "anchor_cases_used": [
+    "texaco i-1",
+    "texaco i-2",
+    "texaco i-5c",
+    "texaco i-10",
+    "texaco exxon",
+    "slurry western",
+    "slurry eastern"
+  ],
+  "anchor_criteria_count": 30,
+  "jax_parity_summary": {
+    "window_id": "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+    "N_cells": 40,
+    "after_f1_max_abs_diff": 0.0003485988252780736,
+    "after_f1_all_pass": false,
+    "after_f1_max_abs_diff_index_aligned": 0.0018672085220321933,
+    "after_f1_max_abs_diff_fortran_constant": 6.47109844239824e-05,
+    "after_f1_max_abs_diff_shrinking_legacy": 0.0003485988252780736,
+    "after_f4_max_rel_diff": 4.815034402045282e-15,
+    "after_f4_all_pass": true,
+    "before_f1_max_abs_diff": 0.0002860827689321899,
+    "before_f1_all_pass": false,
+    "before_f1_max_abs_diff_index_aligned": 0.0016811111199343102,
+    "before_f1_max_abs_diff_fortran_constant": 0.0002848629640410511,
+    "before_f1_max_abs_diff_shrinking_legacy": 0.0002860827689321899,
+    "before_f4_max_rel_diff": 1.0,
+    "before_f4_all_pass": false
+  },
+  "jax_jit_smoke": {
+    "status": "no_root",
+    "T_out_K": 2476.999419974326,
+    "N_cells": 10,
+    "no_root_cell_index": 1,
+    "n_cells_packaged": 1
+  },
+  "extra_artifacts": [
+    "baseline_cells.csv（逐单元限幅绑定与残差成本，供修订第 2 条）"
+  ]
+}
