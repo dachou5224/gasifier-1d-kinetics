@@ -15,6 +15,11 @@ import numpy as np
 import pandas as pd
 
 from .gasifier_system import GasifierSystem
+from .input_contract import (
+    PARTICLE_MODEL_DEFAULT,
+    PARTICLE_MODEL_LEGACY,
+    resolve_particle_model,
+)
 from .model_case_adapter import NORMAL_M3_PER_KMOL, build_gasifier_inputs_from_model_case
 
 DATASET_ID = "R52-C-75"
@@ -49,6 +54,36 @@ def source_commit(repo: Path | None = None) -> str:
         ).strip()
     except Exception:
         return "unknown"
+
+
+def legacy_mesh_op_conds(op_conds: Mapping[str, Any]) -> dict[str, Any]:
+    """历史轮次显式放行截断网格，并锁定当时的颗粒尺寸模型。
+
+    两件事都必须显式，否则历史复现会静默漂移：
+
+    1. 网格：P1.5-A 起 ``GasifierSystem.solve`` 对 ``|sum(dz) - L| > 1e-9 L``
+       直接报错。2026-10-30 之前的所有诊断都跑在旧网格族上（3 <= N <= 20
+       时只覆盖反应器入口一小段），要复现必须显式打开这个开关。
+    2. 颗粒尺寸模型：2026-11-02 起 ``input_contract.PARTICLE_MODEL_DEFAULT``
+       是 ``fortran_constant``。这些历史轮次产生于缺省仍为 ``shrinking_legacy``
+       的时期，因此这里显式锁定旧模型，而不是让它随缺省值改变。
+
+    产物中凡是 ``particle_model_legacy_model=True`` 的行，都是旧模型的结果，
+    不可与 fortran 口径的数字混用。
+    """
+    out = dict(op_conds)
+    out.setdefault("AllowTruncatedMesh", True)
+    out.setdefault("ParticleSizeModel", PARTICLE_MODEL_LEGACY)
+    return out
+
+
+def particle_model_marker(op_conds: Mapping[str, Any]) -> dict[str, Any]:
+    """给产物行附上颗粒模型标记，便于区分旧模型复现与 fortran 口径。"""
+    model = resolve_particle_model(op_conds)
+    return {
+        "particle_size_model": model,
+        "particle_model_legacy_model": model != PARTICLE_MODEL_DEFAULT,
+    }
 
 
 def residual_quality_status(cell0_cost: float) -> str:

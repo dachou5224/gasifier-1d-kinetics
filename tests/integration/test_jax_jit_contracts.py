@@ -47,6 +47,9 @@ def _case_paper_6():
         "HeatLossPercent": inputs.get("HeatLossPercent", 1.0),
         "epsilon": inputs.get("Voidage", 1.0),
         "SlurryConcentration": inputs.get("SlurryConcentration", 62.0),
+        # 本文件的用例比较两个求解器在同一截断网格（N_cells=8）上的输出，
+        # 不是论文轮次，故显式放行旧网格族。
+        "AllowTruncatedMesh": True,
     }
     geometry = {"L": inputs.get("L_reactor", 6.0), "D": inputs.get("D_reactor", 2.0)}
     return GasifierSystem(geometry, coal_props, op_conds)
@@ -82,8 +85,14 @@ def test_heat_loss_inputs_resolve():
 
 def test_f_s_coal_defaults_to_zero_for_mainline_parity():
     assert resolve_f_s_coal({}, {}) == 0.0
-    assert resolve_f_s_coal({"f_s_coal": 0.02}, {}) == 0.02
-    assert resolve_f_s_coal({}, {"f_s_coal": 0.03}) == 0.03
+    assert resolve_f_s_coal({"f_s_coal": 0.0}, {}) == 0.0
+
+
+@pytest.mark.parametrize("coal_props,op_conds", [({"f_s_coal": 0.02}, {}), ({}, {"f_s_coal": 0.03})])
+def test_f_s_coal_nonzero_raises(coal_props, op_conds):
+    """P1.5-B: sulfur is released once by PyrolysisService, so surface release must not be enabled."""
+    with pytest.raises(ValueError, match="f_s_coal != 0"):
+        resolve_f_s_coal(coal_props, op_conds)
 
 
 @pytest.mark.parametrize("solver", ["minimize", "jax_jit"])

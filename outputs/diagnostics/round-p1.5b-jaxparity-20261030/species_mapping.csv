@@ -1,0 +1,9 @@
+mainline_index,species,mapped_jax_index,expected_jax_index,roundtrip_error,pass
+0,O2,0,0,0.0,True
+1,CH4,1,1,0.0,True
+2,CO,2,2,0.0,True
+3,CO2,3,3,0.0,True
+4,H2S,7,7,0.0,True
+5,H2,5,5,0.0,True
+6,N2,6,6,0.0,True
+7,H2O,4,4,0.0,True

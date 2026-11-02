@@ -5,18 +5,28 @@ JAX 版本的物理性质与热力学计算 (统一 9 组分顺序版)。
 import jax.numpy as jnp
 from jax import jit
 from functools import partial
-from .physics import SHOMATE_DB, R_CONST, FULLER_VOLUMES, MOLAR_MASS
+from .physics import SHOMATE_DB, MAX_SHOMATE_SEGMENTS, R_CONST, FULLER_VOLUMES, MOLAR_MASS
 
 # 唯一的、全局统一的顺序
 SPECIES_ORDER = ['O2', 'CH4', 'CO', 'CO2', 'H2O', 'H2', 'N2', 'H2S', 'COS']
 
 def _get_shomate_coeffs_jax():
+    """三维矩阵：species × 分段（补齐到 MAX_SHOMATE_SEGMENTS）× 8 系数。
+
+    第二维上界之外用 6e9 K 作为哨兵，使 ``T >= cut`` 永不触发。
+    """
     coeffs_all = []
     t_cuts = []
     for sp in SPECIES_ORDER:
         data = SHOMATE_DB[sp]
-        coeffs_all.append([data['Low'], data['High']])
-        t_cuts.append(data['T_cut'])
+        segs = [list(c) for c in data['segments']]
+        while len(segs) < MAX_SHOMATE_SEGMENTS:
+            segs.append(segs[-1])
+        cuts = [float(c) for c in data['T_cuts']]
+        while len(cuts) < MAX_SHOMATE_SEGMENTS - 1:
+            cuts.append(6.0e9)
+        coeffs_all.append(segs)
+        t_cuts.append(cuts)
     return jnp.array(coeffs_all), jnp.array(t_cuts)
 
 COEFFS_MATRIX, T_CUTS_MATRIX = _get_shomate_coeffs_jax()
@@ -25,7 +35,9 @@ COEFFS_MATRIX, T_CUTS_MATRIX = _get_shomate_coeffs_jax()
 def calculate_shomate_jax(species_indices: jnp.ndarray, T: jnp.ndarray, prop_type: str = 'H'):
     t = T / 1000.0
     t_cuts = T_CUTS_MATRIX[species_indices]
-    range_idx = jnp.where(T < t_cuts, 0, 1)
+    T_arr = jnp.asarray(T)
+    range_idx = jnp.sum((T_arr[..., None] >= t_cuts).astype(jnp.int32), axis=-1)
+    range_idx = jnp.clip(range_idx, 0, MAX_SHOMATE_SEGMENTS - 1)
     coeffs = COEFFS_MATRIX[species_indices, range_idx]
     
     A, B, C, D, E, F, G = coeffs[:, 0], coeffs[:, 1], coeffs[:, 2], coeffs[:, 3], coeffs[:, 4], coeffs[:, 5], coeffs[:, 6]

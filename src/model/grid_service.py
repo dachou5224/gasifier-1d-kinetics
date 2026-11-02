@@ -18,6 +18,10 @@ class MeshConfig:
     # 例如 1.08 表示每个后续单元长度约为前一单元的 1.08 倍
     ignition_zone_stretch_ratio: float = 1.0
     min_grid_size: float = 0.1
+    # 网格族（P1.5-A，2026-10-30）：
+    #   "legacy"              —— 现行点火区加密逻辑；3 <= N <= 20 时只覆盖入口一小段
+    #   "uniform_full_length" —— dz_i = L / N，铺满全长；论文全部新轮次使用这一族
+    mesh_family: str = "legacy"
 
 class AdaptiveMeshGenerator:
     """
@@ -40,8 +44,12 @@ class AdaptiveMeshGenerator:
         
         # Explicit Sizes derived from constants or config
         # Use config values, falling back to PhysicalConstants if not provided (though config has defaults)
-        
-        if N > 2:
+        family = str(getattr(self.cfg, "mesh_family", "legacy") or "legacy").lower()
+
+        if family == "uniform_full_length":
+            # 均匀铺满：每个单元 dz = L / N（旧行为保持不变，需显式选择）
+            dz_list[:] = L / float(N)
+        elif N > 2:
             # 0. First Cell (Tuyere / Inlet)
             # Use defined ignition zone length first step or a specific large inlet cell?
             # Existing logic used FIRST_CELL_LENGTH (0.4)

@@ -13,6 +13,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 from .gasifier_system import GasifierSystem
+from .revision_evidence_common import legacy_mesh_op_conds, particle_model_marker
 from .model_case_adapter import build_gasifier_inputs_from_model_case
 
 POOR_CONVERGENCE_COST_THRESHOLD = 1.0e-4
@@ -49,6 +50,8 @@ REQUIRED_DIAGNOSTIC_COLUMNS: tuple[str, ...] = (
     "delta_H2_CO_ratio",
     "carrier_mapping_ok",
     "transported_moisture_percent",
+    "particle_size_model",
+    "particle_model_legacy_model",
 )
 
 
@@ -94,7 +97,7 @@ def build_diagnostic_row(model_case_row: Mapping[str, Any], n_cells: int) -> dic
     Solve one ModelCase and return a flat diagnostic row for CSV/Markdown output.
     """
     built = build_gasifier_inputs_from_model_case(model_case_row)
-    system = GasifierSystem(built["geometry"], built["coal_props"], built["op_conds"])
+    system = GasifierSystem(built["geometry"], built["coal_props"], legacy_mesh_op_conds(built["op_conds"]))
 
     inlet = system._initialize_inlet()
     carrier_mapping_ok = bool(inlet.gas_moles[3] > 0.0 and inlet.gas_moles[6] == 0.0)
@@ -154,6 +157,7 @@ def build_diagnostic_row(model_case_row: Mapping[str, Any], n_cells: int) -> dic
         "delta_H2_CO_ratio": pred_h2_co - target_h2_co,
         "carrier_mapping_ok": carrier_mapping_ok,
         "transported_moisture_percent": transported_moisture_percent,
+        **particle_model_marker(system.op_conds),
     }
     return {column: row.get(column) for column in REQUIRED_DIAGNOSTIC_COLUMNS}
 

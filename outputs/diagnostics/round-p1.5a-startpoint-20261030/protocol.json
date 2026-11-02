@@ -1,0 +1,61 @@
+{
+  "round": "P1.5-A / 2026-10-30",
+  "model_repo": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic",
+  "source_commit": "98ad47ca1a3ddcfe888ad7191bd4c95fe8232fcb",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "round_dir": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic/outputs/diagnostics/round-p1.5a-startpoint-20261030",
+  "smoke_window": "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+  "smoke_n_cells": [
+    10,
+    40
+  ],
+  "changed_files": [
+    "src/model/grid_service.py",
+    "src/model/gasifier_system.py",
+    "src/model/cell.py",
+    "src/model/physics.py",
+    "src/model/jax_physics.py",
+    "src/model/p1_5_round_20261030.py",
+    "scripts/generate_p1_5a_startpoint_20261030.py"
+  ],
+  "new_switches": {
+    "MeshFamily": "legacy | uniform_full_length（论文轮次用后者）",
+    "AllowTruncatedMesh": "缺省 False；只用于复现旧轮次",
+    "SolverStrictRoot": "缺省 False；论文轮次 True",
+    "ParticleSizeModel": "shrinking_legacy | fortran_constant",
+    "ParticleSwellFactor": "缺省 1.0（华谊无实测膨胀系数）"
+  },
+  "thermo_tolerances": {
+    "enthalpy_jump_J_per_mol": 20.0,
+    "janaf_rel_dev": 0.002
+  },
+  "particle_area_tolerance": 1e-06,
+  "particle_model_fortran_evidence": {
+    "rp_line": 130,
+    "rp_formula": "rp = ri*(swell**0.333)",
+    "r_const_lines": [
+      419,
+      442,
+      755
+    ],
+    "densp_note": "densp 在入口按堆积密度赋值，之后随转化更新；本轮按 '密度随剩余固体质量分数线性下降' 实现",
+    "swell_value_used": 1.0
+  },
+  "strict_root_cost_threshold": 0.0001,
+  "mesh_assert_rtol": 1e-09,
+  "note": "本轮不产出华谊统计结论；全长网格结果留给 P2-A"
+}

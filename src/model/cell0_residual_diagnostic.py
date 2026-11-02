@@ -13,6 +13,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 from .gasifier_system import GasifierSystem
+from .revision_evidence_common import legacy_mesh_op_conds, particle_model_marker
 from .material import SPECIES_NAMES
 from .model_case_adapter import build_gasifier_inputs_from_model_case
 from .model_case_diagnostic_baseline import POOR_CONVERGENCE_COST_THRESHOLD
@@ -64,6 +65,8 @@ CELL0_RESIDUAL_COLUMNS: tuple[str, ...] = (
     "carrier_mapping_ok",
     "transported_moisture_percent",
     "residual_normalization",
+    "particle_size_model",
+    "particle_model_legacy_model",
 )
 
 RESIDUAL_NAMES: tuple[str, ...] = tuple(f"gas_{name}" for name in SPECIES_NAMES) + (
@@ -118,7 +121,7 @@ def _top_components(residual: np.ndarray, n: int = 3) -> list[dict[str, Any]]:
 def build_cell0_residual_row(model_case_row: Mapping[str, Any], n_cells: int) -> dict[str, Any]:
     """Solve one ModelCase and return one cell-0 residual decomposition row."""
     built = build_gasifier_inputs_from_model_case(model_case_row)
-    system = GasifierSystem(built["geometry"], built["coal_props"], built["op_conds"])
+    system = GasifierSystem(built["geometry"], built["coal_props"], legacy_mesh_op_conds(built["op_conds"]))
     inlet = system._initialize_inlet()
     carrier_mapping_ok = bool(inlet.gas_moles[3] > 0.0 and inlet.gas_moles[6] == 0.0)
 
@@ -179,6 +182,7 @@ def build_cell0_residual_row(model_case_row: Mapping[str, Any], n_cells: int) ->
         "carrier_mapping_ok": carrier_mapping_ok,
         "transported_moisture_percent": float(built["coal_props"]["Mt"]),
         "residual_normalization": RESIDUAL_NORMALIZATION_TEXT,
+        **particle_model_marker(system.op_conds),
     }
     for i, component in enumerate(top, start=1):
         row[f"top{i}_name"] = component["name"]
