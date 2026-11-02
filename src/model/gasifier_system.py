@@ -17,6 +17,7 @@ from .input_contract import (
     heat_loss_norm_length_m,
     heat_loss_ref_temp_k,
     resolve_f_s_coal,
+    uses_fortran_default_model,
 )
 from .solver import NewtonSolver
 from .jax_residual_adapter import make_jacobian_fn
@@ -300,7 +301,7 @@ class GasifierSystem:
             float(self.coal_props.get('Hf_coal', 0.0)),
             float(self.coal_props.get('cp_char', 1300.0)), float(hhv_mj), float(inlet.T), float(f_ash),
             float(ref_f), float(ref_e), float(self.char_Xc0), float(f_s_coal),
-            float(str(self.op_conds.get("ParticleSizeModel", "shrinking_legacy")).lower() == "fortran_constant"),
+            float(uses_fortran_default_model(self.op_conds)),
         )
         self.results = []
         for i in range(N):

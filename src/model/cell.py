@@ -2,7 +2,11 @@ import numpy as np
 import logging
 from model.state import StateVector
 from model.material import MaterialService, SPECIES_NAMES
-from model.input_contract import ash_mass_fraction_dry
+from model.input_contract import (
+    PARTICLE_MODEL_DEFAULT,
+    ash_mass_fraction_dry,
+    resolve_particle_model,
+)
 from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
 from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient, R_CONST
@@ -55,9 +59,9 @@ class Cell:
         # 单位原始固体质量中剩余的“碳+灰”分数；颗粒数守恒时也等于颗粒质量分数
         solids_fraction = f_ash_coal + (1.0 - f_ash_coal) * (1.0 - X_total)
         solids_fraction = max(float(solids_fraction), 1e-9)
-        particle_model = str(self.op_conds.get('ParticleSizeModel', 'shrinking_legacy')).lower()
+        particle_model = resolve_particle_model(self.op_conds)
         swell = max(float(self.op_conds.get('ParticleSwellFactor', 1.0)), 1e-6)
-        if particle_model == 'fortran_constant':
+        if particle_model == PARTICLE_MODEL_DEFAULT:
             d_p = d_p0 * swell**(1.0 / 3.0)
             rho_p = PhysicalConstants.PARTICLE_DENSITY * solids_fraction
         else:

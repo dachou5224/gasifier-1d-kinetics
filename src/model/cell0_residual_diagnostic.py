@@ -13,7 +13,7 @@ from typing import Any, Iterable, Mapping, Sequence
 import numpy as np
 
 from .gasifier_system import GasifierSystem
-from .revision_evidence_common import legacy_mesh_op_conds
+from .revision_evidence_common import legacy_mesh_op_conds, particle_model_marker
 from .material import SPECIES_NAMES
 from .model_case_adapter import build_gasifier_inputs_from_model_case
 from .model_case_diagnostic_baseline import POOR_CONVERGENCE_COST_THRESHOLD
@@ -65,6 +65,8 @@ CELL0_RESIDUAL_COLUMNS: tuple[str, ...] = (
     "carrier_mapping_ok",
     "transported_moisture_percent",
     "residual_normalization",
+    "particle_size_model",
+    "particle_model_legacy_model",
 )
 
 RESIDUAL_NAMES: tuple[str, ...] = tuple(f"gas_{name}" for name in SPECIES_NAMES) + (
@@ -180,6 +182,7 @@ def build_cell0_residual_row(model_case_row: Mapping[str, Any], n_cells: int) ->
         "carrier_mapping_ok": carrier_mapping_ok,
         "transported_moisture_percent": float(built["coal_props"]["Mt"]),
         "residual_normalization": RESIDUAL_NORMALIZATION_TEXT,
+        **particle_model_marker(system.op_conds),
     }
     for i, component in enumerate(top, start=1):
         row[f"top{i}_name"] = component["name"]
