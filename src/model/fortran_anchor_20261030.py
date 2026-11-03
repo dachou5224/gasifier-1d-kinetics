@@ -13,6 +13,7 @@ from typing import Any, Mapping
 import numpy as np
 
 from .gasifier_system import GasifierSystem
+from .input_contract import PYROLYSIS_HEAT_MODEL_ZERO
 from .p1_5_round_20261030 import MESH_FAMILY, PARTICLE_MODEL_MAIN, paper_op_conds
 
 # Fortran 常量（行号指 reference_fortran/Source1_副本.for 去 CR 后的行号）
@@ -261,7 +262,10 @@ def build_case_inputs(case: Mapping[str, Any], geometry: Mapping[str, Any] | Non
         "Sd": dmmf_to_dry * ys * 100.0,
         "Ad": yash * 100.0,
         "Mt": xmois * 100.0,
-        # Fortran 未给 HHV；热损在 Fortran 里按反应热比例处理（见台账 none 项）
+        # Fortran 未给 HHV；热损在 Fortran 里按反应热比例处理（见台账 none 项）。
+        # P1.7-A：这个 30 MJ/kg 只是**热损基准**的占位高位热值；模式 F 用
+        # PyrolysisHeatModel="zero" 时 Hf_coal 不再读取任何热值，因此它只影响
+        # HeatLossPercent=2% 那一项（HHV 30→34 的敏感性在 anchor_attribution 里给出）。
         "HHV_d": 30.0,
     }
     geom_out = {"L": float(geo["L_m"]), "D": float(geo["D_m"])}
@@ -306,6 +310,10 @@ def solve_fortran_case(
                 "WGS_RatFactor": True,
                 "CharCombustionRateFactor": 1.0,
                 "WGS_Keq_Model": "fortran",
+                # P1.7-A（卡第 2 节）：Fortran 采用反应热记账、煤本身无生成焓，
+                # 其能量自洽于自身热解产物 —— 等价于「热解热 = 0」。
+                # 因此模式 F 不再给占位热值去算 Hf_coal，而是由热解产物焓反推。
+                "PyrolysisHeatModel": PYROLYSIS_HEAT_MODEL_ZERO,
             }
         )
     if switches:

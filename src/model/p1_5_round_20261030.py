@@ -110,9 +110,14 @@ def run_case(
     extra_op: Mapping[str, Any] | None = None,
     solver_method: str = "minimize",
     keep_system: bool = False,
+    coal_flow_dry_kg_s: float | None = None,
 ) -> dict[str, Any]:
-    """求解一个窗口，返回 P2-A 所需的逐行指标。"""
-    built = build_gasifier_inputs_from_model_case(row)
+    """求解一个窗口，返回 P2-A 所需的逐行指标。
+
+    ``coal_flow_dry_kg_s``（P1.7-A）：给出时按干煤口径进料，由适配器显式换算成湿煤
+    （``wet = dry/(1 − Mt)``）；不给时保留历史路径（``coal_mass_flow_value`` 直接当湿煤）。
+    """
+    built = build_gasifier_inputs_from_model_case(row, coal_flow_dry_kg_s=coal_flow_dry_kg_s)
     op = paper_op_conds(built, particle_model=particle_model, mesh_family=mesh_family, extra=extra_op)
     system = GasifierSystem(built["geometry"], built["coal_props"], op)
     t0 = time.perf_counter()

@@ -114,9 +114,13 @@ def test_model_case_adapter_builds_inputs_and_uses_transport_moisture():
     assert built["geometry"] == {"D": 3.8, "L": 10.3}
     assert built["coal_props"]["Mt"] == TRANSPORTED_COAL_MOISTURE_PERCENT
     assert built["coal_props"]["Mt"] != pytest.approx(15.77)
+    # P1.7-A：合同字段是干燥基**低位**发热量 → 映射到 LHV_d（不再映射到 HHV_d）
+    assert built["coal_props"]["LHV_d"] == pytest.approx(27720.0)
+    assert "HHV_d" not in built["coal_props"]
+    # 不给 coal_flow_dry_kg_s 时保留历史行为：coal_mass_flow_value 直接当湿煤
     assert built["op_conds"]["coal_flow"] == pytest.approx(_preview_row()["coal_mass_flow_value"])
     assert built["op_conds"]["coal_flow"] != pytest.approx(monitoring_sum)
-    assert "weighfeeder" in built["assumptions"]["coal_flow_basis"]
+    assert "dry-basis" in built["assumptions"]["coal_flow_basis"]
     assert "monitor_pulverized_coal_line" in built["assumptions"]["forbidden_coal_flow_aliases"]
     assert built["op_conds"]["carrier_gas_type"] == "CO2"
     np.testing.assert_allclose(
@@ -136,6 +140,19 @@ def test_model_case_adapter_builds_inputs_and_uses_transport_moisture():
     )
     assert inlet.solid_mass != pytest.approx(built["op_conds"]["coal_flow"] * (1.0 - 0.1577))
     assert inlet.gas_moles[3] > 0.0
+
+
+def test_explicit_dry_coal_flow_is_converted_to_wet():
+    """P1.7-A：干煤口径进料必须先换成湿煤（cell.py 的 coal_flow 是 wet coal flow）。"""
+    dry = 17.7280
+    built = build_gasifier_inputs_from_model_case(_preview_row(), coal_flow_dry_kg_s=dry)
+    mt = TRANSPORTED_COAL_MOISTURE_PERCENT / 100.0
+    assert built["op_conds"]["coal_flow"] == pytest.approx(dry / (1.0 - mt))
+    assert built["assumptions"]["coal_flow_dry_kg_s"] == pytest.approx(dry)
+    assert "wet" in built["assumptions"]["coal_flow_basis"]
+    system = GasifierSystem(built["geometry"], built["coal_props"], built["op_conds"])
+    inlet = system._initialize_inlet()
+    np.testing.assert_allclose(inlet.solid_mass, dry)
 
 
 def test_model_case_preview_parquet_schema_builds_if_available():
