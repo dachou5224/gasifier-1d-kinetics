@@ -1,0 +1,160 @@
+{
+  "round": "P1.7-A / 2026-11-03",
+  "model_repo": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic",
+  "source_commit": "5d4c83b8737998ec33f8554e383dd9728a25d318",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "source_commit_note": "生成本轮全部产物的代码提交；产物本身随后另起一次仅含 outputs 的提交",
+  "equation_changes": {
+    "1_heating_value": "coal_props 新增显式 LHV_d（干燥基低位）。Hf_coal 在给定 LHV_d 时直接使用、不再减 9·Hd·2442；只给 HHV_d 时保持修改前行为；两者同时给出报错。",
+    "2_pyrolysis_heat_model": "新增 op_conds['PyrolysisHeatModel'] ∈ {from_heating_value(缺省), zero}。zero 时 Hf_coal 由热解产物焓与焦炭焓反推，使 cell 0 热解热恰为 0，不读任何热值；锚点模式 F 固定为该口径。",
+    "3_hydrogen_diagnostic": "H_in_with_moisture_mol_s 只计合同 2% 输煤水分（2 H per H2O，÷0.018015 kg/mol），不计 M_ar。",
+    "4_coal_flow_basis": "数据侧煤量是干煤；op_conds['coal_flow'] 是湿煤，进料一律 wet = dry/(1-Mt)，Mt = 2%（model_case_adapter.wet_coal_flow_kg_s）。"
+  },
+  "hhv_readers": {
+    "Hf_coal（gasifier_system.compute_hf_coal_j_kg）": "用低位 LHV_d（水在产物侧为气态，与 Shomate 一致）；旧代码误按高位再扣潜热。",
+    "NumPy 热损 Cell._calc_energy_balance（cell.py）": "用高位（文献口径“入炉煤 HHV 的 2%”）；只给 LHV 时按定义推 HHV。",
+    "JAX 热损透传 GasifierSystem._solve_jax_v4（gasifier_system.py）": "同上，同一个 coal_hhv_kj_kg()。",
+    "revision_m5_n5_parity 的 JAX 夹具": "同上，保证与主线同一数值。",
+    "锚点 build_case_inputs 的 HHV_d = 30 MJ/kg": "仅为热损基准的占位高位热值（namelist 无热值）；zero 口径下已不影响 Hf_coal。",
+    "validation_loader / fortran_input_loader / original_paper_loader 的 Dulong 式": "Dulong 给的是高位 → 仍填 HHV_d，走“只给高位”的旧换算，语义正确。",
+    "chemistry.py / constants.DEFAULT_HHV / gasifier_kinetic_ui.py": "热损与默认值用的高位常数，语义不变。",
+    "诊断脚本的 HHV 归一化（_energy_scale、hhv_roundtrip、audit_*、rollback_p0_analysis）": "按高位归一（口径为“相对入炉煤 HHV”），已改为走 coal_hhv_kj_kg()。"
+  },
+  "frozen_items_untouched": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor / CO_OxidationFactor",
+    "pyrolysis yields",
+    "USE_RK_GILL_COMBUSTION = False",
+    "ParticleSizeModel = fortran_constant",
+    "steam_flow = 0",
+    "negative-WGS hydrogen truncation（不改，只统计绑定）"
+  ],
+  "unit_checks_all_pass": true,
+  "unit_check_tolerances": {
+    "Hf_coal_kj_kg": 1.0,
+    "pyrolysis_heat_kj_kg": 2.0,
+    "h_in_moisture_ratio": 0.002,
+    "lhv_roundtrip_rel": 1e-09
+  },
+  "anchor": {
+    "mode_F_definition": "P1.6-A 模式 F + PyrolysisHeatModel='zero'",
+    "n_list": [
+      40,
+      80,
+      160
+    ],
+    "n_reference": 160,
+    "tolerances": {
+      "X_C_pp": 2.0,
+      "CO_vol_pct": 2.0,
+      "H2_vol_pct": 2.0,
+      "CO2_vol_pct": 2.0,
+      "T_gas_K": 50.0,
+      "O2_drop_rel": 0.2
+    },
+    "hhv_independence_check": "I-1, 模式 F, N=160, HHV_d 30 → 34, 判据 |ΔT| < 1 K"
+  },
+  "baseline": {
+    "windows": [
+      "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+      "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+      "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001",
+      "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",
+      "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+      "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",
+      "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+      "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002",
+      "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001"
+    ],
+    "coal_bases": {
+      "weigh_per_window": {
+        "coal_col": "coal_dry_weigh_kg_s",
+        "xc_raw_col": "xc_weigh_raw_pct",
+        "xc_cal_col": "xc_weigh_cal_pct",
+        "role": "对照口径（称重给煤机逐窗）"
+      },
+      "recon_phase": {
+        "coal_col": "coal_dry_recon_phase_kg_s",
+        "xc_raw_col": "xc_recon_phase_raw_pct",
+        "xc_cal_col": "xc_recon_phase_cal_pct",
+        "role": "主口径（协调-阶段）"
+      },
+      "recon_24h": {
+        "coal_col": "coal_dry_recon_24h_kg_s",
+        "xc_raw_col": "xc_recon_24h_raw_pct",
+        "xc_cal_col": "xc_recon_24h_cal_pct",
+        "role": "敏感性口径（协调-24 h；两窗 insufficient）"
+      }
+    },
+    "main_basis": "recon_phase",
+    "n_list": [
+      40,
+      80
+    ],
+    "n_rule": "N=40 跑三种口径；N=80 只跑主口径复核",
+    "coal_basis_conversion": "wet = dry/(1-Mt), Mt = 2% transported moisture",
+    "expected_rows": 36,
+    "actual_rows_note": "recon_24h 两窗 insufficient → 24 h 口径 7 窗，实际 34 行",
+    "plant_flow_bases": "P1.7-D 的 syngas_dry_raw_nm3_h（原始）与 syngas_dry_cal_nm3_h（阶段标定，主口径）",
+    "plant_xc_basis": "P1.7-D 的 xc_{weigh,recon_phase,recon_24h}_{raw,cal}_pct（体积分数口径，不受模型影响）",
+    "carrier_gas": "J 载气原样使用、不随煤量缩放；缩放敏感度另表列在 interpretation 第 7 节"
+  },
+  "gates": {
+    "G1": "spearman(|ρ|) between single-parameter closure CO residual and pipeline_over_weigh < 0.5",
+    "G2": "median |CO residual| ≤ 1.0 vol% and median |H2 residual| ≤ 1.0 vol%",
+    "G3": "per-phase |median model X_C − liu2023 phase value| ≤ 3 pp",
+    "G4": "plant dry-gas H2 (calibrated flow) / feed H (2% moisture, reconciled coal) ≤ 1 per window",
+    "report_only": "model X_C − plant carbon-balance X_C (main basis)"
+  },
+  "source_csv": {
+    "path": "/Users/liuzhen/AI-projects/gasifier-data-prep/outputs/diagnostics/p1.7d-20261103/coal_reconciled_by_window.csv",
+    "sha256": "05b4172f9ee9d509dc6284ac94fdea56af40a9d7b638d8285c4232d962af6345",
+    "read_only": true
+  },
+  "extra_artifacts": [
+    "anchor_outlet.csv（锚点逐算例出口，供 `HHV_d` 无关性检查逐行核对）"
+  ],
+  "anchor_cases_used": [
+    "texaco i-1",
+    "texaco i-2",
+    "texaco i-5c",
+    "texaco i-10",
+    "texaco exxon",
+    "slurry western",
+    "slurry eastern"
+  ],
+  "anchor_criteria_f_mode_pass_cases": 0,
+  "baseline_rows_actual": 34,
+  "baseline_rows_skipped": [
+    {
+      "window_id": "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+      "coal_basis": "recon_24h",
+      "N_cells": 40,
+      "reason": "r_24h_status=insufficient"
+    },
+    {
+      "window_id": "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+      "coal_basis": "recon_24h",
+      "N_cells": 40,
+      "reason": "r_24h_status=insufficient"
+    }
+  ]
+}
