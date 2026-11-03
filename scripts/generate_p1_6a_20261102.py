@@ -288,8 +288,11 @@ def reaction_heat_rows(T_ctx: float, char_xc: float, coal_props: dict, label: st
             "q_nist_tabulated_298_J_mol": float(q_tab * 1000.0),
             "note": "q_shomate 由独立 Shomate 实现按同一 NIST 系数表求得。298.15 K 行同时给出 NIST 表列 ΔHf "
                     "直接求和的参考值（差 2.4e-5 来自 Shomate 拟合在 298 K 不严格回到 ΔHf，属系数表性质）。"
-                    "高温行两侧用同一 cp_char 作为碳的显热，差值为 0；与真实石墨 cp 的差约 3–4 kJ/mol，"
-                    "属 cp_char 这一冻结常数的口径，与 B9 无关。",
+                    "**本检查的检验力有限，须与数值一起读**：q_model 与 q_ref 的碳项调用同一个 "
+                    "carbon_enthalpy_per_mol_C（同参数、同 cp_char），所以高温行的 rel_diff 恒为 0 "
+                    "并不构成对碳焓的独立验证，只证明气体侧两条路径一致；与真实石墨 cp 的差约 3–4 kJ/mol，"
+                    "属 cp_char 这一冻结常数的口径，与 B9 无关。因此本行能支持的是「标准反应热、单位与"
+                    "气体侧实现一致」，不能支持「高温热化学对温差的贡献已被排除」。",
         })
     return rows
 
@@ -338,28 +341,34 @@ def energy_check_rows(label: str, window_id: str, solve_fn, n_cells: int) -> lis
         "check_group": "energy_closure", "context": label, "window_id": window_id,
         "case": f"N={n_cells}", "metric": "global_energy_residual_rel_hhv_legacy",
         "value": abs(old["resid"]) / old["q_hhv"], "reference": float("nan"),
-        # legacy 口径故意保留 B9 缺陷（焦炭全程带 Hf_coal），其残差本来就不为零，
-        # 因此不参与闸门判定，只作为「修正改善了多大」的对照。
+        # 2026-11-03 更正（审阅意见 1）：原先的理由写得过头了。
+        # 事实：旧口径是对旧模型自身重新求解、再对自身 cell.residuals 求和，
+        # 所以「旧口径残差非零」只说明这一次求解没收敛到同等精度，不说明
+        # 「该判据按构造不可能通过」——锚点旧口径本来就是 8.85e-12 < 1e-9，通过了。
+        # 把旧模型对照移出新模型验收闸门的正当理由是：它检验的是「旧模型自身的
+        # 数值收敛」，不是「1a 修正是否保持了闭合」；而 1a 的实质要求（闭合成立、
+        # 热值仍与 HHV 一致）由本组 rel_hhv 与 hhv_roundtrip_rel 分别判定。
         "tolerance": float("nan"), "pass": None,
-        "note": ("修改前口径（同组入口），仅作对照、不参与闸门：该口径保留 B9 缺陷，"
-                 "残差非零是预期结果，不是判据。"),
+        "note": ("修改前口径（同组入口），仅作对照、不参与闸门。注意这是对旧模型自身重新求解后的"
+                 "残差聚合，因此它反映的是该次求解的收敛程度，不能直接当作 B9 物理缺陷的量级。"),
     })
     delta = abs(abs(new["resid"]) - abs(old["resid"])) / new["q_hhv"]
     rows.append({
         "check_group": "energy_closure", "context": label, "window_id": window_id,
         "case": f"N={n_cells}", "metric": "global_energy_residual_delta_rel_hhv",
         "value": delta, "reference": float("nan"),
-        # 2026-11-03 更正（审阅 + 物理量核实的结论）：
-        # 原实现把本项当闸门、容差 1e-9，但它 = |resid_new - resid_old| / q，
-        # 在 resid_old 远大于 resid_new 时恒等于 resid_old/q，即「旧口径残差有多大」。
-        # 要求一个故意保留缺陷的口径也闭合到 1e-9，逻辑上不可能通过，
-        # 而修正把残差从 341 W 降到 6.9e-4 W（改善 4.9e5 倍）。
+        # 2026-11-03 更正（两轮审阅的结论）：
+        # 本项 = |resid_new - resid_old| / q，在 resid_old 远大于 resid_new 时
+        # 数值上等于 resid_old/q，即它测的是「旧口径那次求解的残差有多大」。
+        # 这不能作为「1a 修正是否保持闭合」的判据：旧口径是对旧模型自身重新求解，
+        # 其残差反映该次求解的收敛程度（锚点旧口径 8.85e-12 是通过的），
+        # 与 B9 的物理缺陷大小不是同一个量。
         # 卡 1a(i) 的实质要求是「整炉闭合成立 + 整体热值仍与 HHV 一致」，
         # 分别由本组的 rel_hhv 与 hhv_roundtrip_rel 判定，故本项降为信息行。
         "tolerance": float("nan"), "pass": None,
-        "note": ("修改前后残差绝对差（信息行，不参与闸门）：≈ resid_old/q，"
-                 "反映 1a 修正把闭合残差降低了多少。"),
-        "note": "修改前后闭合量的相对差（卡 1a 检查 (i) 的『与修改前一致』）",
+        "note": ("修改前后残差绝对差（信息行，不参与闸门）：数值上≈ resid_old/q。"
+                 "它混合了「旧模型自身的数值收敛程度」与「新旧方程的差别」，"
+                 "不宜单独解释为物理量的改善倍数。"),
     })
 
     coal_props = new["system"].coal_props
