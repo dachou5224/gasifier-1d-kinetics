@@ -1,7 +1,7 @@
 {
   "round": "P1.6-A / 2026-10-31（2026-11-02 修订执行）",
   "model_repo": "/Users/liuzhen/AI-projects/gasifier-1d-kinetic",
-  "source_commit": "6613ed8065ffc061268595b0cc881041a84a5887",
+  "source_commit": "a561204cebf8f21434693f271531fc63c8c341c1",
   "mesh_family": "uniform_full_length",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
