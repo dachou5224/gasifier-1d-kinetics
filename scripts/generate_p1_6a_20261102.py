@@ -659,7 +659,7 @@ def closure_rows(baseline: pd.DataFrame) -> pd.DataFrame:
             rows.append({
                 "window_id": r["window_id"], "N_cells": r["N_cells"],
                 "execution_status": r["execution_status"], "xi_card": np.nan,
-                "xi_stoich": np.nan, "pred_CO_vol_pct": np.nan, "pred_H2_vol_pct": np.nan,
+                "pred_CO_vol_pct": np.nan, "pred_H2_vol_pct": np.nan,
                 "plant_CO_vol_pct": r["plant_CO_vol_pct"], "plant_H2_vol_pct": r["plant_H2_vol_pct"],
                 "d_CO": np.nan, "d_H2": np.nan,
             })
@@ -668,30 +668,29 @@ def closure_rows(baseline: pd.DataFrame) -> pd.DataFrame:
         f_co2, f_co, f_h2 = float(r["F_CO2_mol_s"]), float(r["F_CO_mol_s"]), float(r["F_H2_mol_s"])
         y_co2 = float(r["plant_CO2_vol_pct"]) / 100.0
         # 卡面口径：(CO2 + ξ)/(干气 + ξ) = 装置 CO2 体积分数
+        #
+        # 为什么分母必须加 ξ：CO + H2O → CO2 + H2 在湿基上摩尔数守恒（2 → 2），
+        # 但把一个干气摩尔（CO）换成两个干气摩尔（CO2 + H2），所以干气总量增加 ξ。
+        # 早期版本另设了一个「严格计量、干气摩尔数不变」的对照口径，
+        # 分母取 dry 而不加 ξ，这是错的：它给出的 18 行里首行 CO + H2 + CO2 已达
+        # 102.7 vol%，未计 CH4/N2/H2S 就超过 100%。而且把分母改成 dry + ξ 之后，
+        # 该对照式与卡面式代数恒等（ξ 的解完全相同），所以它根本不是独立检验，
+        # 已删除（2026-11-03，审阅意见）。
         xi_card = (y_co2 * dry - f_co2) / (1.0 - y_co2)
         denom_card = dry + xi_card
-        # 严格 WGS 化学计量（干气摩尔数不变）的对照口径
-        xi_stoich = y_co2 * dry - f_co2
-        denom_stoich = dry
         pred_co = (f_co - xi_card) / denom_card * 100.0
         pred_h2 = (f_h2 + xi_card) / denom_card * 100.0
-        pred_co_s = (f_co - xi_stoich) / denom_stoich * 100.0
-        pred_h2_s = (f_h2 + xi_stoich) / denom_stoich * 100.0
         rows.append({
             "window_id": r["window_id"], "N_cells": r["N_cells"], "phase": r["phase"],
             "execution_status": r["execution_status"],
             "dry_total_mol_s": dry,
             "F_CO2_mol_s": f_co2, "F_CO_mol_s": f_co, "F_H2_mol_s": f_h2,
             "plant_CO2_vol_pct": r["plant_CO2_vol_pct"],
-            "xi_card": xi_card, "xi_stoich": xi_stoich,
+            "xi_card": xi_card,
             "pred_CO_vol_pct": pred_co, "plant_CO_vol_pct": r["plant_CO_vol_pct"],
             "d_CO": pred_co - float(r["plant_CO_vol_pct"]),
             "pred_H2_vol_pct": pred_h2, "plant_H2_vol_pct": r["plant_H2_vol_pct"],
             "d_H2": pred_h2 - float(r["plant_H2_vol_pct"]),
-            "pred_CO_vol_pct_stoich_denominator": pred_co_s,
-            "pred_H2_vol_pct_stoich_denominator": pred_h2_s,
-            "d_CO_stoich_denominator": pred_co_s - float(r["plant_CO_vol_pct"]),
-            "d_H2_stoich_denominator": pred_h2_s - float(r["plant_H2_vol_pct"]),
         })
     return pd.DataFrame(rows)
 
@@ -1321,9 +1320,6 @@ def _full_interpretation(unit_df, keq, xcap, anchor, crit, attr, base, clos, par
     lines.append("")
     lines.append(f"- ξ（卡面分母 `干气+ξ`）：中位 **{_fmt(ok_clos['xi_card'].median(), 1)} mol/s**，"
                  f"范围 {_fmt(ok_clos['xi_card'].min(), 1)} – {_fmt(ok_clos['xi_card'].max(), 1)}。")
-    lines.append(f"- ξ（严格 WGS 计量、干气摩尔数不变）：中位 {_fmt(ok_clos['xi_stoich'].median(), 1)} mol/s，"
-                 f"范围 {_fmt(ok_clos['xi_stoich'].min(), 1)} – {_fmt(ok_clos['xi_stoich'].max(), 1)}。"
-                 "两种分母的差别只有 12% 左右，不改变下面的结论。")
     lines.append(f"- CO 预测偏差：中位 **{_fmt(ok_clos['d_CO'].median(), 2)} pp**，最大 "
                  f"{_fmt(ok_clos['d_CO'].abs().max(), 2)} pp；H2 偏差：中位 "
                  f"{_fmt(ok_clos['d_H2'].median(), 2)} pp，最大 {_fmt(ok_clos['d_H2'].abs().max(), 2)} pp。")
