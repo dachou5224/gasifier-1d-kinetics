@@ -23,7 +23,7 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from model.constants import PhysicalConstants  # noqa: E402
 from model.gasifier_system import GasifierSystem  # noqa: E402
-from model.input_contract import ash_mass_fraction_dry, resolve_f_s_coal  # noqa: E402
+from model.input_contract import ash_mass_fraction_dry, coal_hhv_kj_kg, resolve_f_s_coal  # noqa: E402
 from model.jax_kinetics import heterogeneous_rates_jax  # noqa: E402
 from model.jax_residuals import cell_residuals_jax_flat  # noqa: E402
 from model.p1_5_round_20261030 import (  # noqa: E402
@@ -55,8 +55,12 @@ def _cell_inputs(cell, system, state, particle_flag):
         s_src += sm
         e_src += e
     op = cell.op_conds
-    hhv = cell.coal_props.get("HHV_d", 30.0)
-    hhv_mj = hhv / 1000.0 if hhv > 1000.0 else hhv
+    # P1.7-A（2026-11-03，审阅意见）：ModelCase 现在只带 LHV_d，直接用
+    # coal_props.get("HHV_d", 30.0) 会退回 30 MJ/kg 的缺省，而 NumPy 侧 cell 用的是
+    # 由 LHV 推出的高位（合同煤 28.6703 MJ/kg）。两侧热损方程因此不同，F1 会报出
+    # 与求解器无关的能量残差差。改用统一入口 coal_hhv_kj_kg 取高位。
+    hhv = coal_hhv_kj_kg(cell.coal_props)
+    hhv_mj = hhv / 1000.0
     f_ash = ash_mass_fraction_dry(cell.coal_props) / (
         cell.coal_props.get("Cd", 60.0) / 100.0 + ash_mass_fraction_dry(cell.coal_props) + 1e-9
     )
