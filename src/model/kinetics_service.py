@@ -49,13 +49,19 @@ class KineticsService:
                                  Re: float = 0.0, Sc: float = 1.0,
                                  T_particle: float = None,
                                  char_combustion_factor: float = None,
-                                 use_fortran_diffusion: bool = False) -> Dict[str, float]:
+                                 use_fortran_diffusion: bool = False,
+                                 conversion_cutoff: str = "smooth") -> Dict[str, float]:
         """
         Calculate Surface Reaction Rates (mol/s).
         T_particle: 颗粒温度 Ts_avg；None 时用 Ross 修正 T_p = T + 6.6e4*C_O2（向后兼容）
-        Returns: Dict {'C+O2': rate, ...}
+
+        P1.6-A（2026-11-02）``conversion_cutoff``：
+          "smooth"    —— 去掉 ``X_total >= 0.999`` 的硬截断；完全转化时 UCSM 的
+                         ``1/(k_s*Y^2)`` 阻力让速率按 ``Y^2`` 自然趋零，不设人为上限。
+          "hard_0999" —— 修改前行为：``X_total >= 0.999`` 时该反应速率直接置 0。
         """
         r = {}
+        hard_cutoff = str(conversion_cutoff).lower() == "hard_0999"
         F_total = state.total_gas_moles
         if F_total < PhysicalConstants.TOLERANCE_SMALL:
              # This is expected for initial cells with no gas yet, debug level only
@@ -91,16 +97,19 @@ class KineticsService:
             P_eq = 0.0
 
             # Fortran 安全与温度阈值 (fortran_analysis.md)
+            # P1.6-A（2026-11-02）：X_total >= 0.999 的硬截断改为光滑处理（见 conversion_cutoff）。
+            # 保留压强/温度阈值，它们来自 Fortran 的安全判据，与碳转化率无关。
+            cutoff_active = hard_cutoff and X_total >= 0.999
             if rxn == 'C+CO2':
-                if T_p <= 850.0 or P_i < 1e-6 or X_total >= 0.999:
+                if T_p <= 850.0 or P_i < 1e-6 or cutoff_active:
                     r[rxn] = 0.0
                     continue
             elif rxn == 'C+H2':
-                if T_p <= 1200.0 or X_total >= 0.999:
+                if T_p <= 1200.0 or cutoff_active:
                     r[rxn] = 0.0
                     continue
             elif rxn == 'C+H2O':
-                if P_i < 0.001 * P_atm or X_total >= 0.999:
+                if P_i < 0.001 * P_atm or cutoff_active:
                     r[rxn] = 0.0
                     continue
                 P_CO = (state.gas_moles[2] / F_total) * P
@@ -152,7 +161,8 @@ class KineticsService:
                                 Ts_particle: float = None, wgs_rat_factor: bool = False,
                                 msr_tmin_k: float = 1000.0,
                                 wgs_catalytic_factor: float = None,
-                                wgs_k_factor: float = None) -> Dict[str, float]:
+                                wgs_k_factor: float = None,
+                                wgs_keq_model: str = None) -> Dict[str, float]:
         """
         Calculate Homogeneous Rates (mol/s) based on Table 2-5.
         
@@ -160,6 +170,7 @@ class KineticsService:
         This provides a more physically meaningful rate estimate for plug flow reactors.
         
         WGS: Fortran wgshift 逻辑 — Ts_particle<=1000K 时不计 WGS；若未提供 Ts_particle 则用气相 T。
+        wgs_keq_model: WGS 平衡常数式子（P1.6-A），None 时用 kinetics 缺省 "thermo"。
         """
         rates = {}
         P, T = state.P, state.T
@@ -230,7 +241,7 @@ class KineticsService:
             # 物理预估：抑制 WGS → 少放热、少 CO→CO2，CO 可能略升；温度略降
             WGS_RAT_FACTOR = np.exp(-8.91 + 5553.0 / T_wgs_check) if wgs_rat_factor else 1.0
             k_eff = k_fwd * WGS_CATALYTIC_FACTOR * WGS_RAT_FACTOR
-            K_eq = calculate_wgs_equilibrium(T)
+            K_eq = calculate_wgs_equilibrium(T, model=wgs_keq_model)
             # WGS_K_Factor: <1 使有效 K 变小，强化逆向 WGS (CO2+H2→CO+H2O)，提高 CO
             K_eff = K_eq * (wgs_k_factor if wgs_k_factor is not None else 1.0)
             r_net = k_eff * (C['CO'] * C['H2O'] - C['CO2'] * C['H2'] / (K_eff + 1e-12))

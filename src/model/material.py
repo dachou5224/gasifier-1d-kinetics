@@ -28,24 +28,40 @@ class MaterialService:
 
 
     @staticmethod
-    def get_solid_enthalpy(state: StateVector, coal_props: dict, T_solid_override: Optional[float] = None) -> float:
+    def get_solid_enthalpy(state: StateVector, coal_props: dict, T_solid_override: Optional[float] = None,
+                           include_formation_enthalpy: bool = True) -> float:
         """
         固相焓（对齐 Fortran enthal L1142）。
-        保持生成焓基准的一致性，避免热解阶段出现能量跳变。
+
+        ``include_formation_enthalpy=True``：按每 kg 固体的 ``Hf_coal``（LHV 口径公式）计生成焓，
+        用于**入炉原煤**，保持煤的生成焓基准。
+        ``include_formation_enthalpy=False``：只计显热。P1.6-A（审计 B9）起，热解之后的焦炭
+        按组成计焓——碳的生成焓取 0（石墨）、灰为惰性只计显热，因此生成焓项不再出现。
         """
         T_s = T_solid_override if T_solid_override is not None else state.T
         cp_s = coal_props.get('cp_char', 1300.0)  # J/kg/K
-        hf_coal = coal_props.get('Hf_coal', 0.0)  # J/kg
-        
         h_sensible = cp_s * (T_s - 298.15)
-        h_s = h_sensible + hf_coal
-        return state.solid_mass * h_s
+        if include_formation_enthalpy:
+            return state.solid_mass * (h_sensible + coal_props.get('Hf_coal', 0.0))
+        return state.solid_mass * h_sensible
 
 
 
     @staticmethod
-    def get_total_enthalpy(state: StateVector, coal_props: dict, T_solid_override: Optional[float] = None) -> float:
-        return MaterialService.get_gas_enthalpy(state) + MaterialService.get_solid_enthalpy(state, coal_props, T_solid_override)
+    def get_total_enthalpy(state: StateVector, coal_props: dict, T_solid_override: Optional[float] = None,
+                           include_formation_enthalpy: bool = True) -> float:
+        return (
+            MaterialService.get_gas_enthalpy(state)
+            + MaterialService.get_solid_enthalpy(
+                state, coal_props, T_solid_override,
+                include_formation_enthalpy=include_formation_enthalpy,
+            )
+        )
+
+    @staticmethod
+    def get_char_formation_enthalpy_per_kg(coal_props: dict) -> float:
+        """P1.6-A（B9）：焦炭的生成焓——碳取石墨 0、灰惰性，故恒为 0 J/kg。"""
+        return 0.0
 
     @staticmethod
     def get_gas_mix_property(state: StateVector, prop='density') -> float:

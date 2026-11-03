@@ -1,0 +1,61 @@
+case_name,mode,N_cells,metric,python_value,fortran_value,abs_diff,tolerance,evaluable,pass,note
+texaco i-1,F,160,X_C_pp,78.23385532467695,92.37207863264335,14.138223307966399,2.0,True,False,
+texaco i-1,F,160,CO_vol_pct,49.71285905966788,54.912,5.199140940332121,2.0,True,False,
+texaco i-1,F,160,H2_vol_pct,39.03043045524364,39.322,0.29156954475636354,2.0,True,True,
+texaco i-1,F,160,CO2_vol_pct,10.10919806903791,4.798,5.311198069037911,2.0,True,False,
+texaco i-1,F,160,T_gas_K,1198.5639430147787,1373.15637,174.5924269852212,50.0,True,False,
+texaco i-1,F,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco i-1,M,160,X_C_pp,78.58416237820255,92.37207863264335,13.787916254440802,2.0,True,False,
+texaco i-1,M,160,CO_vol_pct,47.47557998832279,54.912,7.436420011677207,2.0,True,False,
+texaco i-1,M,160,H2_vol_pct,39.91744902797684,39.322,0.5954490279768407,2.0,True,True,
+texaco i-1,M,160,CO2_vol_pct,11.430714629261264,4.798,6.6327146292612635,2.0,True,False,
+texaco i-1,M,160,T_gas_K,1203.9451452048265,1373.15637,169.2112247951734,50.0,True,False,
+texaco i-1,M,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco i-2,F,160,X_C_pp,76.60416868658847,84.68653575737694,8.082367070788479,2.0,True,False,
+texaco i-2,F,160,CO_vol_pct,48.50527001478578,51.805,3.2997299852142206,2.0,True,False,
+texaco i-2,F,160,H2_vol_pct,40.24143028404764,40.91,0.6685697159523585,2.0,True,True,
+texaco i-2,F,160,CO2_vol_pct,9.678286384552884,6.419,3.259286384552884,2.0,True,False,
+texaco i-2,F,160,T_gas_K,1188.9213297424974,1354.45007,165.5287402575027,50.0,True,False,
+texaco i-2,F,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco i-2,M,160,X_C_pp,77.13599533514287,84.68653575737694,7.550540422234079,2.0,True,False,
+texaco i-2,M,160,CO_vol_pct,45.71966273745,51.805,6.085337262549999,2.0,True,False,
+texaco i-2,M,160,H2_vol_pct,41.2849628527882,40.91,0.37496285278820096,2.0,True,True,
+texaco i-2,M,160,CO2_vol_pct,11.358716224173097,6.419,4.939716224173098,2.0,True,False,
+texaco i-2,M,160,T_gas_K,1195.2443413729534,1354.45007,159.2057286270467,50.0,True,False,
+texaco i-2,M,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco i-5c,F,160,X_C_pp,99.99999764136146,98.52125208467122,1.4787455566902423,2.0,True,True,
+texaco i-5c,F,160,CO_vol_pct,53.326943087422016,51.978,1.3489430874220147,2.0,True,True,
+texaco i-5c,F,160,H2_vol_pct,38.783280288011554,39.618,0.8347197119884484,2.0,True,True,
+texaco i-5c,F,160,CO2_vol_pct,6.966695827221811,7.425,0.45830417277818913,2.0,True,True,
+texaco i-5c,F,160,T_gas_K,1372.9359173666985,1400.58447,27.648552633301506,50.0,True,True,
+texaco i-5c,F,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco i-5c,M,160,X_C_pp,99.99999695813243,98.52125208467122,1.4787448734612099,2.0,True,True,
+texaco i-5c,M,160,CO_vol_pct,52.25286967951261,51.978,0.2748696795126051,2.0,True,True,
+texaco i-5c,M,160,H2_vol_pct,39.23968812346257,39.618,0.37831187653743115,2.0,True,True,
+texaco i-5c,M,160,CO2_vol_pct,7.608555067256262,7.425,0.18355506725626203,2.0,True,True,
+texaco i-5c,M,160,T_gas_K,1377.6561057802057,1400.58447,22.928364219794275,50.0,True,True,
+texaco i-5c,M,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco i-10,F,160,X_C_pp,85.92668392634162,88.39195372625501,2.4652697999133864,2.0,True,False,
+texaco i-10,F,160,CO_vol_pct,52.84243263069156,53.273,0.4305673693084415,2.0,True,True,
+texaco i-10,F,160,H2_vol_pct,38.515553809082654,39.027,0.5114461909173471,2.0,True,True,
+texaco i-10,F,160,CO2_vol_pct,7.6749558439766385,6.88,0.7949558439766387,2.0,True,True,
+texaco i-10,F,160,T_gas_K,1231.782475241174,1308.66748,76.88500475882597,50.0,True,False,
+texaco i-10,F,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco i-10,M,160,X_C_pp,86.03276693693901,88.39195372625501,2.3591867893159986,2.0,True,False,
+texaco i-10,M,160,CO_vol_pct,51.00373865458575,53.273,2.2692613454142503,2.0,True,False,
+texaco i-10,M,160,H2_vol_pct,39.31406368345347,39.027,0.2870636834534679,2.0,True,True,
+texaco i-10,M,160,CO2_vol_pct,8.756962051854847,6.88,1.8769620518548473,2.0,True,True,
+texaco i-10,M,160,T_gas_K,1237.3975416007206,1308.66748,71.26993839927945,50.0,True,False,
+texaco i-10,M,160,O2_drop_rel,0.010312499999999999,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco exxon,F,160,X_C_pp,99.99999995729914,92.6180861337823,7.38191382351684,2.0,True,False,
+texaco exxon,F,160,CO_vol_pct,53.66552598077696,49.06,4.60552598077696,2.0,True,False,
+texaco exxon,F,160,H2_vol_pct,37.53291070392632,38.75,1.2170892960736808,2.0,True,True,
+texaco exxon,F,160,CO2_vol_pct,7.3713756870381415,10.754,3.382624312961858,2.0,True,False,
+texaco exxon,F,160,T_gas_K,1442.3727902887035,1286.35828,156.0145102887036,50.0,True,False,
+texaco exxon,F,160,O2_drop_rel,0.030937499999999996,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下
+texaco exxon,M,160,X_C_pp,99.99999998419182,92.6180861337823,7.381913850409518,2.0,True,False,
+texaco exxon,M,160,CO_vol_pct,52.69811392180878,49.06,3.638113921808781,2.0,True,False,
+texaco exxon,M,160,H2_vol_pct,37.987142249167526,38.75,0.7628577508324739,2.0,True,True,
+texaco exxon,M,160,CO2_vol_pct,7.932257110989179,10.754,2.821742889010821,2.0,True,False,
+texaco exxon,M,160,T_gas_K,1445.779301061491,1286.35828,159.42102106149105,50.0,True,False,
+texaco exxon,M,160,O2_drop_rel,0.030937499999999996,,,0.2,False,,not evaluable: Fortran 只在收敛后打印少数气室，第一次打印处 O2 已为 0；Python 在 cell 0 即降到入口 1% 以下

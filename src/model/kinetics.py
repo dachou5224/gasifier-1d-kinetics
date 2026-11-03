@@ -12,6 +12,7 @@ from .physics import (
     calculate_gas_viscosity,
     calculate_diffusion_coefficient,
     calculate_kdiff_fortran,
+    get_gibbs_free_energy,
 )
 
 # 压力驱动 → 浓度驱动 转换因子
@@ -141,10 +142,36 @@ class HeterogeneousKinetics:
         rate = conc_eff_kmol / denom
         return rate
 
-def calculate_wgs_equilibrium(T):
-    """Water Gas Shift (WGS) Equilibrium Constant (Table 2-2)"""
-    # K = exp(4578/T - 4.33)；Fortran exp(4019/T-3.69) 使 CO 更差，暂保留原式
-    return np.exp(4578.0 / T - 4.33)
+WGS_KEQ_MODEL_DEFAULT = "thermo"
+WGS_KEQ_MODEL_LEGACY = "legacy_fit"
+WGS_KEQ_MODEL_FORTRAN = "fortran"
+WGS_KEQ_MODELS = (WGS_KEQ_MODEL_DEFAULT, WGS_KEQ_MODEL_LEGACY, WGS_KEQ_MODEL_FORTRAN)
+
+
+def calculate_wgs_equilibrium(T, model: str = None):
+    """Water Gas Shift 平衡常数 K = (p_CO2 * p_H2) / (p_CO * p_H2O)。
+
+    P1.6-A（2026-11-02）起缺省改用模型自身的 Gibbs 自由能：
+        K = exp(-ΔG/RT)，ΔG = G_CO2 + G_H2 - G_CO - G_H2O，
+        G 由 ``physics.get_gibbs_free_energy``（NIST Shomate，多段）计算。
+    旧式 ``exp(4578/T - 4.33)`` 保留为 ``model="legacy_fit"``；
+    Fortran ``wgshift`` 的 ``exp(-3.6893 + 7234/(1.8*T))`` 保留为 ``model="fortran"``，
+    供锚点模式 F 使用。
+    """
+    name = WGS_KEQ_MODEL_DEFAULT if model is None else str(model).strip().lower()
+    if name == WGS_KEQ_MODEL_LEGACY:
+        return np.exp(4578.0 / T - 4.33)
+    if name == WGS_KEQ_MODEL_FORTRAN:
+        return np.exp(-3.6893 + 7234.0 / (1.8 * T))
+    if name == WGS_KEQ_MODEL_DEFAULT:
+        dG = (
+            get_gibbs_free_energy('CO2', T)
+            + get_gibbs_free_energy('H2', T)
+            - get_gibbs_free_energy('CO', T)
+            - get_gibbs_free_energy('H2O', T)
+        )
+        return np.exp(-dG / (R_CONST * T))
+    raise ValueError(f"WGS_Keq_Model must be one of {WGS_KEQ_MODELS}, got {model!r}")
 
 def calculate_methanation_equilibrium(T):
     """Methanation Equilibrium (Table 2-3)"""

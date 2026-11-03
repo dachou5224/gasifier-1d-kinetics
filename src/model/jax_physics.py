@@ -46,6 +46,9 @@ def calculate_shomate_jax(species_indices: jnp.ndarray, T: jnp.ndarray, prop_typ
         return A + B*t + C*t**2 + D*t**3 + E/(t**2)
     elif prop_type == 'H':
         return (A*t + B*(t**2)/2 + C*(t**3)/3 + D*(t**4)/4 - E/t + F) * 1000.0
+    elif prop_type == 'S':
+        # P1.6-A：WGS 平衡常数改由 Gibbs 自由能计算，需要熵
+        return A*jnp.log(t) + B*t + C*(t**2)/2 + D*(t**3)/3 - E/(2*t**2) + G
     return jnp.zeros_like(T)
 
 @jit

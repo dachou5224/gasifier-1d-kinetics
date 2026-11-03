@@ -7,16 +7,54 @@ from __future__ import annotations
 import jax.numpy as jnp
 from jax import jit, vmap
 from .physics import R_CONST
-from .jax_physics import calculate_kdiff_fortran_jax, calculate_diffusion_coefficient_jax
+from .jax_physics import (
+    calculate_kdiff_fortran_jax,
+    calculate_diffusion_coefficient_jax,
+    calculate_shomate_jax,
+)
 
 CAL2J = 4.184
 
+# WGS 平衡常数式子（P1.6-A，2026-11-02）。用整数 id 传递，便于在 jit 内用 where 选择：
+#   0 = "thermo"（缺省）：K = exp(-ΔG/RT)，Gibbs 由 NIST Shomate 多段计算
+#   1 = "legacy_fit"：exp(4578/T - 4.33)
+#   2 = "fortran"：exp(-3.6893 + 7234/(1.8*T))，Fortran wgshift L1270
+WGS_KEQ_MODEL_IDS = {"thermo": 0, "legacy_fit": 1, "fortran": 2}
+
+
 @jit
-def wgs_equilibrium_k_jax(T):
+def wgs_equilibrium_k_thermo_jax(T):
+    """K = exp(-ΔG/RT)，ΔG = G_CO2 + G_H2 - G_CO - G_H2O（jax 9 组分顺序）。"""
+    idx = jnp.array([3, 5, 2, 4])  # CO2, H2, CO, H2O
+    T_arr = jnp.full((4,), T)
+    H = calculate_shomate_jax(idx, T_arr, 'H')
+    S = calculate_shomate_jax(idx, T_arr, 'S')
+    G = H - T * S
+    dG = G[0] + G[1] - G[2] - G[3]
+    return jnp.exp(-dG / (R_CONST * T))
+
+
+@jit
+def wgs_equilibrium_k_legacy_jax(T):
     return jnp.exp(4578.0 / T - 4.33)
 
 
-# 兼容旧测试/脚本导入名
+@jit
+def wgs_equilibrium_k_fortran_jax(T):
+    return jnp.exp(-3.6893 + 7234.0 / (1.8 * T))
+
+
+@jit
+def wgs_equilibrium_k_jax(T, model_id=0.0):
+    """按 model_id 选式子；三者都能安全求值，故可用 where 组合。"""
+    return jnp.where(
+        model_id < 0.5,
+        wgs_equilibrium_k_thermo_jax(T),
+        jnp.where(model_id < 1.5, wgs_equilibrium_k_legacy_jax(T), wgs_equilibrium_k_fortran_jax(T)),
+    )
+
+
+# 兼容旧测试/脚本导入名（缺省 thermo）
 wgs_equilibrium_k = wgs_equilibrium_k_jax
 
 @jit
@@ -41,10 +79,15 @@ def heterogeneous_rates_jax(
     Sc: float = 1.0,
     porosity: float = 0.75,
     char_combustion_factor: float = 1.0,
-    phi_manual: float = None
+    phi_manual: float = None,
+    hard_conversion_cutoff: float = 0.0,
 ) -> jnp.ndarray:
     """
     计算四种异相反应速率 (mol/s): [C+O2, C+H2O, C+CO2, C+H2]
+
+    P1.6-A（2026-11-02）：``hard_conversion_cutoff`` 缺省 0 = 光滑处理，去掉
+    ``X_total >= 0.999`` 的硬截断，完全转化时由 UCSM 的 ``1/(k_s*Y^2)`` 让速率按
+    ``Y^2`` 趋零；置 1 复现修改前行为。
     """
     F_total = jnp.maximum(jnp.sum(gas_moles_9), 1e-12)
     
@@ -97,7 +140,9 @@ def heterogeneous_rates_jax(
         
         # Guards
         is_active = jnp.array([True, P_i >= 1e-6, T_p > 850.0, T_p > 1200.0])[rxn_idx]
-        rate = jnp.where(is_active & (X_total < 0.999) & (Y >= 1e-4), rate_mol, 0.0)
+        # P1.6-A：X_total >= 0.999 的硬截断改为光滑处理（Y -> 0 时 1/(k_s Y^2) 让速率按 Y^2 趋零）
+        conversion_ok = jnp.where(hard_conversion_cutoff > 0.5, X_total < 0.999, True)
+        rate = jnp.where(is_active & conversion_ok & (Y >= 1e-4), rate_mol, 0.0)
         
         return jnp.where(rxn_idx == 0, rate * char_combustion_factor, rate)
 
@@ -115,6 +160,7 @@ def homogeneous_rates_jax(
     T_wgs_min: float = 1000.0,
     T_msr_min: float = 1000.0,
     Ts_particle: float = -1.0,
+    wgs_keq_model_id: float = 0.0,
 ) -> jnp.ndarray:
     """
     均相速率: [CO_Ox, H2_Ox, WGS, CH4_Ox, MSR]
@@ -135,7 +181,7 @@ def homogeneous_rates_jax(
     
     r_co = ks[0] * C[2] * C[0]
     r_h2 = ks[1] * C[5] * C[0]
-    K_eq = wgs_equilibrium_k_jax(T)
+    K_eq = wgs_equilibrium_k_jax(T, wgs_keq_model_id)
     r_wgs = ks[2] * wgs_catalytic * (C[2] * C[4] - C[3] * C[5] / (K_eq + 1e-12))
     T_gate = jnp.where(Ts_particle > 0.0, Ts_particle, T)
     r_wgs = jnp.where(T_gate > T_wgs_min, r_wgs, 0.0)
