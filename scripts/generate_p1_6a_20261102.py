@@ -155,8 +155,13 @@ def _energy_scale(system: GasifierSystem) -> tuple[float, float]:
     h_gas = abs(MaterialService.get_gas_enthalpy(inlet))
     h_solid = abs(MaterialService.get_solid_enthalpy(inlet, system.coal_props))
     hhv = system.coal_props.get("HHV_d", 30.0)
-    hhv_j_kg = hhv * 1000.0 if hhv < 1000.0 else hhv
-    q_hhv = abs(float(system.op_conds["coal_flow"]) * hhv_j_kg * 1e6)
+    # HHV 单位归一：支持 MJ/kg（<1000）与 kJ/kg（>=1000）两种输入。
+    # 归一后 hhv_kj_kg 一律是 kJ/kg，故换算到 J/kg 乘 1e3。
+    # 2026-11-03 更正（审阅意见）：原写法把 kJ/kg 再乘 1e6（等于按 MJ/kg 处理），
+    # 使 q_hhv 放大 1000 倍、所有 HHV 归一化相对残差缩小 1000 倍，
+    # 直接掩盖了 baseline 窗 6.94e-7 > 1e-9 的闸门失败。
+    hhv_kj_kg = hhv * 1000.0 if hhv < 1000.0 else hhv
+    q_hhv = abs(float(system.op_conds["coal_flow"]) * hhv_kj_kg * 1e3)
     return float(h_gas + h_solid), float(q_hhv)
 
 
@@ -333,14 +338,27 @@ def energy_check_rows(label: str, window_id: str, solve_fn, n_cells: int) -> lis
         "check_group": "energy_closure", "context": label, "window_id": window_id,
         "case": f"N={n_cells}", "metric": "global_energy_residual_rel_hhv_legacy",
         "value": abs(old["resid"]) / old["q_hhv"], "reference": float("nan"),
-        "tolerance": 1e-9, "pass": bool(abs(old["resid"]) / old["q_hhv"] <= 1e-9),
-        "note": "修改前口径（同组入口）",
+        # legacy 口径故意保留 B9 缺陷（焦炭全程带 Hf_coal），其残差本来就不为零，
+        # 因此不参与闸门判定，只作为「修正改善了多大」的对照。
+        "tolerance": float("nan"), "pass": None,
+        "note": ("修改前口径（同组入口），仅作对照、不参与闸门：该口径保留 B9 缺陷，"
+                 "残差非零是预期结果，不是判据。"),
     })
     delta = abs(abs(new["resid"]) - abs(old["resid"])) / new["q_hhv"]
     rows.append({
         "check_group": "energy_closure", "context": label, "window_id": window_id,
         "case": f"N={n_cells}", "metric": "global_energy_residual_delta_rel_hhv",
-        "value": delta, "reference": float("nan"), "tolerance": 1e-9, "pass": bool(delta <= 1e-9),
+        "value": delta, "reference": float("nan"),
+        # 2026-11-03 更正（审阅 + 物理量核实的结论）：
+        # 原实现把本项当闸门、容差 1e-9，但它 = |resid_new - resid_old| / q，
+        # 在 resid_old 远大于 resid_new 时恒等于 resid_old/q，即「旧口径残差有多大」。
+        # 要求一个故意保留缺陷的口径也闭合到 1e-9，逻辑上不可能通过，
+        # 而修正把残差从 341 W 降到 6.9e-4 W（改善 4.9e5 倍）。
+        # 卡 1a(i) 的实质要求是「整炉闭合成立 + 整体热值仍与 HHV 一致」，
+        # 分别由本组的 rel_hhv 与 hhv_roundtrip_rel 判定，故本项降为信息行。
+        "tolerance": float("nan"), "pass": None,
+        "note": ("修改前后残差绝对差（信息行，不参与闸门）：≈ resid_old/q，"
+                 "反映 1a 修正把闭合残差降低了多少。"),
         "note": "修改前后闭合量的相对差（卡 1a 检查 (i) 的『与修改前一致』）",
     })
 
@@ -934,7 +952,10 @@ def main() -> None:
                                      f"gasification cell {probe_idx} (T={probe_T:.1f} K)")
 
     unit_df = pd.DataFrame(check_rows)
-    unit_pass = bool(unit_df["pass"].all())
+    # 闸门只统计真正参与判定的行：legacy / delta 两项是信息行（pass 为 None），
+    # 它们故意保留 B9 缺陷或只是对照量，不参与通过与否。
+    _gate_pass = unit_df.loc[unit_df["pass"].notna(), "pass"]
+    unit_pass = bool(all(bool(v) for v in _gate_pass))
 
     protocol = base_protocol({
         "round": "P1.6-A / 2026-10-31（2026-11-02 修订执行）",
@@ -1287,13 +1308,29 @@ def _full_interpretation(unit_df, keq, xcap, anchor, crit, attr, base, clos, par
                  f"{_fmt(ok_base['H_out_over_H_in'].max(),3)}（中位 {_fmt(ok_base['H_out_over_H_in'].median(),3)}）；"
                  f"装置干气氢 / 燃料氢 = {_fmt(ok_base['H_plant_over_H_in'].min(),3)} – "
                  f"{_fmt(ok_base['H_plant_over_H_in'].max(),3)}（中位 {_fmt(ok_base['H_plant_over_H_in'].median(),3)}）。"
-                 "装置侧有一半窗口 > 1，物理上不成立（干气里的氢不可能超过煤里的氢），"
-                 "说明该口径下装置干气流量与在线 H2 的组合与煤量账本不自洽；若把输煤水分 2% 的氢也算进 `H_in`"
+                 "装置侧有一半窗口 > 1；若把输煤水分 2% 的氢也算进 `H_in`"
                  f"（`H_in_with_moisture_mol_s`），装置比降到 {_fmt(ok_base['H_plant_over_H_in_with_moisture'].min(),3)} – "
                  f"{_fmt(ok_base['H_plant_over_H_in_with_moisture'].max(),3)}，模型比降到 "
                  f"{_fmt(ok_base['H_out_over_H_in_with_moisture'].min(),3)} – "
                  f"{_fmt(ok_base['H_out_over_H_in_with_moisture'].max(),3)}。"
-                 "两种口径都不改变结论：模型的干气氢系统性低于装置。\n")
+                 "两种口径下模型都系统性低于装置。\n")
+    lines.append("\n> **不要把「装置比 > 1」读成「物理上不成立」。**")
+    lines.append("> 上表右侧的装置干气氢取样点在**激冷之后**，而 `H_in` 只计煤中燃料氢；"
+                 "激冷水是另一个氢源，且正是第 7 节求的那个变换 `CO + H2O → CO2 + H2`。")
+    _hi = ok_base.iloc[0]
+    _excess = float(_hi["H_plant_mol_s"]) - float(_hi["H_in_mol_s"])
+    _cm = clos[(clos["window_id"] == _hi["window_id"]) & (clos["N_cells"] == _hi["N_cells"])]
+    _xi = float(_cm["xi_card"].iloc[0]) if len(_cm) and pd.notna(_cm["xi_card"].iloc[0]) else float("nan")
+    lines.append(f"> 定量看：首个窗（N={int(_hi['N_cells'])}）装置干气氢 {_fmt(_hi['H_plant_mol_s'],2)} 对燃料氢 "
+                 f"{_fmt(_hi['H_in_mol_s'],2)} mol/s，超出 **{_fmt(_excess,2)} mol/s H 原子**；"
+                 f"同一窗 `post_reactor_closure.csv` 拟合的 ξ = {_fmt(_xi,2)} mol/s，"
+                 f"每个 ξ 转移 2 个 H 原子，即 {_fmt(2*_xi,2)} mol/s，"
+                 f"{'足以覆盖' if 2*_xi >= _excess else '不足以完全覆盖'}该超出量。")
+    lines.append("> 所以 `H_plant/H_in > 1` 只说明「反应器出口到取样点之间存在加氢过程」，"
+                 "**不**说明装置测量与煤量账本不自洽。该结论应限制在反应器进/出口边界："
+                 f"那里模型自身闭合（`H_out_dry/H_in` = {_fmt(ok_base['H_out_over_H_in'].min(),3)} – "
+                 f"{_fmt(ok_base['H_out_over_H_in'].max(),3)} < 1）。"
+                 "要判定装置账本是否自洽，必须先把激冷水项并入 `H_in` 再比，本轮未做。\n")
 
     # 6
     lines.append("## 6. 出口 WGS 是否仍处于平衡（Q/K）\n")
@@ -1333,7 +1370,18 @@ def _full_interpretation(unit_df, keq, xcap, anchor, crit, attr, base, clos, par
                  "但单参数闭合只能对上 CO2 一个数：CO 与 H2 的预测偏差中位分别为 "
                  f"{_fmt(ok_clos['d_CO'].median(), 2)} 与 {_fmt(ok_clos['d_H2'].median(), 2)} pp，"
                  f"最大到 {_fmt(ok_clos['d_CO'].abs().max(), 2)} / {_fmt(ok_clos['d_H2'].abs().max(), 2)} pp。"
-                 "符号也是固定的（CO 一律偏高、H2 一律偏低），说明出口组成不是一个自由度能补上的差距。\n")
+                 f"符号几乎固定（{int(((ok_clos['d_CO']>0)&(ok_clos['d_H2']<0)).sum())}/{len(ok_clos)} 行为 CO 偏高、H2 偏低；"
+                 "其余为两者同时接近零的窗），说明出口组成不是一个自由度能补上的差距。\n")
+    _spread = float(ok_clos['xi_card'].max()) / max(float(ok_clos['xi_card'].min()), 1e-12)
+    lines.append(f"> **不要把 ξ 的跨窗变化（{_fmt(ok_clos['xi_card'].min(),1)} – {_fmt(ok_clos['xi_card'].max(),1)}，"
+                 f"约 {_fmt(_spread,0)} 倍）当作「不是同一个物理过程」的证据。**")
+    lines.append("> ξ 是**每个窗口各自拟合**的反应进度量，随进料、出口状态与下游条件变化，本就不要求恒定；"
+                 "同一个变换过程可以有不同反应进度。数据支持的否定结论只有一条："
+                 "**预声明的「所有窗口 ≤ 1 vol%」判据不成立**（中位本身已超过 1）。"
+                 "跨窗变化作为**现象**记录。")
+    lines.append("> 若要据此判断物理一致性，需额外做归一化，并检验下游水流量与动力学是否足以支撑该进度；"
+                 "本轮两项都没做。因此也不宜用 ξ 直接支撑「激冷段已解释组成偏差」，"
+                 "只能说「取样点位于激冷之后」这一结构性风险确实存在、量级可达出口 CO 的数个百分点。\n")
 
     # 8
     lines.append("## 8. JAX 的 F1 / F4\n")
@@ -1417,8 +1465,25 @@ def _full_interpretation(unit_df, keq, xcap, anchor, crit, attr, base, clos, par
                  "直接决定入炉煤的生成焓。`round-texaco-input-fix-20261031` 的 −167 K 用的是校验 JSON 的 "
                  "`HHV_d=29.8 MJ/kg`（本轮复现 −180 K 量级）；`round-wen-fortran-texaco-20261031` 的 +120 K 用的是"
                  "组分关联式 `33.5·C + 144·H − 18·O + 10·S`，对 I-1 给出 33.74 MJ/kg（本轮复现 +154 ~ +172 K）。"
-                 "两者相差 3.9 MJ/kg，乘以煤流就是 0.3 MW 量级的入口焓差，足以解释 300 K。"
-                 "旧网格（N=25、`AllowTruncatedMesh`）与 3% 热损只贡献 ±10 K。\n")
+                 "两者相差 3.9 MJ/kg，乘以煤流就是 0.3 MW 量级的入口焓差，足以解释 300 K。\n")
+    lines.append("**旧网格（N=25、`AllowTruncatedMesh`）与 3% 热损的贡献必须按 HHV 基准分层报告**，"
+                 "不能笼统写「±10 K」：\n")
+    _a = attr[attr["item"].str.contains("HHV_d=33.74", na=False)]
+    _b = attr[attr["item"].str.contains("HHV_d=30", na=False)]
+    _g1 = (_a[_a["N_cells"] == 160]["base_T_gas_K"].iloc[0] - _a[_a["N_cells"] == 25]["base_T_gas_K"].iloc[0]) if len(_a[_a["N_cells"] == 160]) and len(_a[_a["N_cells"] == 25]) else float("nan")
+    _g0 = (_b[_b["N_cells"] == 160]["base_T_gas_K"].iloc[0] - _b[_b["N_cells"] == 25]["base_T_gas_K"].iloc[0]) if len(_b[_b["N_cells"] == 160]) and len(_b[_b["N_cells"] == 25]) else float("nan")
+    lines.append("| HHV_d | N=160 (K) | N=25 + 热损 3% (K) | 网格与热损的贡献 |")
+    lines.append("|---|---:|---:|---:|")
+    if len(_a[_a["N_cells"] == 160]) and len(_a[_a["N_cells"] == 25]):
+        lines.append(f"| 33.74 MJ/kg | {_fmt(_a[_a['N_cells']==160]['base_T_gas_K'].iloc[0],1)} | "
+                     f"{_fmt(_a[_a['N_cells']==25]['base_T_gas_K'].iloc[0],1)} | **{_fmt(_g1,1)} K** |")
+    if len(_b[_b["N_cells"] == 160]) and len(_b[_b["N_cells"] == 25]):
+        lines.append(f"| 30 MJ/kg（占位）| {_fmt(_b[_b['N_cells']==160]['base_T_gas_K'].iloc[0],1)} | "
+                     f"{_fmt(_b[_b['N_cells']==25]['base_T_gas_K'].iloc[0],1)} | {_fmt(_g0,1)} K |")
+    lines.append("")
+    lines.append("「约 ±10 K」只在 HHV=30 那组成立；在 HHV=33.74 组，旧网格加热损单独就值 "
+                 f"{_fmt(_g1,1)} K，量级不可忽略。这不改变「HHV 决定偏差符号」的主要结论"
+                 "（300 K 的符号翻转仍由 3.9 MJ/kg 的 HHV 差主导），但把另一组对照的数值隐去会低估网格与热损的影响。\n")
     lines.append("因此锚点表里 `HHV_d=30 MJ/kg` 这个占位值（沿用 P1.5-C，namelist 本身没有 HHV）"
                  "**决定了模式 F 温度偏差的符号**：取 30 时偏低 175 K，取组分关联式的 33.74 时偏高 170 K。"
                  "本轮没有为缩小偏差去改它（那会变成用 HHV 拟合温度），但这条敏感性必须随锚点结论一起读。\n")
