@@ -1111,13 +1111,18 @@ def full_interpretation(unit_df, ctx, anchor_crit, anchor_attr, base, clos, gate
                  "但残差本身没有变小，而是从“与煤量成正比”变成了“按阶段分组的固定偏移”（阶段 1–2 偏正、"
                  "阶段 3–4 偏负），这正是 G2 失败的形态。\n")
     L.append("### 4.2 G4 的读法\n")
+    over_cal = main40[main40["H_plant_over_H_in_with_moisture_cal"] > 1.0]
+    over_raw = main40[main40["H_plant_over_H_in_with_moisture_raw"] > 1.0]
     L.append(f"模型自身在含 2% 水分的进料氢上闭合（`H_out_dry/H_in_with_moisture` "
              f"{_fmt(main40['H_out_over_H_in_with_moisture'].min(), 3)} – "
-             f"{_fmt(main40['H_out_over_H_in_with_moisture'].max(), 3)}），装置侧却有 4 窗 > 1。"
-             "按 C4/C8 的结论，这不能当作“反应器后有变换”的证据：装置取样点在激冷之后，激冷水是另一个氢源；"
-             "而且这 4 窗正好是 P1/P2 的窗口，同时也是合成气流量标定倍数 `S_phase` 最大的两个阶段。"
-             "原始流量口径下也全部 ≤ 1（见 `baseline.csv` 的 `H_plant_over_H_in_with_moisture_raw`），"
-             "标定后才有 4 窗超 1 —— 也就是说 G4 的失败与流量标定同源，不是氢账本本身的问题。\n")
+             f"{_fmt(main40['H_out_over_H_in_with_moisture'].max(), 3)}），装置侧标定流量下有 "
+             f"{len(over_cal)} 窗 > 1（最大 {_fmt(over_cal['H_plant_over_H_in_with_moisture_cal'].max(), 3)}），"
+             f"原始流量下也有 {len(over_raw)} 窗 > 1（最大 {_fmt(over_raw['H_plant_over_H_in_with_moisture_raw'].max(), 3)}）——"
+             "**两套流量口径下都是同样 4 个窗口，G4 的失败不是流量标定造成的**，"
+             "标定只是把 P1 两窗的超出量放大（1.046/1.060 → 1.138/1.153）。"
+             "按 C4/C8 的结论，「装置干气氢超过全部进料氢」不能当作“反应器后有变换”的证据："
+             "装置取样点在激冷之后，激冷水是另一个氢源；这 4 窗集中在 P1/P2 两个阶段。"
+             "要判定装置账本是否自洽，必须先把激冷水项并入进料氢，本轮未做。\n")
 
     # ---------------- 5 ----------------
     L.append("## 5. 体积分数上的 CO2 缺口（模型 − 装置）\n")
@@ -1265,7 +1270,8 @@ def full_interpretation(unit_df, ctx, anchor_crit, anchor_attr, base, clos, gate
              f"G3 通过 {int(gates[gates['gate']=='G3']['pass'].astype(bool).sum())}/4 个阶段"
              f"（未通过：{'、'.join(gates[(gates['gate']=='G3') & (~gates['pass'].astype(bool))]['description'].str.split(' ').str[0])}）；"
              f"G4 **{'通过' if bool(gates[gates['gate']=='G4']['pass'].iloc[0]) else '未通过'}**"
-             f"（标定流量下 {int(float(gates[gates['gate']=='G4']['value'].iloc[0]))} 窗 > 1）。")
+             f"（标定流量下 {int(float(gates[gates['gate']=='G4']['value'].iloc[0]))} 窗 > 1，"
+             f"原始流量下 {int(float(gates[gates['gate']=='G4_raw']['value'].iloc[0]))} 窗）。")
     L.append("5. CO2 缺口（模型 − 装置）在主口径下中位 −5.51 vol%，比 P1.6-A 的 −2.2 vol% 更大。\n")
     L.append("### 8.2 与验证文档不一致、或需要更正的地方\n")
     L.append("1. **C6 的成因归错了**。C6 说 `H_in_with_moisture_mol_s` 的 1.44–1.47 对应“每 kg 干煤约 0.18 kg 水，"
@@ -1296,7 +1302,8 @@ def full_interpretation(unit_df, ctx, anchor_crit, anchor_attr, base, clos, gate
     L.append("### 8.3 判据的读法\n")
     L.append("G1 通过说明“残差跟着煤量误差走”这条已解除；但 G2 反而变差，残差从“与煤量成正比”变成"
              "“按阶段分组的固定偏移”（阶段 1–2 为正、3–4 为负），幅度 1.6–2.3 vol%。"
-             "G4 的失败与合成气流量标定同源（原始流量口径下全部 ≤ 1），不能读作装置氢账本不自洽。"
+             "G4 在标定与原始两套流量下都是同样的 4 个 P1/P2 窗口超 1（标定只放大超出量），"
+             "因此不能读作装置氢账本不自洽，也不能归因于流量标定。"
              "按卡要求，本轮不为这些判据调参、不改口径，也未把标定引入模型求解。\n")
     return "\n".join(L)
 
