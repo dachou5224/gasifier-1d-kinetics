@@ -1,0 +1,49 @@
+check_group,context,metric,hand_value,code_value,rel_diff,tolerance,pass,note
+single_cell_combustion,合成值（rheat = 1.2345678 MW）,hloss_W,370370.34,370370.34,0.0,1e-09,True,hloss = fcoal·|rheat|·hl/100，hl = 30（Fortran 第 30、780 行）
+single_cell_combustion,合成值（rheat = −1.2345678 MW）,hloss_W_abs_sign,370370.34,370370.34,0.0,1e-09,True,abs() 保留：净吸热单元也按 |rheat| 取 30%
+single_cell_gasification,"合成值（tg = 1523.75 K, hs = 187.5 cm）",hloss_W,-13223.816310152504,-13223.816310152504,0.0,1e-09,True,hloss = u0·π·dt·nc·delh·(tg − tw)，u0 = 3.4e-3 cal/(s·cm²·K)，tw = 2100 − 600·hs/height（第 214、348–349、777–778 行）
+single_cell_gasification,"合成值（tg = 1523.75 K, hs = 187.5 cm）",tw_K,1759.090909090909,1759.090909090909,0.0,1e-09,True,tw = 2100 − 600·hs/height，height = 330 cm（第 32 行）
+single_cell_gasification,合成值（tg = 1200.0 K < tw = 1759.09 K）,hloss_W_negative_preserved,-31415.34343116868,-31415.34343116868,0.0,1e-09,True,tg < tw → 壁面向气体供热，保留负号（卡面第 2 个陷阱）
+single_cell_combustion,texaco i-1 cell 0（z = 0.0103 m）,hloss_W,214315.9205174371,214315.9205174371,0.0,1e-09,True,净反应热 0.7144 MW（手算用同一速率向量，独立写一遍焓算式）
+single_cell_combustion,texaco i-1 cell 0（z = 0.0103 m）,reaction_heat_W,714386.4017247903,714386.4017247903,0.0,1e-09,True,rheat 的 Python 对应量：Q = −Σ rate·ΔH(T)，见 heat_loss.reaction_heat_release_w
+single_cell_gasification,texaco i-1 cell 1（z = 0.0309 m）,hloss_W,-5613.5158361402055,-5613.5158361402055,0.0,1e-09,True,净反应热 -0.1061 MW（手算用同一速率向量，独立写一遍焓算式）
+single_cell_gasification,texaco i-1 cell 1（z = 0.0309 m）,reaction_heat_W,-106073.03948619921,-106073.03948619921,0.0,1e-09,True,rheat 的 Python 对应量：Q = −Σ rate·ΔH(T)，见 heat_loss.reaction_heat_release_w
+p17a_bitwise_parity,texaco i-1 模式 F N=160,T_gas_K,1310.869353662605,1310.869353662605,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-1 模式 F N=160,X_C_pct,96.30497532979264,96.30497532979264,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-1 模式 F N=160,CO_vol_pct,55.96460936108401,55.96460936108401,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-1 模式 F N=160,H2_vol_pct,38.33241457827175,38.33241457827175,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-1 模式 F N=160,CO2_vol_pct,4.337563630066837,4.337563630066837,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-1 模式 F N=160,CH4_vol_pct,0.5397274604470428,0.5397274604470428,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-2 模式 F N=160,T_gas_K,1245.1305650712684,1245.1305650712684,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-2 模式 F N=160,X_C_pct,85.87127309388976,85.87127309388976,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-2 模式 F N=160,CO_vol_pct,51.62567347286193,51.62567347286193,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-2 模式 F N=160,H2_vol_pct,40.970702022603234,40.970702022603234,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-2 模式 F N=160,CO2_vol_pct,6.437149331882133,6.437149331882133,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-2 模式 F N=160,CH4_vol_pct,0.19895713241719104,0.19895713241719104,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-5c 模式 F N=160,T_gas_K,1316.2648914146655,1316.2648914146655,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-5c 模式 F N=160,X_C_pct,99.70169239273866,99.70169239273866,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-5c 模式 F N=160,CO_vol_pct,52.940508756961314,52.940508756961314,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-5c 模式 F N=160,H2_vol_pct,38.86349900425261,38.86349900425261,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-5c 模式 F N=160,CO2_vol_pct,7.247408486414574,7.247408486414574,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-5c 模式 F N=160,CH4_vol_pct,0.08029518994179,0.08029518994179,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-10 模式 F N=160,T_gas_K,1300.347452345012,1300.347452345012,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-10 模式 F N=160,X_C_pct,95.02416844555492,95.02416844555492,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-10 模式 F N=160,CO_vol_pct,55.719992721510096,55.719992721510096,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-10 模式 F N=160,H2_vol_pct,38.432919813398556,38.432919813398556,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-10 模式 F N=160,CO2_vol_pct,4.889321859995336,4.889321859995336,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco i-10 模式 F N=160,CH4_vol_pct,0.25758062243118895,0.25758062243118895,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco exxon 模式 F N=160,T_gas_K,1272.8164369622662,1272.8164369622662,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco exxon 模式 F N=160,X_C_pct,98.00093202256143,98.00093202256143,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco exxon 模式 F N=160,CO_vol_pct,52.54953658883691,52.54953658883691,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco exxon 模式 F N=160,H2_vol_pct,37.65601013111799,37.65601013111799,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco exxon 模式 F N=160,CO2_vol_pct,8.303298682333182,8.303298682333182,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+p17a_bitwise_parity,texaco exxon 模式 F N=160,CH4_vol_pct,0.1428339943701755,0.1428339943701755,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
+f_gas_neutrality,texaco i-1 模式 F N=160,T_gas_K,1310.869353662605,1310.869353662605,0.0,0.0,True,GasificationRateFactor 缺省 vs 显式 1.0：指前因子倍数不得污染旧行为
+f_gas_neutrality,texaco i-1 模式 F N=160,X_C_pct,96.30497532979264,96.30497532979264,0.0,0.0,True,GasificationRateFactor 缺省 vs 显式 1.0：指前因子倍数不得污染旧行为
+f_gas_neutrality,texaco i-1 模式 F N=160,CO_vol_pct,55.96460936108401,55.96460936108401,0.0,0.0,True,GasificationRateFactor 缺省 vs 显式 1.0：指前因子倍数不得污染旧行为
+f_gas_neutrality,texaco i-1 模式 F N=160,H2_vol_pct,38.33241457827175,38.33241457827175,0.0,0.0,True,GasificationRateFactor 缺省 vs 显式 1.0：指前因子倍数不得污染旧行为
+f_gas_neutrality,texaco i-1 模式 F N=160,CO2_vol_pct,4.337563630066837,4.337563630066837,0.0,0.0,True,GasificationRateFactor 缺省 vs 显式 1.0：指前因子倍数不得污染旧行为
+hhv_independence_fortran_wall,I-1 模式 F′ N=160，HHV_d 30 → 34,d_T_out_K,0.0,0.0,0.0,1e-06,True,fortran_wall 不读热值，故应当逐位为 0；P1.7-A 的 −4.55 K 全部来自 2%×HHV 基准
+hhv_independence_fortran_wall,I-1 模式 F′ N=160，HHV_d 30 → 34,d_X_C_pp,0.0,0.0,0.0,1e-06,True,同上（并列报告，非独立判据）
+jax_path_guard,"texaco i-1, N=8, solver_method=jax_jit",jax_rejects_fortran_wall,1.0,1.0,0.0,0.0,True,"HeatLossModel='fortran_wall' is not implemented on the JAX batch path (GasifierSystem._solve_jax_v4). Use solver_method='minimize'/'newton_fd' (the NumPy sequential path), or set H"
+jax_path_guard,"texaco i-1, N=8, solver_method=jax_jit",jax_rejects_gasification_rate_factor,1.0,1.0,0.0,0.0,True,GasificationRateFactor is not implemented on the JAX batch path (GasifierSystem._solve_jax_v4); it would be silently ignored.
