@@ -50,7 +50,8 @@ class KineticsService:
                                  T_particle: float = None,
                                  char_combustion_factor: float = None,
                                  use_fortran_diffusion: bool = False,
-                                 conversion_cutoff: str = "smooth") -> Dict[str, float]:
+                                 conversion_cutoff: str = "smooth",
+                                 gasification_rate_factor: float = 1.0) -> Dict[str, float]:
         """
         Calculate Surface Reaction Rates (mol/s).
         T_particle: 颗粒温度 Ts_avg；None 时用 Ross 修正 T_p = T + 6.6e4*C_O2（向后兼容）
@@ -144,7 +145,10 @@ class KineticsService:
 
             rate_kmols = self.het_model.calculate_total_rate(
                 rxn, T, P, P_eff, particle_diameter, Y, nu=nu, Re=Re, Sc=Sc, T_p=T_p,
-                use_fortran_diffusion=use_fortran_diffusion, phi=r.get('phi', 1.0)
+                use_fortran_diffusion=use_fortran_diffusion, phi=r.get('phi', 1.0),
+                rate_factor=(
+                    gasification_rate_factor if rxn in ('C+H2O', 'C+CO2') else 1.0
+                ),
             )
 
             rate_flux = rate_kmols * 1000.0

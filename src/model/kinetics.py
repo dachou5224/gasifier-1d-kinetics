@@ -67,7 +67,7 @@ class HeterogeneousKinetics:
         }
         self.Xc0 = 0.8  # Default initial carbon fraction
 
-    def calculate_total_rate(self, reaction, T, P, partial_pressure, d_p, Y, nu=1.0, Re=0.0, Sc=None, porosity=0.75, T_p=None, use_fortran_diffusion=False, phi=1.0):
+    def calculate_total_rate(self, reaction, T, P, partial_pressure, d_p, Y, nu=1.0, Re=0.0, Sc=None, porosity=0.75, T_p=None, use_fortran_diffusion=False, phi=1.0, rate_factor=1.0):
         """
         Calculate heterogeneous flux (kmol Carbon / (m^2·s)) per unit EXTERNAL surface area.
         UCSM 分母含 1/(k_s*Y^2)，故返回的 flux 已折算到颗粒外表面积。
@@ -88,6 +88,8 @@ class HeterogeneousKinetics:
             T_p (float): Particle temperature (Optional, defaults to T)
             use_fortran_diffusion (bool): 若 True，用 Fortran 经验扩散公式替代 Fuller
             phi (float): C+O2 机制因子，仅 use_fortran_diffusion 且 reaction=='C+O2' 时使用
+            rate_factor (float): 指前因子 A 的倍数（P1.8-A 的 f_gas 扫描）。E 不变，
+                                 因此严格等价于把 k_s 乘以该倍数；缺省 1.0 时不改变任何数值。
 
         Returns:
             float: Flux [kmol/(m^2·s)] per unit external surface area
@@ -96,7 +98,7 @@ class HeterogeneousKinetics:
         if T_p is None: T_p = T
         T_mean = (T + T_p) / 2.0
         
-        A_p = self.params[reaction]['A']
+        A_p = self.params[reaction]['A'] * float(rate_factor)
         E_p = self.params[reaction]['E']
         
         # 1. Film diffusion rate k_d [m/s]
