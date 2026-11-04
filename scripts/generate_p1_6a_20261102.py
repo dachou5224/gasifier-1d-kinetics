@@ -154,13 +154,14 @@ def _energy_scale(system: GasifierSystem) -> tuple[float, float]:
     inlet = system.cells[0].inlet
     h_gas = abs(MaterialService.get_gas_enthalpy(inlet))
     h_solid = abs(MaterialService.get_solid_enthalpy(inlet, system.coal_props))
-    hhv = system.coal_props.get("HHV_d", 30.0)
+    hhv = coal_hhv_kj_kg(system.coal_props)  # P1.7-A：热损基准是高位（只给 LHV 时按定义推）
     # HHV 单位归一：支持 MJ/kg（<1000）与 kJ/kg（>=1000）两种输入。
     # 归一后 hhv_kj_kg 一律是 kJ/kg，故换算到 J/kg 乘 1e3。
     # 2026-11-03 更正（审阅意见）：原写法把 kJ/kg 再乘 1e6（等于按 MJ/kg 处理），
     # 使 q_hhv 放大 1000 倍、所有 HHV 归一化相对残差缩小 1000 倍，
     # 直接掩盖了 baseline 窗 6.94e-7 > 1e-9 的闸门失败。
-    hhv_kj_kg = hhv * 1000.0 if hhv < 1000.0 else hhv
+    # 2026-11-03 P1.7-A：热值改由 input_contract.coal_hhv_kj_kg 取（只给 LHV_d 时按定义加回潜热）。
+    hhv_kj_kg = hhv
     q_hhv = abs(float(system.op_conds["coal_flow"]) * hhv_kj_kg * 1e3)
     return float(h_gas + h_solid), float(q_hhv)
 
@@ -177,12 +178,17 @@ def global_energy_residual_w(system: GasifierSystem) -> float:
 
 
 def hhv_roundtrip(coal_props: dict) -> tuple[float, float]:
-    """由 coal_props 的 Hf_coal 反推 HHV，核对「整体热值仍与 HHV 一致」。"""
+    """由 coal_props 的 Hf_coal 反推 HHV，核对「整体热值仍与 HHV 一致」。
+
+    P1.7-A：热值输入可能是 LHV_d（低位）也可能是 HHV_d（高位），比较对象改由
+    ``input_contract.coal_hhv_kj_kg`` 给出（只给 LHV 时按定义加回 9·Hd·2442）。
+    """
+    from model.input_contract import coal_hhv_kj_kg
+
     cd = float(coal_props["Cd"]) / 100.0
     hd = float(coal_props["Hd"]) / 100.0
     sd = float(coal_props["Sd"]) / 100.0
-    hhv_kj = float(coal_props.get("HHV_d", 30.0))
-    hhv_kj = hhv_kj if hhv_kj > 1000.0 else hhv_kj * 1000.0
+    hhv_kj = coal_hhv_kj_kg(coal_props)
     hf_kj_kg = float(coal_props["Hf_coal"]) / 1000.0
     comb = (
         (cd / 0.012011) * (-393.51)
@@ -762,8 +768,8 @@ def jax_parity_rows(window_row: dict, n_cells: int = 40) -> tuple[pd.DataFrame, 
             s_src += sm
             e_src += e
         op = cell.op_conds
-        hhv = cell.coal_props.get("HHV_d", 30.0)
-        hhv_mj = hhv / 1000.0 if hhv > 1000.0 else hhv
+        from model.input_contract import coal_hhv_kj_kg
+        hhv_mj = coal_hhv_kj_kg(cell.coal_props) / 1000.0
         ash = ash_mass_fraction_dry(cell.coal_props)
         f_ash = ash / (cell.coal_props.get("Cd", 60.0) / 100.0 + ash + 1e-9)
         x9 = np.concatenate([mainline_gas8_to_jax9(state.gas_moles),

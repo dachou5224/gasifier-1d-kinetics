@@ -97,6 +97,7 @@ def _monitoring_sum(row: dict[str, Any]) -> float:
 
 
 def _contract_audit_rows(model_case_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    from model.input_contract import coal_hhv_kj_kg
     from model.model_case_adapter import build_gasifier_inputs_from_model_case
 
     out: list[dict[str, Any]] = []
@@ -152,7 +153,9 @@ def _contract_audit_rows(model_case_rows: list[dict[str, Any]]) -> list[dict[str
                     abs_tol=1.0e-15,
                 ),
                 "coal_C_pct_adapter": float(built["coal_props"]["Cd"]),
-                "HHV_d_adapter_kj_kg": float(built["coal_props"]["HHV_d"]),
+                # P1.7-A：合同热值映射到 LHV_d（干燥基低位）；热损基准用的 HHV 由它按定义推得。
+                "LHV_d_adapter_kj_kg": float(built["coal_props"]["LHV_d"]),
+                "HHV_d_derived_kj_kg": float(coal_hhv_kj_kg(built["coal_props"])),
                 "carrier_gas_type": built["op_conds"]["carrier_gas_type"],
                 "carrier_mapping_basis": built["assumptions"]["coal_flow_basis"],
                 "source_preview_file": row["source_preview_file"],

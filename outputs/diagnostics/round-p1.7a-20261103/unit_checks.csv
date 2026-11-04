@@ -1,0 +1,39 @@
+check_group,context,metric,value,reference,tolerance,pass,note
+heating_value_contract,P1 合同煤质,Hf_coal_lhv_kj_kg,-1421.0943470366074,-1421.1,1.0,True,LHV_d=27720 kJ/kg 直接进公式，不再扣 9·Hd·2442；模型标记 from_heating_value
+heating_value_contract,P1 合同煤质,pyrolysis_heat_lhv_kj_kg,-161.81307242175984,-161.8,2.0,True,PyrolysisService 产率 + PyrolysisSource 能量口径，在 298.15 K 求值（<0 吸热）
+heating_value_contract,P1 合同煤质,Hf_coal_legacy_hhv_kj_kg,-2371.4230670366087,-2371.4,1.0,True,只给 HHV_d 时保持修改前行为（按高位处理、扣潜热）——旧口径复现
+heating_value_contract,P1 合同煤质,pyrolysis_heat_legacy_hhv_kj_kg,-1112.1417924217612,-1112.1,2.0,True,旧口径在 298.15 K 的热解热；与 LHV 口径相差约 950 kJ/kg 干煤（潜热扣两次）
+heating_value_contract,LHV_d 与 HHV_d 同时给出,raises_value_error,1.0,1.0,0.0,True,不做二选一猜测：低位与高位口径不同（Hf_coal 用低位、热损基准用高位）
+heating_value_contract,P1 合同煤质,hhv_derived_kj_kg,28670.32872,28670.32872,1e-09,True,热损基准用高位；只给 LHV_d 时按定义加回 9·Hd·2442，不引入新假设
+heating_value_contract,P1 合同煤质,lhv_roundtrip_rel,0.0,0.0,1e-09,True,由 Hf_coal 减去元素→氧化物生成焓反推低位热值，应与 LHV_d 一致
+heating_value_contract,P1 合同煤质（T_in=500 K）,zero_model_hf_hv_independent_rel,0.0,0.0,1e-12,True,Hf_coal(zero)=-1200.92 kJ/kg；LHV_d 与 HHV_d=34 两条输入给出同一值
+heating_value_contract,P1 合同煤质（T_in=500 K）,pyrolysis_heat_zero_kj_kg,0.0,0.0,1e-06,True,zero 口径下 H_coal = H_char + H_vol，热解热在定义上恰为 0
+hydrogen_budget,P1 合同煤质,H_in_with_moisture_over_H_in,1.052817093195871,1.053,0.002,True,只计 2% 输煤水分（H2O → 2 H，÷0.018015 kg/mol），不计原煤收到基水分 M_ar；修改前把水的质量直接除以 H 的摩尔质量（÷0.001008），放大约 18 倍
+hydrogen_budget,P1 合同煤质,H_in_with_moisture_over_H_in_legacy_bug,1.4719741735732221,,,,修改前列的公式（水质量 ÷ H 摩尔质量）在 2%、Hd=4.324% 下给出该值；P1.6-A 的 1.44–1.47 即由此而来，不是 M_ar（M_ar=15.77% 会给到 5.3）
+pyrolysis_heat_scale,P1 plateau_2022-09-28D_008,Q_pyrolysis_legacy_hhv_MW,-20.87228284992364,-1149.291495508157,,,cell 0 热解热 [MW]（干煤 18.1610 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.3714 MJ/kg
+pyrolysis_heat_scale,P1 plateau_2022-09-28D_008,Q_pyrolysis_lhv_fixed_MW,-3.6133629660036135,-198.96277550815557,,,cell 0 热解热 [MW]（干煤 18.1610 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.4211 MJ/kg
+pyrolysis_heat_scale,P1 plateau_2022-09-28D_008,Q_pyrolysis_zero_model_MW,0.0,0.0,,,cell 0 热解热 [MW]（干煤 18.1610 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.2221 MJ/kg
+pyrolysis_heat_scale,P1 shift_morning_handover_2022-09,Q_pyrolysis_legacy_hhv_MW,-22.17316589368932,-1149.291495508157,,,cell 0 热解热 [MW]（干煤 19.2929 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.3714 MJ/kg
+pyrolysis_heat_scale,P1 shift_morning_handover_2022-09,Q_pyrolysis_lhv_fixed_MW,-3.8385689316012948,-198.96277550815557,,,cell 0 热解热 [MW]（干煤 19.2929 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.4211 MJ/kg
+pyrolysis_heat_scale,P1 shift_morning_handover_2022-09,Q_pyrolysis_zero_model_MW,0.0,0.0,,,cell 0 热解热 [MW]（干煤 19.2929 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.2221 MJ/kg
+pyrolysis_heat_scale,P2 plateau_2022-10-03D_011,Q_pyrolysis_legacy_hhv_MW,-21.289162939030053,-1086.8083608932727,,,cell 0 热解热 [MW]（干煤 19.5887 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.2731 MJ/kg
+pyrolysis_heat_scale,P2 plateau_2022-10-03D_011,Q_pyrolysis_lhv_fixed_MW,-2.389315245490031,-121.97416089327167,,,cell 0 热解热 [MW]（干煤 19.5887 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.3083 MJ/kg
+pyrolysis_heat_scale,P2 plateau_2022-10-03D_011,Q_pyrolysis_zero_model_MW,-4.560849629342556e-15,-2.3283064365386963e-13,,,cell 0 热解热 [MW]（干煤 19.5887 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.1863 MJ/kg
+pyrolysis_heat_scale,P2 plateau_2022-10-03N_013,Q_pyrolysis_legacy_hhv_MW,-21.54488894634824,-1086.8083608932727,,,cell 0 热解热 [MW]（干煤 19.8240 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.2731 MJ/kg
+pyrolysis_heat_scale,P2 plateau_2022-10-03N_013,Q_pyrolysis_lhv_fixed_MW,-2.418015765548218,-121.97416089327167,,,cell 0 热解热 [MW]（干煤 19.8240 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.3083 MJ/kg
+pyrolysis_heat_scale,P2 plateau_2022-10-03N_013,Q_pyrolysis_zero_model_MW,-4.615634679794312e-15,-2.3283064365386963e-13,,,cell 0 热解热 [MW]（干煤 19.8240 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.1863 MJ/kg
+pyrolysis_heat_scale,P3 plateau_2022-10-09D_014,Q_pyrolysis_legacy_hhv_MW,-20.71325943513381,-1036.1603287144735,,,cell 0 热解热 [MW]（干煤 19.9904 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.1742 MJ/kg
+pyrolysis_heat_scale,P3 plateau_2022-10-09D_014,Q_pyrolysis_lhv_fixed_MW,-1.2500982389737925,-62.53492871447257,,,cell 0 热解热 [MW]（干煤 19.9904 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.2006 MJ/kg
+pyrolysis_heat_scale,P3 plateau_2022-10-09D_014,Q_pyrolysis_zero_model_MW,4.654377698898316e-15,2.3283064365386963e-13,,,cell 0 热解热 [MW]（干煤 19.9904 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.1380 MJ/kg
+pyrolysis_heat_scale,P3 plateau_2022-10-09D_015,Q_pyrolysis_legacy_hhv_MW,-20.874589598314653,-1036.1603287144735,,,cell 0 热解热 [MW]（干煤 20.1461 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.1742 MJ/kg
+pyrolysis_heat_scale,P3 plateau_2022-10-09D_015,Q_pyrolysis_lhv_fixed_MW,-1.2598349273746359,-62.53492871447257,,,cell 0 热解热 [MW]（干煤 20.1461 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.2006 MJ/kg
+pyrolysis_heat_scale,P3 plateau_2022-10-09D_015,Q_pyrolysis_zero_model_MW,4.690629430115223e-15,2.3283064365386963e-13,,,cell 0 热解热 [MW]（干煤 20.1461 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.1380 MJ/kg
+pyrolysis_heat_scale,P4 plateau_2022-10-10N_006,Q_pyrolysis_legacy_hhv_MW,-30.066647494836314,-1510.4010516636013,,,cell 0 热解热 [MW]（干煤 19.9064 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.7035 MJ/kg
+pyrolysis_heat_scale,P4 plateau_2022-10-10N_006,Q_pyrolysis_lhv_fixed_MW,-9.854015399796289,-495.01745166360007,,,cell 0 热解热 [MW]（干煤 19.9064 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.6881 MJ/kg
+pyrolysis_heat_scale,P4 plateau_2022-10-10N_006,Q_pyrolysis_zero_model_MW,0.0,0.0,,,cell 0 热解热 [MW]（干煤 19.9064 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.1931 MJ/kg
+pyrolysis_heat_scale,P4 plateau_2022-10-11N_009,Q_pyrolysis_legacy_hhv_MW,-30.38156611410817,-1510.4010516636013,,,cell 0 热解热 [MW]（干煤 20.1149 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.7035 MJ/kg
+pyrolysis_heat_scale,P4 plateau_2022-10-11N_009,Q_pyrolysis_lhv_fixed_MW,-9.957226538468149,-495.01745166360007,,,cell 0 热解热 [MW]（干煤 20.1149 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.6881 MJ/kg
+pyrolysis_heat_scale,P4 plateau_2022-10-11N_009,Q_pyrolysis_zero_model_MW,0.0,0.0,,,cell 0 热解热 [MW]（干煤 20.1149 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.1931 MJ/kg
+pyrolysis_heat_scale,P4 shift_evening_handover_2022-10,Q_pyrolysis_legacy_hhv_MW,-30.171922448137266,-1510.4010516636013,,,cell 0 热解热 [MW]（干煤 19.9761 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-2.7035 MJ/kg
+pyrolysis_heat_scale,P4 shift_evening_handover_2022-10,Q_pyrolysis_lhv_fixed_MW,-9.88851811617724,-495.01745166360007,,,cell 0 热解热 [MW]（干煤 19.9761 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.6881 MJ/kg
+pyrolysis_heat_scale,P4 shift_evening_handover_2022-10,Q_pyrolysis_zero_model_MW,0.0,0.0,,,cell 0 热解热 [MW]（干煤 19.9761 kg/s，T_in=433.1 K）；reference 列是比热解热 [kJ/kg 干煤]；Hf_coal=-1.1931 MJ/kg

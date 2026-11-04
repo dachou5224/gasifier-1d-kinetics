@@ -1,0 +1,19 @@
+gate,description,metric,value,threshold,pass,detail
+G1,单参数闭合的 CO 残差与 pipeline_over_weigh 的 Spearman |ρ| < 0.5,spearman_rho,0.08333333333333334,0.5,True,n=9；Spearman ρ=+0.083（p=0.831）；Pearson r=+0.131（附报，不作判据）
+G2a,CO 残差中位绝对值 ≤ 1.0 vol%,median_abs_d_CO,1.7263086971575419,1.0,False,n=9；中位带符号 -1.73；最大绝对 2.29
+G2b,H2 残差中位绝对值 ≤ 1.0 vol%,median_abs_d_H2,1.5863015692079543,1.0,False,n=9；中位带符号 +1.59；最大绝对 2.20
+G3,phase1 模型 X_C 中位与刘文阶段值之差 ≤ 3 pp,median_X_C_minus_liu_pp,1.6556987750718264,3.0,True,n=2；模型中位 99.90%、刘文 98.24%
+G3,phase2 模型 X_C 中位与刘文阶段值之差 ≤ 3 pp,median_X_C_minus_liu_pp,2.730000000000004,3.0,True,n=2；模型中位 100.00%、刘文 97.27%
+G3,phase3 模型 X_C 中位与刘文阶段值之差 ≤ 3 pp,median_X_C_minus_liu_pp,4.7921790530065635,3.0,False,n=2；模型中位 99.90%、刘文 95.11%
+G3,phase4 模型 X_C 中位与刘文阶段值之差 ≤ 3 pp,median_X_C_minus_liu_pp,2.4602639937443485,3.0,True,n=3；模型中位 96.48%、刘文 94.02%
+G4,装置干气氢（标定流量）/ 进料氢（含 2% 水分、协调煤量）各窗 ≤ 1,n_windows_over_1,4.0,0.0,False,超 1 的窗口：plateau_2022-09-28D_008(1.153)、shift_morning_handover_2022-(1.138)、plateau_2022-10-03D_011(1.043)、plateau_2022-10-03N_013(1.042)
+G4_raw,同上，但用原始合成气流量口径（并列报告，不单独设闸门）,n_windows_over_1_raw,4.0,,,原始流量口径下超 1 的窗口数；逐窗数值见 baseline.csv 的 H_plant_over_H_in_with_moisture_raw
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,0.12239755016123866,,,plateau_2022-09-28D_008；模型 99.79%，装置 99.67%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,1.3919999999824313,,,shift_morning_handover_2022-09-28；模型 100.00%，装置 98.61%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,5.361000000000004,,,plateau_2022-10-03D_011；模型 100.00%，装置 94.64%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,5.143000000000001,,,plateau_2022-10-03N_013；模型 100.00%，装置 94.86%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,5.40932939243298,,,plateau_2022-10-09D_014；模型 100.00%，装置 94.59%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,5.612028713580131,,,plateau_2022-10-09D_015；模型 99.81%，装置 94.20%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,5.020422619472512,,,plateau_2022-10-10N_006；模型 96.19%，装置 91.17%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,3.8052639937443473,,,plateau_2022-10-11N_009；模型 96.48%，装置 92.67%
+report_model_vs_plant_XC,模型 X_C − 装置碳平衡 X_C（主口径：协调-阶段 + 标定流量）,window,3.662608817526177,,,shift_evening_handover_2022-10-11；模型 97.07%，装置 93.40%

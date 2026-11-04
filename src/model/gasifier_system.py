@@ -13,13 +13,18 @@ from .grid_service import AdaptiveMeshGenerator, MeshConfig
 from .source_terms import EvaporationSource, PyrolysisSource
 from .species_bridge import mainline_gas8_to_jax9, jax9_to_mainline_gas8
 from .input_contract import (
+    PYROLYSIS_HEAT_MODEL_ZERO,
     SOLID_ENTHALPY_MODEL_DEFAULT,
     ash_mass_fraction_dry,
     coal_flow_kg_s_for_heat_loss,
+    coal_hhv_kj_kg,
+    coal_lhv_kj_kg,
     heat_loss_norm_length_m,
     heat_loss_ref_temp_k,
     resolve_f_s_coal,
+    resolve_pyrolysis_heat_model,
     uses_fortran_default_model,
+    validate_coal_heating_values,
 )
 from .solver import NewtonSolver
 from .jax_residual_adapter import make_jacobian_fn
@@ -37,18 +42,74 @@ _LEGACY_SOLVER_ALIASES = {
 # 在 gasifier_system 导入期把 jax 拉进来，那会绕过 jax_enable_x64 的时序。
 _WGS_KEQ_MODEL_IDS = {"thermo": 0, "legacy_fit": 1, "fortran": 2}
 
+def _hf_coal_from_pyrolysis_products(coal_props: dict, T_pyro: float) -> float:
+    """``PyrolysisHeatModel="zero"``：由热解产物焓与焦炭焓反推煤的生成焓 [J/kg 干煤]。
+
+    令 ``H_coal(T) = H_char(T) + H_vol(T)``（热解热恰为 0），而
+    ``H_coal = m_coal·(cp·ΔT + Hf)``、``H_char = m_char·cp·ΔT``，于是
+
+        Hf_coal = [H_vol(T) − (m_coal − m_char)·cp·ΔT] / m_coal
+                = [H_vol(T) − m_vol·cp·ΔT] / m_coal
+
+    不读取任何热值。``T_pyro`` 取该算例 cell 0 的热解温度（即 ``op_conds['T_in']``），
+    因此这一口径下 cell 0 的热解热在定义上恰为 0，Fortran 的「煤无生成焓」记账与之一致。
+    """
+    service = PyrolysisService()
+    molar_yields, w_vol = service.calc_yields(coal_props)  # mol/kg_dry, kg/kg_dry
+    cp_s = float(coal_props.get("cp_char", 1300.0))
+    dT = float(T_pyro) - 298.15
+    h_vol = 0.0
+    for idx, sp in enumerate(SPECIES_NAMES):
+        if molar_yields[idx] > 0.0:
+            h_vol += float(molar_yields[idx]) * float(get_enthalpy_molar(sp, float(T_pyro)))
+    m_vol = float(w_vol)
+    return float(h_vol - m_vol * cp_s * dT)
+
+
+def compute_hf_coal_j_kg(coal_props: dict, op_conds: dict) -> tuple[float, str]:
+    """返回 ``(Hf_coal [J/kg 干煤], 口径标记)``。
+
+    * ``from_heating_value``：``Hf = Σ(元素→氧化物生成焓) + LHV_d``。
+      给定 ``LHV_d`` 时直接用、不再扣潜热；只给 ``HHV_d`` 时保持修改前的行为
+      （按高位处理、扣 ``9·Hd·2442``）；两者都给由
+      ``validate_coal_heating_values`` 报错。
+    * ``zero``：见 ``_hf_coal_from_pyrolysis_products``，不读任何热值。
+    """
+    model = resolve_pyrolysis_heat_model(op_conds)
+    if model == PYROLYSIS_HEAT_MODEL_ZERO:
+        return _hf_coal_from_pyrolysis_products(coal_props, float(op_conds["T_in"])), model
+    cd = float(coal_props.get("Cd", 0.0)) / 100.0
+    hd = float(coal_props.get("Hd", 0.0)) / 100.0
+    sd = float(coal_props.get("Sd", 0.0)) / 100.0
+    lhv_kj = coal_lhv_kj_kg(coal_props)
+    # 每 kg 干煤完全氧化到 CO2(g)/H2O(g)/SO2(g) 的生成焓之和 [kJ/kg]
+    comb_kj = (
+        (cd / 0.012011) * (-393.51)
+        + (hd / 0.001008) * 0.5 * (-241.83)
+        + (sd / 0.03206) * (-296.81)
+    )
+    return float((comb_kj + lhv_kj) * 1000.0), model
+
+
 class GasifierSystem:
     def __init__(self, geometry, coal_props, op_conds):
         self._validate_inputs(geometry, coal_props, op_conds)
         self.geometry = geometry
         self.coal_props = coal_props.copy()  # copy to avoid mutating caller's dict (Hf_coal may be added below)
         self.op_conds = op_conds.copy()
-        if 'Hf_coal' not in self.coal_props:
-            Cd = self.coal_props.get('Cd', 0.0)/100.0; Hd = self.coal_props.get('Hd', 0.0)/100.0; Sd = self.coal_props.get('Sd', 0.0)/100.0
-            hhv = self.coal_props.get('HHV_d', 30.0); hhv_kj = hhv if hhv > 1000.0 else hhv * 1000.0
-            lhv_kj = hhv_kj - (9.0 * Hd * 2442.0)
-            hf_kj = (Cd/0.012011)*(-393.51) + (Hd/0.001008)*0.5*(-241.83) + (Sd/0.03206)*(-296.81) + lhv_kj
-            self.coal_props['Hf_coal'] = hf_kj * 1000.0
+        # P1.7-A：低位与高位同时出现直接报错；热损基准另用 coal_hhv_kj_kg（只给低位时按定义推高位）。
+        validate_coal_heating_values(self.coal_props)
+        self.pyrolysis_heat_model = resolve_pyrolysis_heat_model(self.op_conds)
+        if "Hf_coal" in self.coal_props and self.pyrolysis_heat_model != PYROLYSIS_HEAT_MODEL_ZERO:
+            self.hf_coal_source = "given"
+        else:
+            if "Hf_coal" in self.coal_props:
+                logger.warning(
+                    "PyrolysisHeatModel='zero'：忽略调用方给出的 Hf_coal=%s，改由热解产物焓反推",
+                    self.coal_props["Hf_coal"],
+                )
+            self.coal_props["Hf_coal"], _mf = compute_hf_coal_j_kg(self.coal_props, self.op_conds)
+            self.hf_coal_source = _mf
         self.material = MaterialService(); self.kinetics = KineticsService(); self.pyrolysis = PyrolysisService()
         self.results = []; self.cells = []; self.solve_stats = {"fallback_count": 0, "poor_convergence_count": 0}
 
@@ -283,7 +344,7 @@ class GasifierSystem:
                 xi2 = min(x[5]*0.99, x[0]*0.99/0.5); x[5]-=xi2; x[0]-=0.5*xi2; x[4]+=xi2
                 xi3 = min(x[2]*0.99, x[0]*0.99/0.5); x[2]-=xi3; x[0]-=0.5*xi3; x[3]+=xi3
             return x
-        hhv = self.coal_props.get('HHV_d', 30.0); hhv_mj = hhv / 1000.0 if hhv > 1000.0 else hhv
+        hhv = coal_hhv_kj_kg(self.coal_props); hhv_mj = hhv / 1000.0
         Ash_d = ash_mass_fraction_dry(self.coal_props)
         f_ash = Ash_d / (self.Cd_total + Ash_d + 1e-9)
         ref_f = max(inlet.total_gas_moles, 1.0); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)

@@ -3,7 +3,10 @@ coal_props / op_conds 基础输入契约：消除 Ad/Ashd、热损与硫参数�
 """
 from __future__ import annotations
 
+import logging
 from typing import Any, Mapping
+
+logger = logging.getLogger(__name__)
 
 # 颗粒尺寸模型的唯一缺省值。2026-11-02 起缺省为 fortran_constant（与 Wen 1979 /
 # legacy Fortran 一致）。此前的调用默认是 shrinking_legacy，靠 paper_op_conds
@@ -79,6 +82,105 @@ def resolve_het_conversion_cutoff(op_conds: Mapping[str, Any]) -> str:
     )
 
 
+# ---------------------------------------------------------------------------
+# P1.7-A（2026-11-03）热值口径与热解热模型
+# ---------------------------------------------------------------------------
+#
+# 缺陷（审计 C2）：数据合同的 ``heating_value_dry_kj_kg`` 标注为**干燥基低位发热量**
+# （P1 合同 27720 kJ/kg），适配器却填进 ``HHV_d``，而 ``Hf_coal`` 公式把 ``HHV_d``
+# 当高位处理、再减去 ``9·Hd·2442`` 换成低位——汽化潜热被扣了两次（约 950 kJ/kg 干煤）。
+#
+# 口径约定（本轮起唯一口径）：
+#   * ``LHV_d``：干燥基低位发热量 [kJ/kg]（允许历史上按 MJ/kg 写的 < 1000 的数值）。
+#   * ``HHV_d``：干燥基高位发热量 [kJ/kg]（同上允许 MJ/kg）。
+#   * 两者同时出现 → 直接报错，不做任何猜测。
+#   * ``Hf_coal`` 用**低位**：煤的生成焓基准与产物侧的气态水一致（Shomate 的 H2O(g)），
+#     用高位会把水的汽化潜热重复计入。
+#   * 热损基准（文献口径「入炉煤 HHV 的 X%」）用**高位**：只给 ``LHV_d`` 时按定义
+#     加回 ``9·Hd·2442`` 得到 HHV，不引入新的假设。
+LHV_KEY = "LHV_d"
+HHV_KEY = "HHV_d"
+_MJ_PER_KG_THRESHOLD = 1000.0  # 小于该值视为历史输入的 MJ/kg
+
+# 热解热口径。
+#   from_heating_value（缺省）：由热值算 Hf_coal，热解热 = H_coal − H_char − H_vol（可正可负）。
+#   zero：Hf_coal 由热解产物焓与焦炭焓反推，使 cell 0 的热解热恰为 0，不读取任何热值。
+#         Fortran 采用反应热记账、煤本身无生成焓，其能量自洽于自身热解产物，等价于此口径。
+PYROLYSIS_HEAT_MODEL_DEFAULT = "from_heating_value"
+PYROLYSIS_HEAT_MODEL_ZERO = "zero"
+VALID_PYROLYSIS_HEAT_MODELS = (PYROLYSIS_HEAT_MODEL_DEFAULT, PYROLYSIS_HEAT_MODEL_ZERO)
+
+# 热损基准的缺省 HHV：仅用于「既没给 LHV_d 也没给 HHV_d、且 Hf_coal 已由调用方显式给出」
+# 的历史路径（与原代码 ``coal_props.get('HHV_d', 30.0)`` 等价）。
+DEFAULT_COAL_HHV_KJ_KG = 30000.0
+
+# H 的汽化潜热当量：约 2442 kJ/kg 水 × 9 kg 水/kg H
+WATER_LATENT_HEAT_KJ_PER_KG = 2442.0
+WATER_H_PER_KG = 9.0
+
+
+def resolve_pyrolysis_heat_model(op_conds: Mapping[str, Any]) -> str:
+    """解析热解热口径。非法值直接报错，避免静默退回缺省。"""
+    return _resolve_choice(
+        op_conds,
+        "PyrolysisHeatModel",
+        PYROLYSIS_HEAT_MODEL_DEFAULT,
+        VALID_PYROLYSIS_HEAT_MODELS,
+    )
+
+
+def heating_value_kj_kg(coal_props: Mapping[str, Any], key: str) -> float | None:
+    """读取一个热值字段并归一到 kJ/kg；缺失返回 ``None``（不落到默认值）。"""
+    raw = coal_props.get(key)
+    if raw is None:
+        return None
+    value = float(raw)
+    return value * 1000.0 if value < _MJ_PER_KG_THRESHOLD else value
+
+
+def validate_coal_heating_values(coal_props: Mapping[str, Any]) -> tuple[float | None, float | None]:
+    """返回 ``(lhv_kj_kg, hhv_kj_kg)``；两者同时给出直接报错。"""
+    lhv = heating_value_kj_kg(coal_props, LHV_KEY)
+    hhv = heating_value_kj_kg(coal_props, HHV_KEY)
+    if lhv is not None and hhv is not None:
+        raise ValueError(
+            f"coal_props 同时提供 {LHV_KEY}={lhv} 与 {HHV_KEY}={hhv} kJ/kg："
+            "低位与高位热值的口径不同（Hf_coal 用低位、热损基准用高位），"
+            "不能靠猜决定用哪一个。请只保留合同实际给出的那一个。"
+        )
+    return lhv, hhv
+
+
+def coal_lhv_kj_kg(coal_props: Mapping[str, Any]) -> float:
+    """干燥基低位发热量 [kJ/kg]（Hf_coal 用）。只给 HHV 时按定义扣潜热换成低位。
+
+    两者都没有时退回历史缺省 ``HHV = 30 MJ/kg``（与修改前 ``coal_props.get('HHV_d', 30.0)``
+    完全一致），只打一条 warning；历史脚本与夹具靠这条缺省仍在跑，新轮次一律显式给热值。
+    """
+    lhv, hhv = validate_coal_heating_values(coal_props)
+    if lhv is not None:
+        return float(lhv)
+    hd = float(coal_props.get("Hd", 0.0)) / 100.0
+    if hhv is not None:
+        return float(hhv - WATER_H_PER_KG * hd * WATER_LATENT_HEAT_KJ_PER_KG)
+    logger.warning(
+        "coal_props 既没有 %s 也没有 %s：退回历史缺省 HHV=%s kJ/kg 再扣潜热（Hf_coal 用低位）。",
+        LHV_KEY, HHV_KEY, DEFAULT_COAL_HHV_KJ_KG,
+    )
+    return float(DEFAULT_COAL_HHV_KJ_KG - WATER_H_PER_KG * hd * WATER_LATENT_HEAT_KJ_PER_KG)
+
+
+def coal_hhv_kj_kg(coal_props: Mapping[str, Any]) -> float:
+    """干燥基高位发热量 [kJ/kg]（热损基准用）。只给 LHV 时按定义加回潜热。"""
+    lhv, hhv = validate_coal_heating_values(coal_props)
+    if hhv is not None:
+        return float(hhv)
+    if lhv is not None:
+        hd = float(coal_props.get("Hd", 0.0)) / 100.0
+        return float(lhv + WATER_H_PER_KG * hd * WATER_LATENT_HEAT_KJ_PER_KG)
+    return DEFAULT_COAL_HHV_KJ_KG
+
+
 def ash_mass_fraction_dry(coal_props: Mapping[str, Any]) -> float:
     """
     干基灰分质量分数 [0,1]。
@@ -92,6 +194,9 @@ def ash_mass_fraction_dry(coal_props: Mapping[str, Any]) -> float:
 def coal_flow_kg_s_for_heat_loss(op_conds: Mapping[str, Any]) -> float:
     """
     与 ``Cell._calc_energy_balance`` 一致：热损基准功率 = 湿煤流量 × HHV。
+
+    P1.7-A：HHV 由 ``input_contract.coal_hhv_kj_kg`` 取/推（只给 LHV 时按定义加回潜热），
+    基准仍是高位（文献口径「入炉煤 HHV 的 X%」）。
     """
     return float(op_conds["coal_flow"])
 

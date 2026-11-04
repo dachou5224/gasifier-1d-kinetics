@@ -10,7 +10,7 @@ import pandas as pd
 
 from .gasifier_system import GasifierSystem
 from .grid_service import AdaptiveMeshGenerator, MeshConfig
-from .input_contract import ash_mass_fraction_dry, coal_flow_kg_s_for_heat_loss, heat_loss_norm_length_m, heat_loss_ref_temp_k, resolve_f_s_coal
+from .input_contract import ash_mass_fraction_dry, coal_flow_kg_s_for_heat_loss, coal_hhv_kj_kg, heat_loss_norm_length_m, heat_loss_ref_temp_k, resolve_f_s_coal
 from .material import SPECIES_NAMES
 from .model_case_adapter import build_gasifier_inputs_from_model_case
 from .physics import get_enthalpy_molar
@@ -86,8 +86,8 @@ def _bundle(row: Mapping[str, Any], configuration: str):
             g_src_9[i, :] = g_src_9[i, :] + mainline_gas8_to_jax9(v)
             s_src[i] = -system.tmp_W_vol
             e_src[i] += sum(v[j] * get_enthalpy_molar(sp, inlet.T) for j, sp in enumerate(SPECIES_NAMES) if v[j] > 0)
-    hhv = system.coal_props.get("HHV_d", 30.0)
-    hhv_mj = hhv / 1000.0 if hhv > 1000.0 else hhv
+    hhv = coal_hhv_kj_kg(system.coal_props)  # P1.7-A：热损基准用高位（只给 LHV 时按定义推）
+    hhv_mj = hhv / 1000.0
     f_ash = ash_mass_fraction_dry(system.coal_props) / (system.Cd_total + ash_mass_fraction_dry(system.coal_props) + 1e-9)
     ref_f = max(inlet.total_gas_moles, 1.0)
     ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)

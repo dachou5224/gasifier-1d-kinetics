@@ -5,6 +5,7 @@ from model.material import MaterialService, SPECIES_NAMES
 from model.input_contract import (
     PARTICLE_MODEL_DEFAULT,
     ash_mass_fraction_dry,
+    coal_hhv_kj_kg,
     resolve_het_conversion_cutoff,
     resolve_particle_model,
     resolve_solid_enthalpy_model,
@@ -531,14 +532,13 @@ class Cell:
         loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
         
         coal_flow_kg_s = self.op_conds['coal_flow']  # wet coal flow [kg/s]
-        hhv_MJ_kg = self.coal_props.get('HHV_d', 30.0)  # dry-basis HHV [MJ/kg_dry]
+        # P1.7-A：热损基准按文献口径取入炉煤 **高位** 热值；只给 LHV_d 时由
+        # input_contract.coal_hhv_kj_kg 按定义加回 9·Hd·2442（约 +3.4%），不改 2% 这一系数。
+        hhv_MJ_kg = coal_hhv_kj_kg(self.coal_props) / 1000.0  # dry-basis HHV [MJ/kg_dry]
         # NOTE: using wet flow × dry HHV slightly overstates total power by 1/(1-Mt/100).
         # This convention is intentional and kept consistent with input_contract.coal_flow_kg_s_for_heat_loss
         # and the JAX solver path. To correct, pass W_dry via op_conds['coal_flow_dry'] and use that here.
-        
-        if hhv_MJ_kg > 1000.0:
-            hhv_MJ_kg = hhv_MJ_kg / 1000.0
-        
+
         Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6  # total coal power (W), base for heat loss
         
         # Radiative Heat Loss Weighting (T^4 bias)
