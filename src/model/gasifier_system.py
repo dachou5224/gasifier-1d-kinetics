@@ -278,6 +278,8 @@ class GasifierSystem:
             ignition_zone_res=self.op_conds.get('IgnitionZoneRes', 0.1),
             min_grid_size=0.001,
             mesh_family=mesh_family,
+            graded_zone_length=self.op_conds.get('GradedZoneLength'),
+            graded_zone_dz=self.op_conds.get('GradedZoneDz'),
         )
         dz_list, self.z_positions = AdaptiveMeshGenerator(mesh_cfg).generate()
         # P1.5-A B1：网格必须铺满反应器。旧族在 3 <= N <= 20 时会被此断言拦下。
@@ -424,7 +426,10 @@ class GasifierSystem:
         """与 _solve_sequential 相同的单元级 op_conds（热损归一化长度随网格族取值）。"""
         cell_ops = self.op_conds.copy()
         cell_ops["L_reactor"] = self.geometry["L"]
-        if str(self.op_conds.get("MeshFamily", "legacy")).lower() == "uniform_full_length":
+        if str(self.op_conds.get("MeshFamily", "legacy")).lower() in (
+            "uniform_full_length",
+            "graded_full_length",
+        ):
             cell_ops["L_heatloss_norm"] = max(float(self.geometry["L"]), 1e-9)
         else:
             cell_ops["L_heatloss_norm"] = max(float(np.sum(dz_list)), 1e-9)
