@@ -1433,12 +1433,14 @@ def interpretation(unit_df, anchor_crit, anchor_cells, anchor_profiles, scan,
         L.append("3. 结果是 F′ 的净壁面热流接近零甚至为**净供热**（燃烧区散热 0.16–0.37 MW，"
                  "气化区净供热 0.21–0.55 MW，合计 −0.05 ~ −0.20 MW），"
                  "反应器实际上更接近绝热，温度因此**高于** Fortran、也高于模式 F。"
-                 "这不是转写错误：把 30% 规则套在 2 cm 的单元上、把 Fortran 自己的壁温剖面"
-                 "套在一个温度史不同的模型上，就是这个量级。\n")
+                 "这**排除的是公式转写错误**，不构成对成因的识别：48/48 单元检查验证的是"
+                 "某一组假设下的算术。\n")
         L.append("**结论（第 1 节）**：转写与单元检查都通过，但模式 F′ **没有**缩小与 Fortran 的差距——"
-                 "温度从「偏低」翻成「偏高」，X_C 反而更贴顶。两套能量模型真正的差别不在公式形式，"
-                 "而在**燃烧区的离散尺度**（Fortran 75 cm 气室 vs Python 一个单元）。"
-                 "要把这一项对齐，需要的是「燃烧区长度」这一层口径，而不是再换公式。\n")
+                 "温度从「偏低」翻成「偏高」，X_C 反而更贴顶。"
+                 "**成因是未验证的假说**（2026-11-05 审阅意见）：首要候选是燃烧区的离散尺度"
+                 "（Fortran 75 cm 气室 vs Python 一个单元），但本轮没有做同状态下 Fortran `rheat` "
+                 "逐项对齐，也没有做固定其余条件的长度变化受控试验，因此不能说「真正的差别就在离散尺度」。"
+                 "若要确立该机制，需要补这两项；在此之前，「先解决燃烧区长度」只是假说驱动的建议。\n")
     L.append("### 3.5 与 Fortran 中间气室温度的逐点对比\n")
     if len(anchor_profiles):
         L.append(f"逐点对比见 `anchor_profiles.csv`（Fortran 每个气室一个打印点，共 "
@@ -1526,16 +1528,26 @@ def _summary_md(unit_df, anchor_crit, scan, rd, jac) -> str:
         f"`{r['composition_basis']}` → " + ("反应器后变换仍需要" if float(r["value"]) > R2_XI_THRESHOLD
                                             else "不需要反应器后变换")
         for _, r in r2s.iterrows() if np.isfinite(r["value"]))
-    # 没有 R1 组合的窗离装置值还差多少（用整个搜索池的最小 |ΔX_C|）
+    # 没有 R1 组合的窗离装置值还差多少。必须区分两个量：
+    #   pool_miss：整个搜索池的最小 |ΔX_C|（f_gas 下到 1/32、HLP 到 6% 时的最好值）
+    #   corner_miss：指定角点 (0.03125, 6%) 的残差
+    # 2026-11-05 审阅意见：此前只报 pool_miss 并把句子写成「整个搜索池里最小仍差」，
+    # 容易被读成角点残差（+7.3..+7.7）而实际角点是 +4.87..+1.19。
     pool = scan[scan["row_kind"].isin(("grid", "grid_extension"))]
     miss = []
+    corner = []
     for _, row_r1 in r1.iterrows():
         if bool(row_r1["exists"]):
             continue
         g = pool[pool["window_id"] == row_r1["window_id"]]
         px = float(g["plant_xc_measured_pct"].iloc[0])
         miss.append(abs(float(g["X_C_implied"].max()) * 100.0 - px))
+        gc = g[(np.isclose(g["f_gas"].astype(float), 0.03125)) &
+               (np.isclose(g["HeatLossPercent"].astype(float), 6.0))]
+        if len(gc):
+            corner.append(abs(float(gc["X_C_implied"].iloc[0]) * 100.0 - px))
     miss_txt = f"{min(miss):.1f}–{max(miss):.1f} pp" if miss else "—"
+    corner_txt = f"{min(corner):.2f}–{max(corner):.2f} pp" if corner else "—"
     if len(jac):
         cond = jac["cond_J"].to_numpy(dtype=float)
         corr = jac["corr_lnf_hlp"].to_numpy(dtype=float)
@@ -1553,7 +1565,8 @@ def _summary_md(unit_df, anchor_crit, scan, rd, jac) -> str:
                              for _, r in r4[r4["composition_basis"] == b].iterrows())
         for b in COMP_BASES if len(r4[r4["composition_basis"] == b]))
     L.append(f"3. **二维扫描**：R1 只有 **{n_r1}/9** 窗存在 |ΔX_C| ≤ 1 pp 的 (f_gas, HLP) 组合"
-             f"（其余 {9 - n_r1} 窗在 f_gas ≥ 1/32、HLP ≤ 6% 的整个搜索池里最小仍差 {miss_txt}）；"
+             f"（其余 {9 - n_r1} 窗：指定角点 f_gas=0.03125、HLP=6% 处残差 {corner_txt}，"
+             f"整个搜索池的最小值 {miss_txt}——两者不可混用）；"
              f"R2 {r2_txt} → {r2_verdict}"
              f"（该判据只在这 {n_r1} 窗上成立；其余窗根本没有 R1 组合）；R3 {r3_txt}；"
              f"R4 {r4_txt}（每个阶段只有 2 窗，不足以判跨阶段趋势）；"
