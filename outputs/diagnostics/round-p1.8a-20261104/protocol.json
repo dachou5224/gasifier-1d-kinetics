@@ -1,7 +1,7 @@
 {
   "round": "P1.8-A / 2026-11-04",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "7c690d5",
+  "source_commit": "PENDING",
   "mesh_family": "uniform_full_length",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -138,16 +138,5 @@
   },
   "extra_artifacts": [
     "anchor_profiles.csv（Fortran 中间气室温度与 Python 逐点对比）"
-  ],
-  "scan_rows_actual": 234,
-  "scan_rows_by_kind": {
-    "grid": 180,
-    "grid_extension": 36,
-    "replay_old_carrier": 9,
-    "parity_p17a": 9
-  },
-  "unit_checks_pass": true,
-  "anchor_criteria_f_mode_pass_cases": 0,
-  "anchor_criteria_fp_mode_pass_cases": 0,
-  "f_gas_extension_triggered": true
+  ]
 }

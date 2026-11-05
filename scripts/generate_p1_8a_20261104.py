@@ -43,10 +43,12 @@ from model.fortran_anchor_20261030 import (  # noqa: E402
 from model.gasifier_system import GasifierSystem  # noqa: E402
 from model.heat_loss import (  # noqa: E402
     CAL_TO_J,
+    CARBON_MOLAR_MASS_KG,
     FORTRAN_DT_CM,
     FORTRAN_HEIGHT_CM,
     FORTRAN_HL_PERCENT,
     FORTRAN_U0_CAL_PER_S_CM2_K,
+    HEAT_CAPACITY_SOLID,
     combustion_zone_heat_loss_w,
     gasification_zone_heat_loss_w,
     reaction_heat_release_w,
@@ -399,13 +401,17 @@ def _reaction_heat_hand(r_het, r_homo, phi, f_co2, T) -> float:
     """独立重写一遍反应热算式（与 heat_loss.reaction_heat_release_w 同一物理口径）。"""
     h = {sp: get_enthalpy_molar(sp, T) for sp in ("CO", "CO2", "H2", "H2O", "O2", "CH4")}
     ph, f = float(phi), float(f_co2)
+    # 固碳显焓：char_formation_zero 只归零生成焓，显焓 cp_char·(T−298.15) 仍在，
+    # 而四个异相反应各消耗 1 mol 固碳。必须与 heat_loss 侧同口径，否则单元检查会
+    # 报出并不存在的差异（2026-11-04 审阅意见）。
+    hc = HEAT_CAPACITY_SOLID * CARBON_MOLAR_MASS_KG * (float(T) - 298.15)
     q = 0.0
     q += r_het.get("C+O2", 0.0) * -(
-        (2.0 - 2.0 / ph) * h["CO"] + (2.0 / ph - 1.0) * h["CO2"] - (1.0 / ph) * h["O2"]
+        (2.0 - 2.0 / ph) * h["CO"] + (2.0 / ph - 1.0) * h["CO2"] - (1.0 / ph) * h["O2"] - hc
     )
-    q += r_het.get("C+H2O", 0.0) * -(h["CO"] + h["H2"] - h["H2O"])
-    q += r_het.get("C+CO2", 0.0) * -(2.0 * h["CO"] - h["CO2"])
-    q += r_het.get("C+H2", 0.0) * -(h["CH4"] - 2.0 * h["H2"])
+    q += r_het.get("C+H2O", 0.0) * -(h["CO"] + h["H2"] - h["H2O"] - hc)
+    q += r_het.get("C+CO2", 0.0) * -(2.0 * h["CO"] - h["CO2"] - hc)
+    q += r_het.get("C+H2", 0.0) * -(h["CH4"] - 2.0 * h["H2"] - hc)
     q += r_homo.get("CO_Ox", 0.0) * -(f * (h["CO2"] - h["CO"] - 0.5 * h["O2"]))
     q += r_homo.get("H2_Ox", 0.0) * -(h["H2O"] - h["H2"] - 0.5 * h["O2"])
     q += r_homo.get("CH4_Ox", 0.0) * -(

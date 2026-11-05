@@ -282,6 +282,8 @@ def reaction_heat_release_w(
 
 __all__ = [
     "CAL_TO_J",
+    "CARBON_MOLAR_MASS_KG",
+    "HEAT_CAPACITY_SOLID",
     "FORTRAN_HL_PERCENT",
     "FORTRAN_U0_CAL_PER_S_CM2_K",
     "FORTRAN_DT_CM",
