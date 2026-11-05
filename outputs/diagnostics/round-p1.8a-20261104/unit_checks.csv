@@ -4,10 +4,10 @@ single_cell_combustion,合成值（rheat = −1.2345678 MW）,hloss_W_abs_sign,3
 single_cell_gasification,"合成值（tg = 1523.75 K, hs = 187.5 cm）",hloss_W,-13223.816310152504,-13223.816310152504,0.0,1e-09,True,hloss = u0·π·dt·nc·delh·(tg − tw)，u0 = 3.4e-3 cal/(s·cm²·K)，tw = 2100 − 600·hs/height（第 214、348–349、777–778 行）
 single_cell_gasification,"合成值（tg = 1523.75 K, hs = 187.5 cm）",tw_K,1759.090909090909,1759.090909090909,0.0,1e-09,True,tw = 2100 − 600·hs/height，height = 330 cm（第 32 行）
 single_cell_gasification,合成值（tg = 1200.0 K < tw = 1759.09 K）,hloss_W_negative_preserved,-31415.34343116868,-31415.34343116868,0.0,1e-09,True,tg < tw → 壁面向气体供热，保留负号（卡面第 2 个陷阱）
-single_cell_combustion,texaco i-1 cell 0（z = 0.0103 m）,hloss_W,220643.65192206678,220643.65192206678,0.0,1e-09,True,净反应热 0.7355 MW（手算用同一速率向量，独立写一遍焓算式）
-single_cell_combustion,texaco i-1 cell 0（z = 0.0103 m）,reaction_heat_W,735478.8397402227,735478.8397402227,0.0,1e-09,True,rheat 的 Python 对应量：Q = −Σ rate·ΔH(T)，见 heat_loss.reaction_heat_release_w
-single_cell_gasification,texaco i-1 cell 1（z = 0.0309 m）,hloss_W,-5728.044124393941,-5728.044124393941,0.0,1e-09,True,净反应热 -0.0899 MW（手算用同一速率向量，独立写一遍焓算式）
-single_cell_gasification,texaco i-1 cell 1（z = 0.0309 m）,reaction_heat_W,-89939.75648072065,-89939.75648072065,0.0,1e-09,True,rheat 的 Python 对应量：Q = −Σ rate·ΔH(T)，见 heat_loss.reaction_heat_release_w
+single_cell_combustion,texaco i-1 cell 0（z = 0.0103 m）,hloss_W,219813.87913971604,219813.87913971604,0.0,1e-09,True,净反应热 0.7327 MW（手算用同一速率向量，独立写一遍焓算式）
+single_cell_combustion,texaco i-1 cell 0（z = 0.0103 m）,reaction_heat_W,732712.9304657201,732712.9304657201,0.0,1e-09,True,rheat 的 Python 对应量：Q = −Σ rate·ΔH(T)，见 heat_loss.reaction_heat_release_w
+single_cell_gasification,texaco i-1 cell 1（z = 0.0309 m）,hloss_W,-5713.151736779986,-5713.151736779986,0.0,1e-09,True,净反应热 -0.0921 MW（手算用同一速率向量，独立写一遍焓算式）
+single_cell_gasification,texaco i-1 cell 1（z = 0.0309 m）,reaction_heat_W,-92057.02192682624,-92057.02192682624,0.0,1e-09,True,rheat 的 Python 对应量：Q = −Σ rate·ΔH(T)，见 heat_loss.reaction_heat_release_w
 p17a_bitwise_parity,texaco i-1 模式 F N=160,T_gas_K,1310.869353662605,1310.869353662605,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
 p17a_bitwise_parity,texaco i-1 模式 F N=160,X_C_pct,96.30497532979264,96.30497532979264,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）
 p17a_bitwise_parity,texaco i-1 模式 F N=160,CO_vol_pct,55.96460936108401,55.96460936108401,0.0,0.0,True,缺省 HeatLossModel='hhv_percent' 下必须逐位相同（卡第 1.2 节）

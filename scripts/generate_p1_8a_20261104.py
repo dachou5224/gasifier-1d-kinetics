@@ -44,11 +44,11 @@ from model.gasifier_system import GasifierSystem  # noqa: E402
 from model.heat_loss import (  # noqa: E402
     CAL_TO_J,
     CARBON_MOLAR_MASS_KG,
+    _DEFAULT_CP_CHAR,
     FORTRAN_DT_CM,
     FORTRAN_HEIGHT_CM,
     FORTRAN_HL_PERCENT,
     FORTRAN_U0_CAL_PER_S_CM2_K,
-    HEAT_CAPACITY_SOLID,
     combustion_zone_heat_loss_w,
     gasification_zone_heat_loss_w,
     reaction_heat_release_w,
@@ -364,7 +364,12 @@ def _single_cell_hand_checks() -> list[dict]:
         snap = cell.snapshot_with_limits(state)
         code_rep = cell.heat_loss_diagnostics(state)
         f_co2 = float(cell.op_conds.get("Combustion_CO2_Fraction", 1.0))
-        q_hand = _reaction_heat_hand(snap["r_het"], snap["r_homo"], snap["phi"], f_co2, state.T)
+        # 手算必须用与 heat_loss_diagnostics 完全相同的 cp_char 与固体温度，
+        # 否则只是在验证另一套假设下的算术（2026-11-05 审阅意见）。
+        _cp_cell = float(cell.coal_props.get("cp_char", 1300.0))
+        _Ts_solid = float(code_rep.get("T_solid_used_K", state.T))
+        q_hand = _reaction_heat_hand(snap["r_het"], snap["r_homo"], snap["phi"], f_co2, state.T,
+                                     T_solid=_Ts_solid, cp_char=_cp_cell)
         if want:
             hand = 0.30 * abs(q_hand)
         else:
@@ -397,14 +402,17 @@ def _single_cell_hand_checks() -> list[dict]:
     return rows
 
 
-def _reaction_heat_hand(r_het, r_homo, phi, f_co2, T) -> float:
+def _reaction_heat_hand(r_het, r_homo, phi, f_co2, T, T_solid=None, cp_char=None) -> float:
     """独立重写一遍反应热算式（与 heat_loss.reaction_heat_release_w 同一物理口径）。"""
     h = {sp: get_enthalpy_molar(sp, T) for sp in ("CO", "CO2", "H2", "H2O", "O2", "CH4")}
     ph, f = float(phi), float(f_co2)
-    # 固碳显焓：char_formation_zero 只归零生成焓，显焓 cp_char·(T−298.15) 仍在，
-    # 而四个异相反应各消耗 1 mol 固碳。必须与 heat_loss 侧同口径，否则单元检查会
-    # 报出并不存在的差异（2026-11-04 审阅意见）。
-    hc = HEAT_CAPACITY_SOLID * CARBON_MOLAR_MASS_KG * (float(T) - 298.15)
+    # 固碳显焓：char_formation_zero 只归零生成焓，显焓 cp_char·(T_s−298.15) 仍在，
+    # 而四个异相反应各消耗 1 mol 固碳。
+    # 2026-11-05：cp 与温度必须与能量方程一致（cp_char 缺省 1300，固体温度而非气温），
+    # 此处用与 heat_loss 侧同一缺省；需与 _reaction_heat_hand 的调用方传入的 T 含义一致。
+    _cp = float(cp_char) if cp_char is not None else _DEFAULT_CP_CHAR
+    _Ts = float(T_solid) if T_solid is not None else float(T)
+    hc = _cp * CARBON_MOLAR_MASS_KG * (_Ts - 298.15)
     q = 0.0
     q += r_het.get("C+O2", 0.0) * -(
         (2.0 - 2.0 / ph) * h["CO"] + (2.0 / ph - 1.0) * h["CO2"] - (1.0 / ph) * h["O2"] - hc

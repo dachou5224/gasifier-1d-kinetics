@@ -528,13 +528,14 @@ class Cell:
         # 2026-11-05 更正（审阅意见）：此前内联 1500 与气温，与 material.py 的
         # cp_char 缺省（1300）及颗粒温度都不一致，改 coal_props 也不会影响该碳项。
         _T_solid = Ts_out if Ts_out is not None else (Ts_avg if Ts_avg is not None else float(current.T))
+        _cp_char = float(self.coal_props.get('cp_char', 1300.0))
         q_rxn_w = reaction_heat_release_w(
             r_het or {}, r_homo or {},
             phi=float(phi if phi is not None else 1.0),
             f_co2=f_co2,
             T_gas_K=float(current.T),
             T_solid_K=float(_T_solid),
-            cp_char_j_per_kg_k=float(self.coal_props.get('cp_char', 1300.0)),
+            cp_char_j_per_kg_k=_cp_char,
         )
         report = fortran_wall_heat_loss(
             is_combustion_zone=bool(is_combustion_zone),
@@ -544,6 +545,10 @@ class Cell:
             dz_m=float(self.dz),
         )
         report["cell_index"] = int(self.idx)
+        # 供单格手算检查核对：把实际使用的固体温度与 cp_char 一并输出，
+        # 使检查能用同一口径独立重算，而不是内联一个可能不同的假设。
+        report["T_solid_used_K"] = float(_T_solid)
+        report["cp_char_used_j_per_kg_k"] = float(_cp_char)
         return report
 
     def heat_loss_diagnostics(self, state) -> dict:
