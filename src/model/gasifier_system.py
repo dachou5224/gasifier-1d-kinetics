@@ -28,6 +28,10 @@ from .input_contract import (
 )
 from .solver import NewtonSolver
 from .jax_residual_adapter import make_jacobian_fn
+from .heat_loss import (
+    HEAT_LOSS_MODEL_FORTRAN,
+    resolve_heat_loss_model,
+)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -311,6 +315,19 @@ class GasifierSystem:
         )
 
     def _solve_jax_v4(self, dz_list, inlet, A):
+        # P1.8-A：JAX 路径只实现了 hhv_percent 热损。fortran_wall 需要在本格内先算
+        # 净反应热再取其 30%，这在 batch 求解里没有对应实现——必须报错，不得静默回退。
+        if resolve_heat_loss_model(self.op_conds) == HEAT_LOSS_MODEL_FORTRAN:
+            raise ValueError(
+                "HeatLossModel='fortran_wall' is not implemented on the JAX batch path "
+                "(GasifierSystem._solve_jax_v4). Use solver_method='minimize'/'newton_fd' "
+                "(the NumPy sequential path), or set HeatLossModel='hhv_percent'."
+            )
+        if float(self.op_conds.get("GasificationRateFactor", 1.0)) != 1.0:
+            raise ValueError(
+                "GasificationRateFactor is not implemented on the JAX batch path "
+                "(GasifierSystem._solve_jax_v4); it would be silently ignored."
+            )
         # 须先加载 jax_solver，其内会 jax_enable_x64；否则此处先 import jax.numpy 会锁在 float32
         from .jax_solver import reactor_solve_v4
         import jax.numpy as jnp
@@ -676,6 +693,22 @@ class GasifierSystem:
                 "phi": float(snap["phi"]),
             })
             row.update({k: bool(v) for k, v in snap["limits"].items() if k != "is_combustion_zone"})
+            # P1.8-A：fortran_wall 下逐单元的 hloss / tw / tg（只记录，不改求解）
+            if resolve_heat_loss_model(cell.op_conds) == HEAT_LOSS_MODEL_FORTRAN:
+                try:
+                    hl = cell.heat_loss_diagnostics(sol_state)
+                    row.update({
+                        "heat_loss_model": "fortran_wall",
+                        "hloss_W": float(hl["hloss_W"]),
+                        "hloss_zone": str(hl["zone"]),
+                        "hloss_tw_K": float(hl["tw_K"]),
+                        "hloss_tg_K": float(hl["tg_K"]),
+                        "hloss_reaction_heat_W": float(hl["reaction_heat_W"]),
+                    })
+                except Exception as exc:  # 诊断失败不改变求解结果
+                    row["heat_loss_diagnostic_error"] = f"{type(exc).__name__}: {exc}"
+            else:
+                row["heat_loss_model"] = resolve_heat_loss_model(cell.op_conds)
         except Exception as exc:  # 诊断失败不改变求解结果
             row["diagnostic_error"] = f"{type(exc).__name__}: {exc}"
         return row

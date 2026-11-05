@@ -1,0 +1,67 @@
+reading,composition_basis,window_id,phase,exists,value,detail,item
+R1,n/a（只看 X_C）,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,P1,True,,"f=0.03125:HLP=1,HLP=2；f=0.03125*:HLP≈2.121；f=0.0625:HLP=2,HLP=4；f=0.0625*:HLP≈3.311；f=0.125:HLP=4；f=0.125*:HLP≈4.281；f=0.25:HLP=4,HLP=6；f=0.25*:HLP≈5.294；f=0.5:HLP=6；f=1:HLP=6",
+R1,n/a（只看 X_C）,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,P1,True,,"f=0.03125:HLP=4,HLP=6；f=0.03125*:HLP≈4.841；f=0.0625:HLP=6",
+R1,n/a（只看 X_C）,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,P2,False,,无,
+R1,n/a（只看 X_C）,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,P2,False,,无,
+R1,n/a（只看 X_C）,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,P3,False,,无,
+R1,n/a（只看 X_C）,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,P3,False,,无,
+R1,n/a（只看 X_C）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,P4,False,,无,
+R1,n/a（只看 X_C）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,P4,True,,f=0.03125:HLP=6,
+R1,n/a（只看 X_C）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,P4,True,,f=0.03125:HLP=6；f=0.03125*:HLP≈5.947,
+R2,analyzer,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,P1,True,61.82471163907702,f=0.03125/HLP=1.000:ξ=75.5；f=0.03125/HLP=2.000:ξ=66.7；f=0.03125/HLP=2.121*:ξ=65.6；f=0.0625/HLP=2.000:ξ=77.3；f=0.0625/HLP=4.000:ξ=61.8；f=0.0625/HLP=3.311*:ξ=67.2；f=0.125/HLP=4.000:ξ=72.0；f=0.125/HLP=4.281*:ξ=70.2；f=0.25/HLP=4.000:ξ=80.1；f=0.25/HLP=6.000:ξ=68.3；f=0.25/HLP=5.294*:ξ=72.5；f=0.5/HLP=6.000:ξ=75.7…,
+R2,liu_phase,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,P1,True,61.272530464677274,f=0.03125/HLP=1.000:ξ=74.9；f=0.03125/HLP=2.000:ξ=66.1；f=0.03125/HLP=2.121*:ξ=65.1；f=0.0625/HLP=2.000:ξ=76.8；f=0.0625/HLP=4.000:ξ=61.3；f=0.0625/HLP=3.311*:ξ=66.6；f=0.125/HLP=4.000:ξ=71.5；f=0.125/HLP=4.281*:ξ=69.6；f=0.25/HLP=4.000:ξ=79.5；f=0.25/HLP=6.000:ξ=67.7；f=0.25/HLP=5.294*:ξ=71.9；f=0.5/HLP=6.000:ξ=75.1…,
+R2,analyzer,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,P1,True,38.895200931062035,f=0.03125/HLP=4.000:ξ=56.4；f=0.03125/HLP=6.000:ξ=38.9；f=0.03125/HLP=4.841*:ξ=49.0；f=0.0625/HLP=6.000:ξ=54.6,
+R2,liu_phase,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,P1,True,33.89472892044666,f=0.03125/HLP=4.000:ξ=51.2；f=0.03125/HLP=6.000:ξ=33.9；f=0.03125/HLP=4.841*:ξ=44.0；f=0.0625/HLP=6.000:ξ=49.4,
+R2,analyzer,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,P2,False,,,
+R2,liu_phase,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,P2,False,,,
+R2,analyzer,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,P2,False,,,
+R2,liu_phase,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,P2,False,,,
+R2,analyzer,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,P3,False,,,
+R2,liu_phase,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,P3,False,,,
+R2,analyzer,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,P3,False,,,
+R2,liu_phase,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,P3,False,,,
+R2,analyzer,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,P4,False,,,
+R2,liu_phase,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,P4,False,,,
+R2,analyzer,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,P4,True,12.766450359430547,f=0.03125/HLP=6.000:ξ=12.8,
+R2,liu_phase,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,P4,True,11.278919376265982,f=0.03125/HLP=6.000:ξ=11.3,
+R2,analyzer,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,P4,True,9.041414505309163,f=0.03125/HLP=6.000:ξ=9.0；f=0.03125/HLP=5.947*:ξ=9.5,
+R2,liu_phase,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,P4,True,12.494573990087613,f=0.03125/HLP=6.000:ξ=12.5；f=0.03125/HLP=5.947*:ξ=13.0,
+R2_summary,analyzer,ALL,all,True,25.830825645246293,n=4/9 窗有 R1 组合；ξ_min 中位 25.8 mol/s；不需要反应器后变换,
+R2_summary,liu_phase,ALL,all,True,23.194651455267135,n=4/9 窗有 R1 组合；ξ_min 中位 23.2 mol/s；不需要反应器后变换,
+R3,analyzer,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,P1,True,3.1205891343568855,最优点 f_gas=0.25、HLP=6.000；RSS=288.9365；cond(J)=3.12；corr=+0.700；可分别辨识,
+R3,liu_phase,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,P1,True,3.1205891343568855,最优点 f_gas=0.25、HLP=6.000；RSS=397.0317；cond(J)=3.12；corr=+0.700；可分别辨识,
+R3,analyzer,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,P1,True,4.925981924035371,最优点 f_gas=0.03125、HLP=6.000；RSS=295.9213；cond(J)=4.93；corr=+0.798；可分别辨识,
+R3,liu_phase,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,P1,True,4.925981924035371,最优点 f_gas=0.03125、HLP=6.000；RSS=408.8399；cond(J)=4.93；corr=+0.798；可分别辨识,
+R3,analyzer,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,P2,False,,R1 无组合，无法求雅可比,
+R3,liu_phase,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,P2,False,,R1 无组合，无法求雅可比,
+R3,analyzer,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,P2,False,,R1 无组合，无法求雅可比,
+R3,liu_phase,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,P2,False,,R1 无组合，无法求雅可比,
+R3,analyzer,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,P3,False,,R1 无组合，无法求雅可比,
+R3,liu_phase,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,P3,False,,R1 无组合，无法求雅可比,
+R3,analyzer,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,P3,False,,R1 无组合，无法求雅可比,
+R3,liu_phase,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,P3,False,,R1 无组合，无法求雅可比,
+R3,analyzer,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,P4,False,,R1 无组合，无法求雅可比,
+R3,liu_phase,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,P4,False,,R1 无组合，无法求雅可比,
+R3,analyzer,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,P4,True,4.646153473234626,最优点 f_gas=0.03125、HLP=6.000；RSS=83.6102；cond(J)=4.65；corr=+0.766；可分别辨识,
+R3,liu_phase,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,P4,True,4.646153473234626,最优点 f_gas=0.03125、HLP=6.000；RSS=303.3262；cond(J)=4.65；corr=+0.766；可分别辨识,
+R3,analyzer,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,P4,True,4.624331836654358,最优点 f_gas=0.03125、HLP=6.000；RSS=83.4974；cond(J)=4.62；corr=+0.770；可分别辨识,
+R3,liu_phase,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,P4,True,4.624331836654358,最优点 f_gas=0.03125、HLP=6.000；RSS=311.2136；cond(J)=4.62；corr=+0.770；可分别辨识,
+R4,analyzer,ALL,P1,True,0.140625,n=2；最优 f_gas 中位 0.1406，范围 0.03125–0.25,
+R4,analyzer,ALL,P4,True,0.03125,n=2；最优 f_gas 中位 0.03125，范围 0.03125–0.03125,
+R4_all,analyzer,ALL,all,True,0.03125,n=4；中位 0.03125，极差 0.2188,
+R4,liu_phase,ALL,P1,True,0.140625,n=2；最优 f_gas 中位 0.1406，范围 0.03125–0.25,
+R4,liu_phase,ALL,P4,True,0.03125,n=2；最优 f_gas 中位 0.03125，范围 0.03125–0.03125,
+R4_all,liu_phase,ALL,all,True,0.03125,n=4；中位 0.03125，极差 0.2188,
+R5,n/a（只看碳与氧的流量）,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,P1,True,0.9405969087754564,"f_gas=1, HLP=2.000；净 CO2 消耗 60.7 mol/s；C+CO2 412.6；逆 WGS 26.1；正 WGS 生成 111.6；C+CO2 占（C+CO2+逆WGS）94.1%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,P1,True,0.9259920275278586,"f_gas=0.25, HLP=6.000；净 CO2 消耗 35.5 mol/s；C+CO2 398.9；逆 WGS 31.9；正 WGS 生成 129.1；C+CO2 占（C+CO2+逆WGS）92.6%",R3_optimum
+R5,n/a（只看碳与氧的流量）,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,P1,True,0.943197276403331,"f_gas=1, HLP=2.000；净 CO2 消耗 60.2 mol/s；C+CO2 442.2；逆 WGS 26.6；正 WGS 生成 121.0；C+CO2 占（C+CO2+逆WGS）94.3%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,P1,True,0.8429511054996418,"f_gas=0.03125, HLP=6.000；净 CO2 消耗 11.2 mol/s；C+CO2 395.2；逆 WGS 73.6；正 WGS 生成 170.2；C+CO2 占（C+CO2+逆WGS）84.3%",R3_optimum
+R5,n/a（只看碳与氧的流量）,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,P2,True,0.9028520827591385,"f_gas=1, HLP=2.000；净 CO2 消耗 60.1 mol/s；C+CO2 429.2；逆 WGS 46.2；正 WGS 生成 129.2；C+CO2 占（C+CO2+逆WGS）90.3%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,P2,True,0.9105551129722737,"f_gas=1, HLP=2.000；净 CO2 消耗 63.0 mol/s；C+CO2 434.8；逆 WGS 42.7；正 WGS 生成 126.6；C+CO2 占（C+CO2+逆WGS）91.1%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,P3,True,0.9066477550472928,"f_gas=1, HLP=2.000；净 CO2 消耗 75.0 mol/s；C+CO2 428.5；逆 WGS 44.1；正 WGS 生成 124.2；C+CO2 占（C+CO2+逆WGS）90.7%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,P3,True,0.9095679552084027,"f_gas=1, HLP=2.000；净 CO2 消耗 77.9 mol/s；C+CO2 433.4；逆 WGS 43.1；正 WGS 生成 123.9；C+CO2 占（C+CO2+逆WGS）91.0%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,P4,True,0.9519014822360865,"f_gas=1, HLP=2.000；净 CO2 消耗 54.4 mol/s；C+CO2 429.0；逆 WGS 21.7；正 WGS 生成 115.9；C+CO2 占（C+CO2+逆WGS）95.2%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,P4,True,0.9519518426281429,"f_gas=1, HLP=2.000；净 CO2 消耗 56.1 mol/s；C+CO2 436.2；逆 WGS 22.0；正 WGS 生成 117.7；C+CO2 占（C+CO2+逆WGS）95.2%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,P4,True,0.8589952034946173,"f_gas=0.03125, HLP=6.000；净 CO2 消耗 -3.1 mol/s；C+CO2 393.8；逆 WGS 64.6；正 WGS 生成 177.3；C+CO2 占（C+CO2+逆WGS）85.9%",R3_optimum
+R5,n/a（只看碳与氧的流量）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,P4,True,0.9501541562025619,"f_gas=1, HLP=2.000；净 CO2 消耗 56.9 mol/s；C+CO2 436.7；逆 WGS 22.9；正 WGS 生成 119.1；C+CO2 占（C+CO2+逆WGS）95.0%",f_gas=1
+R5,n/a（只看碳与氧的流量）,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,P4,True,0.8555080482874499,"f_gas=0.03125, HLP=6.000；净 CO2 消耗 -2.1 mol/s；C+CO2 393.3；逆 WGS 66.4；正 WGS 生成 178.5；C+CO2 占（C+CO2+逆WGS）85.6%",R3_optimum

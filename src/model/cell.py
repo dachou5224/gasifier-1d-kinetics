@@ -12,6 +12,12 @@ from model.input_contract import (
 )
 from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
+from model.heat_loss import (
+    HEAT_LOSS_MODEL_FORTRAN,
+    fortran_wall_heat_loss,
+    reaction_heat_release_w,
+    resolve_heat_loss_model,
+)
 from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient, R_CONST
 from model.source_terms import PyrolysisSource
 
@@ -302,6 +308,8 @@ class Cell:
         char_fac = self.op_conds.get('CharCombustionRateFactor')  # 工况级 C+O2 因子，缓解燃烧区过短
         use_fortran_diff = self.op_conds.get('UseFortranDiffusion', False)
         het_cutoff = resolve_het_conversion_cutoff(self.op_conds)
+        # P1.8-A：C+H2O 与 C+CO2 共用的指前因子倍数（E 不变）。缺省 1.0 → 逐位不变。
+        f_gas = float(self.op_conds.get('GasificationRateFactor', 1.0))
         r_het = self.kinetics.calc_heterogeneous_rates(
             current, phys['d_p'], phys['S_total'],
             X_total=phys['X_total'], Re=phys['Re_p'], Sc=phys['Sc_p'],
@@ -309,6 +317,7 @@ class Cell:
             char_combustion_factor=char_fac,
             use_fortran_diffusion=use_fortran_diff,
             conversion_cutoff=het_cutoff,
+            gasification_rate_factor=f_gas,
         )
         phi = r_het.pop('phi', 1.0)
         wgs_rat = self.op_conds.get('WGS_RatFactor', False)
@@ -489,7 +498,85 @@ class Cell:
         gas_res = [res_O2, res_CH4, res_CO, res_CO2, res_H2S, res_H2, res_N2, res_H2O]
         return gas_res, res_Ws, res_Xc
 
-    def _calc_energy_balance(self, current, energy_src, phys=None, r_het=None, r_homo=None, phi=None, Ts_out=None, gas_src=None):
+    def _inlet_pO2_is_combustion(self, gas_src=None) -> bool:
+        """与 ``_calc_rates`` 同一判据：入口 pO2 > ``P_O2_Combustion_atm``（Fortran 第 341 行）。
+
+        外部未显式传入分区时用它兜底；``residuals`` 会显式传入同一判据的结果。
+        """
+        g_src = np.zeros(8) if gas_src is None else np.asarray(gas_src, dtype=float)
+        F_total_in = max(
+            float(np.sum([max(self.inlet.gas_moles[i] + g_src[i], 0.0) for i in range(8)])), 1e-9
+        )
+        pO2_Pa = self.inlet.P * (max(self.inlet.gas_moles[0] + g_src[0], 0.0) / F_total_in)
+        p_o2_atm = self.op_conds.get('P_O2_Combustion_atm', 0.05)
+        if self.op_conds.get("diagnostic_disable_combustion_zone", False):
+            return False
+        return bool(pO2_Pa > p_o2_atm * 101325.0)
+
+    def _fortran_wall_report(self, current, r_het, r_homo, phi, is_combustion_zone=None,
+                             Ts_avg=None, Ts_out=None) -> dict:
+        """``HeatLossModel="fortran_wall"`` 的本格热损审计（P1.8-A）。
+
+        分区按 Fortran 的 ``poxyin > 0.05 atm``（入口 pO2），与 ``_calc_rates`` 同一判据。
+        ``hs`` 取单元出口 ``z + dz/2``，``nc·delh`` 取 ``dz``（一个单元 = 一个气室）。
+        """
+        if is_combustion_zone is None:
+            is_combustion_zone = self._inlet_pO2_is_combustion()
+        f_co2 = float(self.op_conds.get('Combustion_CO2_Fraction', 1.0))
+        # 碳显焓必须用能量方程同一口径：coal_props 的实际 cp_char，加上固体的温度。
+        # 温度优先取 Ts_out（与 H_solid_out 一致），退回 Ts_avg 再退回气温。
+        # 2026-11-05 更正（审阅意见）：此前内联 1500 与气温，与 material.py 的
+        # cp_char 缺省（1300）及颗粒温度都不一致，改 coal_props 也不会影响该碳项。
+        _T_solid = Ts_out if Ts_out is not None else (Ts_avg if Ts_avg is not None else float(current.T))
+        _cp_char = float(self.coal_props.get('cp_char', 1300.0))
+        q_rxn_w = reaction_heat_release_w(
+            r_het or {}, r_homo or {},
+            phi=float(phi if phi is not None else 1.0),
+            f_co2=f_co2,
+            T_gas_K=float(current.T),
+            T_solid_K=float(_T_solid),
+            cp_char_j_per_kg_k=_cp_char,
+        )
+        report = fortran_wall_heat_loss(
+            is_combustion_zone=bool(is_combustion_zone),
+            reaction_heat_w=q_rxn_w,
+            T_gas_K=float(current.T),
+            z_outlet_m=float(self.z) + 0.5 * float(self.dz),
+            dz_m=float(self.dz),
+        )
+        report["cell_index"] = int(self.idx)
+        # 供单格手算检查核对：把实际使用的固体温度与 cp_char 一并输出，
+        # 使检查能用同一口径独立重算，而不是内联一个可能不同的假设。
+        report["T_solid_used_K"] = float(_T_solid)
+        report["cp_char_used_j_per_kg_k"] = float(_cp_char)
+        return report
+
+    def heat_loss_diagnostics(self, state) -> dict:
+        """在给定状态上重算本格热损审计量（只读，不改求解）。
+
+        用与 ``residuals`` 完全相同的上下文（同一 ``Ts_avg`` 与同一 ``is_combustion``
+        判据）重算一次速率与热损，因此表里的 ``hloss_W`` 就是进入能量残差的那一项。
+        """
+        g_src = np.zeros(8)
+        for s in self.sources:
+            g, _s_m, _e = s.get_sources(self.idx, self.z, self.dz)
+            g_src += g
+        C_fed = self.coal_flow_dry * (self.coal_props.get('Cd', 60.0) / 100.0)
+        phys = self._calc_physics_props(state, C_fed)
+        Ts_in = self.inlet.T_solid_or_gas
+        tau = self.dz / max(phys['v_g'], PhysicalConstants.MIN_SLIP_VELOCITY)
+        is_combustion = self._inlet_pO2_is_combustion(g_src)
+        Ts_avg, _Ts_out = self._calc_particle_temperature(
+            state.T, Ts_in, tau, phys['d_p'],
+            state.solid_mass, state.carbon_fraction,
+            current=state, phys=phys, gas_src=g_src,
+            is_combustion_zone=is_combustion, rho_p=phys.get('rho_p'),
+        )
+        r_het, r_homo, phi = self._calc_rates(state, phys, g_src, Ts_avg=Ts_avg)
+        return self._fortran_wall_report(state, r_het, r_homo, phi, is_combustion,
+                                         Ts_avg=Ts_avg, Ts_out=_Ts_out)
+
+    def _calc_energy_balance(self, current, energy_src, phys=None, r_het=None, r_homo=None, phi=None, Ts_out=None, gas_src=None, is_combustion_zone=None):
         """
         Computes enthalpy residual for the cell.
         Ts_out: 出口颗粒温度；若提供则 H_out 固相用 Ts_out，否则用 current.T
@@ -525,32 +612,46 @@ class Cell:
             include_formation_enthalpy=include_hf_out,
         )
         
-        # Heat Loss: 文献为入炉煤 HHV 的 X%，按 dz 比例摊分到各格
-        # L_heatloss_norm 默认为网格总长；未提供时退回几何总长 L_reactor
-        L_total = self.op_conds.get('L_heatloss_norm', self.op_conds.get('L_reactor', 6.0))  # m
-        L_total = max(float(L_total), 1e-9)
-        loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
-        
-        coal_flow_kg_s = self.op_conds['coal_flow']  # wet coal flow [kg/s]
-        # P1.7-A：热损基准按文献口径取入炉煤 **高位** 热值；只给 LHV_d 时由
-        # input_contract.coal_hhv_kj_kg 按定义加回 9·Hd·2442（约 +3.4%），不改 2% 这一系数。
-        hhv_MJ_kg = coal_hhv_kj_kg(self.coal_props) / 1000.0  # dry-basis HHV [MJ/kg_dry]
-        # NOTE: using wet flow × dry HHV slightly overstates total power by 1/(1-Mt/100).
-        # This convention is intentional and kept consistent with input_contract.coal_flow_kg_s_for_heat_loss
-        # and the JAX solver path. To correct, pass W_dry via op_conds['coal_flow_dry'] and use that here.
+        # Heat Loss
+        #   hhv_percent（缺省，P1.7-A 及以前的行为，逐位不变）：文献为入炉煤 HHV 的 X%，
+        #     按 dz 比例摊分到各格；
+        #   fortran_wall（P1.8-A）：按 reference_fortran/Source1_副本.for 第 341–350 /
+        #     772–781 行的两区分支，燃烧区取本格净反应热的 30%，气化区取
+        #     u0·π·dt·nc·delh·(tg − tw)。见 model/heat_loss.py。
+        heat_loss_model = resolve_heat_loss_model(self.op_conds)
+        if heat_loss_model == HEAT_LOSS_MODEL_FORTRAN:
+            report = self._fortran_wall_report(current, r_het, r_homo, phi, is_combustion_zone,
+                                              Ts_out=Ts_out)
+            Q_loss_W = float(report["hloss_W"])
+            loss_pct = float("nan")
+            t_weight = float("nan")
+            Q_total_W = float("nan")
+        else:
+            # L_heatloss_norm 默认为网格总长；未提供时退回几何总长 L_reactor
+            L_total = self.op_conds.get('L_heatloss_norm', self.op_conds.get('L_reactor', 6.0))  # m
+            L_total = max(float(L_total), 1e-9)
+            loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
 
-        Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6  # total coal power (W), base for heat loss
-        
-        # Radiative Heat Loss Weighting (T^4 bias)
-        # Uniform distribution (dz/L) is often too mild for the extreme combustion zone.
-        # We introduce a T-dependent bias relative to a reference process temperature (1800K).
-        T_local = current.T
-        T_ref = self.op_conds.get('HeatLossRefTemp', 1800.0)
-        # Weight scales from ~0.2 at 1200K to ~2.2 at 2200K
-        t_weight = (T_local / T_ref)**4.0
-        t_weight = np.clip(t_weight, 0.1, 5.0) # Stability guard
-        
-        Q_loss_W = (loss_pct / 100.0) * Q_total_W * (self.dz / L_total) * t_weight
+            coal_flow_kg_s = self.op_conds['coal_flow']  # wet coal flow [kg/s]
+            # P1.7-A：热损基准按文献口径取入炉煤 **高位** 热值；只给 LHV_d 时由
+            # input_contract.coal_hhv_kj_kg 按定义加回 9·Hd·2442（约 +3.4%），不改 2% 这一系数。
+            hhv_MJ_kg = coal_hhv_kj_kg(self.coal_props) / 1000.0  # dry-basis HHV [MJ/kg_dry]
+            # NOTE: using wet flow × dry HHV slightly overstates total power by 1/(1-Mt/100).
+            # This convention is intentional and kept consistent with input_contract.coal_flow_kg_s_for_heat_loss
+            # and the JAX solver path. To correct, pass W_dry via op_conds['coal_flow_dry'] and use that here.
+
+            Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6  # total coal power (W), base for heat loss
+
+            # Radiative Heat Loss Weighting (T^4 bias)
+            # Uniform distribution (dz/L) is often too mild for the extreme combustion zone.
+            # We introduce a T-dependent bias relative to a reference process temperature (1800K).
+            T_local = current.T
+            T_ref = self.op_conds.get('HeatLossRefTemp', 1800.0)
+            # Weight scales from ~0.2 at 1200K to ~2.2 at 2200K
+            t_weight = (T_local / T_ref)**4.0
+            t_weight = np.clip(t_weight, 0.1, 5.0) # Stability guard
+
+            Q_loss_W = (loss_pct / 100.0) * Q_total_W * (self.dz / L_total) * t_weight
         
         # Reaction heat from rates (for audit only)
         Q_rxn_total = 0.0
@@ -628,7 +729,10 @@ class Cell:
         
         r_het, r_homo, phi = self._calc_rates(current, phys, g_src, Ts_avg=Ts_avg)
         res_gas, res_Ws, res_Xc = self._calc_balances(current, r_het, r_homo, phi, g_src, s_src)
-        res_E = self._calc_energy_balance(current, e_src, phys=phys, r_het=r_het, r_homo=r_homo, phi=phi, Ts_out=Ts_out, gas_src=g_src)
+        res_E = self._calc_energy_balance(
+            current, e_src, phys=phys, r_het=r_het, r_homo=r_homo, phi=phi,
+            Ts_out=Ts_out, gas_src=g_src, is_combustion_zone=is_combustion,
+        )
         
         # Scaling: most species by ref_flow; N2 (index 6) by coal-N scale so solver enforces N conservation
         # Pure O2 gasification: N in syngas comes only from coal (pyrolysis N2). Small N2 flow => weak residual if scaled by ref_flow.

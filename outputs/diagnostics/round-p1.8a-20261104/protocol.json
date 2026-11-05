@@ -1,0 +1,153 @@
+{
+  "round": "P1.8-A / 2026-11-04",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "27eda81",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "source_commit_note": "生成本轮全部产物的代码提交；产物本身随后另起一次仅含 outputs 的提交",
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.8a-20261104.md",
+  "equation_changes": {
+    "1_heat_loss_model": "新增 op_conds['HeatLossModel'] ∈ {hhv_percent(缺省), fortran_wall}。fortran_wall 按 Source1_副本.for 第 341–350/772–781 行两区分支：燃烧区 hloss = fcoal·|rheat|·hl/100（hl=30）；气化区 hloss = u0·π·dt·nc·delh·(tg−tw)，u0=3.4e-3 cal/(s·cm²·K)，tw = 2100 − 600·hs/height。dt=152.4 cm、height=330 cm 取 Fortran 第 32 行。tg < tw 时 hloss 为负，保留符号。",
+    "2_reaction_heat": "Fortran 的 rheat 在 Python 侧的对应量：Q = −Σ rate·ΔH(T)，ΔH 用模型自身 Shomate 生成焓、化学计量与 Cell._calc_balances 一致（含 phi 与 f_co2）。Fortran 的 rheat1（挥发分显热当量）在 Python 侧不存在对应量。",
+    "3_gasification_rate_factor": "新增 op_conds['GasificationRateFactor']：C+H2O 与 C+CO2 共用的指前因子倍数（E 不变），乘在 k_s 的 A 上而不是总速率上，因此膜扩散阻力仍在。缺省 1.0 逐位不变。",
+    "4_jax_guard": "GasifierSystem._solve_jax_v4 对 HeatLossModel='fortran_wall' 与 GasificationRateFactor≠1 直接抛 ValueError，不静默回退。"
+  },
+  "fortran_symbols": {
+    "source": "reference_fortran/Source1_副本.for",
+    "table_file": "fortran_heatloss_symbols.md",
+    "ambiguous": [
+      "rheat1 的显热当量口径在 Python 侧无对应量（已在 interpretation 说明）"
+    ]
+  },
+  "frozen_items_untouched": [
+    "all Arrhenius constants (except the f_gas multiplier scanned in section 2)",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor",
+    "H2_OxidationFactor / CO_OxidationFactor",
+    "pyrolysis yields",
+    "negative-WGS hydrogen truncation（只统计绑定）",
+    "USE_RK_GILL_COMBUSTION = False",
+    "ParticleSizeModel = fortran_constant",
+    "steam_flow = 0",
+    "low-heating-value basis",
+    "MeshFamily = uniform_full_length",
+    "SolverStrictRoot = True"
+  ],
+  "unit_checks_all_pass": true,
+  "anchor": {
+    "mode_F_prime": "P1.7-A 模式 F + HeatLossModel='fortran_wall'",
+    "n_list": [
+      80,
+      160
+    ],
+    "n_reference": 160,
+    "tolerances": {
+      "X_C_pp": 2.0,
+      "CO_vol_pct": 2.0,
+      "H2_vol_pct": 2.0,
+      "CO2_vol_pct": 2.0,
+      "T_gas_K": 50.0
+    },
+    "cases": [
+      "texaco i-1",
+      "texaco i-2",
+      "texaco i-5c",
+      "texaco i-10",
+      "texaco exxon"
+    ],
+    "hhv_independence_check": "I-1, 模式 F′, N=160, HHV_d 30 → 34, 判据 |ΔT| < 1e-6 K"
+  },
+  "scan": {
+    "windows": [
+      "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+      "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+      "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001",
+      "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",
+      "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+      "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",
+      "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+      "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002",
+      "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001"
+    ],
+    "n_cells": 40,
+    "coal_basis": "recon_phase（协调-阶段，干煤）",
+    "f_gas_grid": [
+      1.0,
+      0.5,
+      0.25,
+      0.125,
+      0.0625
+    ],
+    "f_gas_extension": 0.03125,
+    "f_gas_extension_rule": "若 f_gas = 0.0625 时 9 窗 X_C 中位仍高于装置主口径中位，向下只延伸一档（0.03125），不再继续；延伸行属网格的一部分，参与 R1–R4 的搜索池",
+    "heat_loss_percent_grid": [
+      1.0,
+      2.0,
+      4.0,
+      6.0
+    ],
+    "carrier": "co2_carrier_measured_nm3_h（P1.8-D 实测口径，模型入口与装置碳平衡同一口径）",
+    "carrier_j_note": "J 口径 X_C 只在与刘文比较时并列",
+    "replay_rows": "旧载气 = co2_carrier_t_nm3_h（卡面口径）；另加 parity_p17a = 冻结切分 max(0.24×o2_flow_mean,0)，用于与 P1.7-A 逐位对齐",
+    "composition_bases": {
+      "analyzer": "在线分析仪窗口值（冻结切分的 co/h2/co2_vol_pct）",
+      "liu_phase": "刘文表 3 阶段值 CO/H2/CO2 = 60.14/29.74/9.36、61.05/29.24/8.99、60.74/29.42/9.14、59.72/30.38/8.98"
+    },
+    "expected_rows": {
+      "grid": 180,
+      "replay": 9,
+      "parity": 9
+    }
+  },
+  "readings": {
+    "R1": "逐窗 |模型 X_C − 装置主口径 X_C| ≤ 1.0 pp 的 (f_gas, HeatLossPercent) 组合，线性插值并标注",
+    "R2": "沿 R1 组合的最小 ξ；9 窗中位在两种口径下都 > 50.0 mol/s → 反应器后变换仍需要",
+    "R3": "RSS 最小点的 (JᵀJ)^-1 → 条件数 < 100.0 且 |相关| < 0.95 → 可分别辨识",
+    "R4": "各阶段最优 f_gas 的中位与极差，两口径分别报",
+    "R5": "f_gas=1 与 R3 最优点上 C+CO2 与逆 WGS 在净 CO2 消耗中的占比"
+  },
+  "source_csv": {
+    "p17d": {
+      "round": "p1.7d-20261103",
+      "file": "coal_reconciled_by_window.csv",
+      "sha256": "05b4172f9ee9d509dc6284ac94fdea56af40a9d7b638d8285c4232d962af6345",
+      "read_only": true
+    },
+    "p18d": {
+      "round": "p1.8d-20261104",
+      "file": "carrier_by_window.csv",
+      "sha256": "38c7815de4affd3dd08797dcc935e73ec470d78516ea45fa59debcc33a148550",
+      "read_only": true
+    },
+    "data_repo": "gasifier-data-prep（本轮只读，未修改任何文件）"
+  },
+  "extra_artifacts": [
+    "anchor_profiles.csv（Fortran 中间气室温度与 Python 逐点对比）"
+  ],
+  "scan_rows_actual": 234,
+  "scan_rows_by_kind": {
+    "grid": 180,
+    "grid_extension": 36,
+    "replay_old_carrier": 9,
+    "parity_p17a": 9
+  },
+  "unit_checks_pass": true,
+  "anchor_criteria_f_mode_pass_cases": 0,
+  "anchor_criteria_fp_mode_pass_cases": 0,
+  "f_gas_extension_triggered": true
+}
