@@ -1529,10 +1529,11 @@ def _summary_md(unit_df, anchor_crit, scan, rd, jac) -> str:
                                             else "不需要反应器后变换")
         for _, r in r2s.iterrows() if np.isfinite(r["value"]))
     # 没有 R1 组合的窗离装置值还差多少。必须区分两个量：
-    #   pool_miss：整个搜索池的最小 |ΔX_C|（f_gas 下到 1/32、HLP 到 6% 时的最好值）
+    #   pool_miss：整个搜索池内的**最小绝对偏差**（逐行算 |ΔX_C| 再取 min）
     #   corner_miss：指定角点 (0.03125, 6%) 的残差
-    # 2026-11-05 审阅意见：此前只报 pool_miss 并把句子写成「整个搜索池里最小仍差」，
-    # 容易被读成角点残差（+7.3..+7.7）而实际角点是 +4.87..+1.19。
+    # 2026-11-05 二次审阅意见（实质计算错误）：原写法 abs(g["X_C_implied"].max()*100 - px)
+    # 取的是「X_C 最大值处的偏差」，不是池内最小偏差。角点在池内且其误差为 1.19–4.87 pp，
+    # 池最小值按定义不可能反而达到 7.3–7.7 pp，这一矛盾本身就说明算法错了。
     pool = scan[scan["row_kind"].isin(("grid", "grid_extension"))]
     miss = []
     corner = []
@@ -1541,7 +1542,8 @@ def _summary_md(unit_df, anchor_crit, scan, rd, jac) -> str:
             continue
         g = pool[pool["window_id"] == row_r1["window_id"]]
         px = float(g["plant_xc_measured_pct"].iloc[0])
-        miss.append(abs(float(g["X_C_implied"].max()) * 100.0 - px))
+        # 逐行算偏差再取最小
+        miss.append(float(np.min(np.abs(g["X_C_implied"].to_numpy(dtype=float) * 100.0 - px))))
         gc = g[(np.isclose(g["f_gas"].astype(float), 0.03125)) &
                (np.isclose(g["HeatLossPercent"].astype(float), 6.0))]
         if len(gc):
@@ -1566,12 +1568,17 @@ def _summary_md(unit_df, anchor_crit, scan, rd, jac) -> str:
         for b in COMP_BASES if len(r4[r4["composition_basis"] == b]))
     L.append(f"3. **二维扫描**：R1 只有 **{n_r1}/9** 窗存在 |ΔX_C| ≤ 1 pp 的 (f_gas, HLP) 组合"
              f"（其余 {9 - n_r1} 窗：指定角点 f_gas=0.03125、HLP=6% 处残差 {corner_txt}，"
-             f"整个搜索池的最小值 {miss_txt}——两者不可混用）；"
+             f"整个搜索池的**最小绝对偏差** {miss_txt}——两者不可混用，"
+             "且二者相等说明这两个窗的最优点就落在搜索边界 (f_gas=1/32, HLP=6%) 上，"
+             "即继续下调 f_gas 或加大热损可能还会改善，本轮未再延伸）；"
              f"R2 {r2_txt} → {r2_verdict}"
              f"（该判据只在这 {n_r1} 窗上成立；其余窗根本没有 R1 组合）；R3 {r3_txt}；"
              f"R4 {r4_txt}（每个阶段只有 2 窗，不足以判跨阶段趋势）；"
-             f"R5 C+CO2 在净 CO2 消耗中占 {_r5_range(rd)}，"
-             "**C+H2O 与 C+CO2 共用指前因子应当拆开**（本轮不拆）。")
+             f"R5 C+CO2 在**毛**消耗（C+CO2 与逆 WGS 两者之和）中占 {_r5_range(rd)}——"
+             "这是毛口径，**不是**净 CO2 消耗的份额（本例 C+CO2 走 413.8 mol/s 而净消耗仅 63.7 mol/s，"
+             "阶段 4 的最优点甚至可能出现符号相反的净消耗）。"
+             "因此「是否拆开 C+H2O 与 C+CO2 共用指前因子」是**待论文侧决定**的开放项，"
+             "其动机建立在毛吞吐量上；本轮不拆，也不据此下结论。")
     par = scan[scan["row_kind"] == "parity_p17a"]
     ref = _p17a_baseline_ref()
     same = sum(1 for _, r in par.iterrows()
