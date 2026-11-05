@@ -51,6 +51,12 @@ import numpy as np
 
 from .physics import get_enthalpy_molar
 
+# 炭颗粒比热与碳摩尔质量：用于把固碳显焓并入异相反应焓。
+# 数值与 constants.PhysicalConstants.HEAT_CAPACITY_SOLID 缺省一致（1500 J/(kg·K)）；
+# 此处内联是为了不改变 reaction_heat_release_w 的签名（该函数不收 coal_props）。
+HEAT_CAPACITY_SOLID = 1500.0
+CARBON_MOLAR_MASS_KG = 0.012011
+
 logger = logging.getLogger(__name__)
 
 # 每 cal 的焦耳数（Fortran 全程用 cal；Python 的能量残差用 W）
@@ -209,6 +215,12 @@ def reaction_heat_release_w(
         sp: float(get_enthalpy_molar(sp, t))
         for sp in ("CO", "CO2", "H2", "H2O", "O2", "CH4")
     }
+    # 碳（固）的显焓。``char_formation_zero`` 只把**生成焓**归零，显焓
+    # ``cp_char·(T − 298.15)`` 仍在（见 MaterialService.get_solid_enthalpy），
+    # 而异相反应消耗 1 mol 固碳。漏掉它会让反应热与能量方程口径不一致：
+    # 2000 K 时 cp_char 取缺省 1500 J/(kg·K) 约 30 kJ/mol，直接影响 30% 壁损项。
+    # 2026-11-04 更正（审阅意见）。
+    h_c_solid = HEAT_CAPACITY_SOLID * CARBON_MOLAR_MASS_KG * (t - 298.15)  # J/mol C
 
     f = float(f_co2)
     ph = float(phi)
@@ -229,17 +241,19 @@ def reaction_heat_release_w(
     # 每个反应的 ΔH [J/mol reaction]；碳（固）焓记 0
     dh = {
         # C + (1/phi) O2 -> (2-2/phi) CO + (2/phi-1) CO2
+        # 以下四个异相反应各消耗 1 mol 固碳，故减 h_c_solid（见上文说明）。
         "C+O2": (
             (2.0 - 2.0 / ph) * h["CO"]
             + (2.0 / ph - 1.0) * h["CO2"]
             - (1.0 / ph) * h["O2"]
+            - h_c_solid
         ),
         # C + H2O -> CO + H2
-        "C+H2O": h["CO"] + h["H2"] - h["H2O"],
+        "C+H2O": h["CO"] + h["H2"] - h["H2O"] - h_c_solid,
         # C + CO2 -> 2 CO
-        "C+CO2": 2.0 * h["CO"] - h["CO2"],
+        "C+CO2": 2.0 * h["CO"] - h["CO2"] - h_c_solid,
         # C + 2 H2 -> CH4
-        "C+H2": h["CH4"] - 2.0 * h["H2"],
+        "C+H2": h["CH4"] - 2.0 * h["H2"] - h_c_solid,
         # CO + 0.5 f O2 -> f CO2
         "CO_Ox": f * (h["CO2"] - h["CO"] - 0.5 * h["O2"]),
         # H2 + 0.5 O2 -> H2O
