@@ -1,7 +1,7 @@
 {
   "round": "P1.9-A / 2026-11-05",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "3e5c96838d3b88df2b6f43dcc78a1e380c053d87",
+  "source_commit": "79f3039dca19908e07e9ae9dbafab80daab0db63",
   "mesh_family": {
     "name": "graded_full_length",
     "device": {
@@ -116,6 +116,34 @@
     "Q4": "最细档 f_gas 1→1/32 的 ΔX_C 与均匀 N=40 的比值，中位 ≥ 3.0 记为恢复杠杆"
   },
   "unit_checks_all_pass": true,
+  "heatloss_basis": {
+    "finding": "HeatLossPercent 不是整炉热损百分比（2026-11-05 审阅意见）",
+    "formula": "Q_loss = (HLP/100)·(m_coal·HHV_d)·(dz/L_norm)·clip((T/1800)^4, 0.1, 5)",
+    "weight_sum_range": [
+      0.3810130756562174,
+      0.7314780255039999
+    ],
+    "actual_frac_dry_coal_pct": {
+      "HLP_2": [
+        0.7775777054208516,
+        1.3927051834880784
+      ],
+      "HLP_1": [
+        0.40041484901689817,
+        0.7464061484734693
+      ]
+    },
+    "code_change": "cell.heat_loss_percent_hloss() 抽出 _calc_energy_balance 的内联算式（运算顺序不变，P1.8-A 18/18 逐位复现）；诊断中新增 hloss_W 等字段",
+    "withdrawn_claims": [
+      "P1.8-A F4 的『R3 最优点 HLP=4–6% 与实测热损不符 / 物理上不可能』",
+      "P1.9-A 的『1–2% 相对实测必然保守、不会高估动力学杠杆』",
+      "P1.9-D 的『0.42–0.91% 是实测热损上限』"
+    ]
+  },
+  "readings_wording": {
+    "q1_failure": "Q1 未收敛 → Q2 的两个网格解之差是『未收敛网格间已观测差异』，不得表述为『相对收敛解误差的下界』；Q1 未通过与 Q2 触发不变",
+    "x_c_pinning": "X_C 贴顶表示指标分辨率饱和，不能量化潜在误差幅度"
+  },
   "bitwise_uniform_reproduction": true,
   "p18a_parity": {
     "rule": "本轮同一轮重跑的均匀 N=40 行与 P1.8-A scan.csv 的 grid / grid_extension 行逐位比较",
