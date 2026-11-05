@@ -50,6 +50,7 @@ from model.fortran_anchor_20261030 import (  # noqa: E402
 )
 from model.gasifier_system import GasifierSystem  # noqa: E402
 from model.grid_service import AdaptiveMeshGenerator, MeshConfig  # noqa: E402
+from model.input_contract import coal_hhv_kj_kg  # noqa: E402
 from model.p0_round_20260930 import m1_reference_window_ids  # noqa: E402
 from model.p1_5_round_20261030 import (  # noqa: E402
     base_protocol,
@@ -121,6 +122,61 @@ def uniform_mesh(L: float, n_cells: int) -> np.ndarray:
         MeshConfig(total_length=L, n_cells=n_cells, mesh_family="uniform_full_length")
     ).generate()
     return np.asarray(dz, dtype=float)
+
+
+def heatloss_unit_checks() -> list[dict]:
+    """HLP → 实际热损的换算单元检查（纯函数，不依赖求解器）。
+
+    审查意见要求把 HLP 与实际逐格 Q_loss 分开，这里用合成温度给出闭式答案：
+    均匀 T 时 Σ(dz/L·clip((T/1800)^4,0.1,5)) = clip((T/1800)^4,0.1,5)，
+    因此实际占比必须等于 HLP/100 × 该权重。
+    """
+    rows: list[dict] = []
+    L = DEV_L
+    dz = np.full(40, L / 40.0)
+    hlp = 2.0
+    q_total_w = 531.308e6
+    for T_K, expect_w in (
+        (1800.0, 1.0),                      # 权重恰为 1（参考温度）
+        (1200.0, (1200.0 / 1800.0) ** 4),   # 0.1975，未触界
+        (900.0, 0.1),                       # 低于下限 → clip 到 0.1
+        (3000.0, 5.0),                      # 高于上限 → clip 到 5
+    ):
+        w = np.clip((T_K / 1800.0) ** 4.0, 0.1, 5.0)
+        loss = (hlp / 100.0) * q_total_w * float(np.sum(dz / L * w))
+        hand = (hlp / 100.0) * q_total_w * expect_w
+        rows.append({
+            "group": "heatloss_basis",
+            "context": f"均匀 T = {T_K:.0f} K，HLP = {hlp:.0f}%，dz = L/40",
+            "metric": "Q_loss_W",
+            "hand_value": hand,
+            "code_value": loss,
+            "rel_diff": abs(loss - hand) / max(abs(hand), 1e-30),
+            "tolerance": 1e-12,
+            "pass": bool(abs(loss - hand) <= 1e-12 * max(abs(hand), 1e-30)),
+            "note": f"权重 clip((T/1800)^4,0.1,5) = {float(w):.6f}",
+        })
+    # 组合检查：非均匀 T 时，Σ(dz/L·w) 必须严格小于 1，
+    # 说明「实际热损 < HLP」是温度权重的直接后果，不是实现缺陷。
+    T_prof = np.concatenate([np.full(2, 2650.0), np.full(38, 1400.0)])
+    w = np.clip((T_prof / 1800.0) ** 4.0, 0.1, 5.0)
+    share = float(np.sum(dz / L * w))
+    hand_share = float(
+        sum(float(dz[i] / L) * float(np.clip((T_prof[i] / 1800.0) ** 4.0, 0.1, 5.0))
+            for i in range(len(T_prof)))
+    )
+    rows.append({
+        "group": "heatloss_basis",
+        "context": "合成剖面：2 格 2650 K + 38 格 1400 K（模拟燃烧区 + 气化区）",
+        "metric": "sum_dz_over_L_times_weight",
+        "hand_value": hand_share,
+        "code_value": share,
+        "rel_diff": abs(share - hand_share) / max(abs(hand_share), 1e-30),
+        "tolerance": 1e-12,
+        "pass": bool(abs(share - hand_share) <= 1e-12 * hand_share and share < 1.0),
+        "note": "share < 1 即实际热损 < HLP；这是 wt 在气化区远小于 1 的结果，不是 bug",
+    })
+    return rows
 
 
 def unit_checks() -> pd.DataFrame:
@@ -343,6 +399,47 @@ def cell_rows(system: GasifierSystem, window_id: str, dz0: float, hlp: float, zb
 # 装置运行
 # ---------------------------------------------------------------------------
 
+def heatloss_summary(system: GasifierSystem, coal_dry_kg_s: float, hhv_kj_kg: float) -> dict:
+    """逐格 Q_loss 求和，换成两个分母下的占比。
+
+    P1.9-A 审阅意见：``HeatLossPercent`` 不是整炉热损百分比。模型的实际总热损是
+
+        Σ Q_loss = (HLP/100)·(m_wet·HHV_d)·Σ(dz/L·clip((T/1800)^4, 0.1, 5))
+
+    温度权重在气化区通常远小于 1，所以 Σ/Σ_basis 只有 HLP 的 0.38–0.68 倍。
+    这里同时给出
+
+      - ``hloss_share_of_Qtotal_pct``：Σ Q_loss / (m_wet·HHV_d)，即模型现用分母；
+      - ``hloss_frac_dry_coal_pct``：Σ Q_loss / (m_dry·HHV_d)，与装置侧热损同一分母。
+
+    两者相差一个 1/(1−Mt) 因子，混用会把口径差异当成物理差异。
+    """
+    cells = [d for d in system.cell_diagnostics if "hloss_W" in d]
+    if not cells:
+        return {
+            "hloss_actual_MW": float("nan"),
+            "hloss_share_of_Qtotal_pct": float("nan"),
+            "hloss_frac_dry_coal_pct": float("nan"),
+            "hloss_weight_sum": float("nan"),
+            "hloss_Qtotal_wet_MW": float("nan"),
+            "hloss_Qtotal_dry_MW": float("nan"),
+            "hloss_cells": 0,
+        }
+    total_w = float(sum(float(d["hloss_W"]) for d in cells))
+    q_total_wet_w = float(cells[0].get("hloss_Q_total_W", float("nan")))
+    q_total_dry_w = float(coal_dry_kg_s) * float(hhv_kj_kg) / 1000.0 * 1e6
+    weight_sum = float(sum(float(d["hloss_dz_frac"]) * float(d["hloss_t_weight"]) for d in cells))
+    return {
+        "hloss_actual_MW": total_w / 1e6,
+        "hloss_share_of_Qtotal_pct": total_w / q_total_wet_w * 100.0 if q_total_wet_w > 0 else float("nan"),
+        "hloss_frac_dry_coal_pct": total_w / q_total_dry_w * 100.0 if q_total_dry_w > 0 else float("nan"),
+        "hloss_weight_sum": weight_sum,
+        "hloss_Qtotal_wet_MW": q_total_wet_w / 1e6,
+        "hloss_Qtotal_dry_MW": q_total_dry_w / 1e6,
+        "hloss_cells": len(cells),
+    }
+
+
 def _device_run(row, csv17, csv18, dry, dz0, hlp, f_gas, carrier_nm3_h) -> tuple[dict, GasifierSystem]:
     n_block = int(round(DEV_ZB / dz0))
     n_cells = n_block + DEV_N_REST
@@ -378,6 +475,10 @@ def _device_run(row, csv17, csv18, dry, dz0, hlp, f_gas, carrier_nm3_h) -> tuple
         ) if dz0 == BASE_DZ0 else None,
     })
     out.update(block_stats(system, DEV_ZB, dz0))
+    out.update(heatloss_summary(
+        system, dry,
+        float(p18a.coal_hhv_kj_kg(system.coal_props)),
+    ))
     return out, system
 
 
@@ -733,6 +834,12 @@ def interpretation(unit_df, mesh_runs, mesh_cells, lev, anchor_df, rd, parity=No
     L.append("")
     o2pos = mesh_runs[np.isclose(mesh_runs["HeatLossPercent"], 2.0)].groupby("dz0_m")[
         ["z_O2_one_pct_m", "combustion_zone_length_m", "block_T_peak_K"]].median()
+    L.append("**读法限定**：Q1 未收敛，因此上面两个网格解之间的差异是**未收敛网格间已观测的差异**，"
+             "不能称为「基线相对收敛解误差的下界」。没有收敛极限、渐近阶数或误差有符号单调性的依据时，"
+             "更细的网格可能使差异回转，当前两层也可能分别位于极限两侧。"
+             "Q1 未通过和 Q2 触发这两条结论不受影响：**在当前可执行的网格族上，基线的出口量对燃烧区"
+             "首格厚度敏感的幅度就是 33–43 K 量级**，这已足以说明基线含未分辨的火焰区效应。\n")
+
     L.append("**结构判读**：O2 降到入口 1% 的位置在任何 `dz0` 下都不超过两个细格"
              "（即 O2 始终在**首格内**耗尽），燃烧区判据覆盖的物理长度也随之只有一个细格。"
              "因此加密只改变首格厚度，不把火焰区拆成多格——这正是 Q1 不收敛的机制。"
@@ -740,6 +847,36 @@ def interpretation(unit_df, mesh_runs, mesh_cells, lev, anchor_df, rd, parity=No
     L.append(_md_table(o2pos.reset_index(), ["dz0_m", "z_O2_one_pct_m",
                                              "combustion_zone_length_m", "block_T_peak_K"], nd=5))
     L.append("")
+
+    # HLP 与实际热损
+    L.append("### HeatLossPercent 不是整炉热损百分比\n")
+    L.append("模型逐格热损为 `Q_loss = (HLP/100)·(m_coal·HHV_d)·(dz/L)·clip((T/1800)^4, 0.1, 5)`。"
+             "温度权重在气化区通常远小于 1（1400 K 约 0.366，1200 K 约 0.198），"
+             "只在燃烧区接近或触及 5 的上限，因此 **Σ Q_loss 只有 HLP 的 0.38–0.68 倍**；"
+             "另外分母用 `coal_flow`（湿煤）乘干基 HHV，与干煤口径还差一个 1/(1−Mt) 因子。"
+             "两个分母下的实测占比：\n")
+    hl = mesh_runs[mesh_runs["execution_status"] == "completed"].copy()
+    agg = hl.groupby("HeatLossPercent").agg(
+        n=("hloss_actual_MW", "size"),
+        share_min=("hloss_share_of_Qtotal_pct", "min"),
+        share_max=("hloss_share_of_Qtotal_pct", "max"),
+        dry_min=("hloss_frac_dry_coal_pct", "min"),
+        dry_max=("hloss_frac_dry_coal_pct", "max"),
+        MW_min=("hloss_actual_MW", "min"),
+        MW_max=("hloss_actual_MW", "max"),
+        w_min=("hloss_weight_sum", "min"),
+        w_max=("hloss_weight_sum", "max"),
+    ).reset_index()
+    L.append(_md_table(agg, ["HeatLossPercent", "n", "MW_min", "MW_max", "share_min", "share_max",
+                             "dry_min", "dry_max", "w_min", "w_max"], nd=4))
+    L.append("")
+    L.append("- `share_*` = Σ Q_loss / (m_湿煤·HHV_d)，即模型自己用的分母；"
+             "`dry_*` = Σ Q_loss / (m_干煤·HHV_d)，与装置侧同一分母。")
+    L.append("- `w_*` = Σ(dz/L·clip((T/1800)^4,0.1,5))，即 HLP 到实际占比的换算系数。"
+             "它随网格变化（0.38–0.68），所以**不同 `dz0` 之间的 Q_loss 也不完全相同**，"
+             "尽管 HLP 是常数。")
+    L.append("- 因此本轮的 2% 与 1% 必须分别读成上表的两行实际占比；"
+             "它们**不是**「整炉热损 2% 与 1%」，也不能直接与实测水冷壁吸热比较。\n")
 
     # Q2
     L.append("## 2. Q2：现有基线是否含火焰区分辨率误差\n")
@@ -770,8 +907,9 @@ def interpretation(unit_df, mesh_runs, mesh_cells, lev, anchor_df, rd, parity=No
             L.append(f"- 触发窗口数：{_fmt(v['value'].iloc[0], 0)} / {len(tbl)}；"
                      f"裁决 = **{'需在细化网格上重建' if bool(v['pass'].iloc[0]) else '不触发'}**\n")
 
-    L.append("**X_C 贴顶的截断**：模型 X_C 在部分窗口已达完全转化上限，ΔX_C 因此是被截断的下界，"
-             "不能当作唯一判据；这些窗口的裁决由 ΔT_out 与 ΔCO2 承担。逐档计数如下。\n")
+    L.append("**X_C 贴顶的截断**：模型 X_C 在部分窗口已达完全转化上限，此时指标的分辨率已经"
+             "饱和（ΔX_C 无法反映真实差异），而不是给出一个可以量化的误差幅度。"
+             "这些窗口的裁决只能由 ΔT_out 与 ΔCO2 承担。逐档计数如下。\n")
     ceil_rows = []
     for hlp in HLP_GRID:
         sub = mesh_runs[np.isclose(mesh_runs["HeatLossPercent"], hlp)]
@@ -838,7 +976,29 @@ def interpretation(unit_df, mesh_runs, mesh_cells, lev, anchor_df, rd, parity=No
     L.append(f"- 最大残差成本：{float(mesh_runs['max_residual_cost'].max()):.3e}")
     L.append(f"- 单次求解墙钟中位：{_fmt(mesh_runs['solve_wall_time_s'].median())} s，"
              f"最大 {_fmt(mesh_runs['solve_wall_time_s'].max())} s\n")
-    L.append("## 7. 复现边界\n")
+    # 对 F4 / R3 的更正
+    L.append("## 7. 对 P1.8-A F4 与 R3 的更正\n")
+    L.append("F4 曾写「R3 的最优点全部落在 6% 上边界……这些组合与实测热损不符」，"
+             "并据此判定 R3 的「可分别辨识」没有意义。按上面的换算，这个推理不成立：\n")
+    L.append("- R3 的 `HLP = 4–6%` 换算成实际热损不是 4–6%，而是约为其 0.38–0.68 倍。"
+             "用本表的换算系数粗估落在 **1.5–4.1%** 量级；且 HLP 升高会拉低温度、"
+             "使权重进一步下降，因此真实值应偏向该区间低端。这是整炉总热损的候选值，"
+             "不是「物理上不可能」的点。")
+    L.append("- 更关键的是比较对象不同：实测的 0.421–0.909% 是**水冷壁汽包吸热**，"
+             "是整炉热损的一个组成部分（还有渣、其他冷却回路与散热）。"
+             "在汽包只覆盖反应器边界内回路的前提下才有 总热损 ≥ 汽包吸热，"
+             "而这需要在装置热平衡上单独确认，本轮没有做。"
+             "因此实测值只能给出一侧约束，不能把 R3 的最优点排除。")
+    L.append("- 本轮的 2% 与 1% 换算成 0.78–1.39% 与 0.40–0.75%（干煤口径），"
+             "**两侧分别跨在实测汽包吸热区间之上与之内**，属于把不确定区间夹住，"
+             "而不是「2% 偏保守」。原先「1–2% 必然保守、不会高估动力学杠杆」的说法撤回。")
+    L.append("- 需要保留的限制：本轮与 P1.8-A 都没有做装置热平衡，"
+             "汽包吸热与整炉热损的差额（渣显热、其他回路、散热）未量化。\n")
+    L.append("**对 Q4 的影响**：Q4 的比值 0.62 是在 `HLP = 1%`（实际 0.40–0.75%）下得到的。"
+             "热损档位改变会改变温度水平，从而可能改变杠杆比值；本轮**没有**在 2% 档重复"
+             "杠杆试验（卡面只指定 1% 档），所以 Q4 的结论限定在 1% 档。\n")
+
+    L.append("## 8. 复现边界\n")
     L.append("- 本轮只改网格，不调任何动力学常数、不采纳任何参数值。")
     L.append("- Q1–Q4 的阈值在运行前写入脚本常量，运行后未改。")
     L.append("- 锚点 20 行只用模式 F（`hhv_percent`），只记录、不判通过。\n")
@@ -869,7 +1029,7 @@ def main() -> None:
     if missing:
         raise SystemExit(f"输入 CSV 缺窗口：{missing}")
 
-    unit_df = unit_checks()
+    unit_df = pd.concat([unit_checks(), pd.DataFrame(heatloss_unit_checks())], ignore_index=True)
     gate = unit_df[unit_df["pass"].notna()]
     unit_pass = bool(gate["pass"].astype(bool).all())
     unit_df.to_csv(OUT_DIR / "unit_checks.csv", index=False)
@@ -966,6 +1126,34 @@ def main() -> None:
             "Q4": f"最细档 f_gas 1→1/32 的 ΔX_C 与均匀 N=40 的比值，中位 ≥ {Q4_RATIO} 记为恢复杠杆",
         },
         "unit_checks_all_pass": unit_pass,
+        "heatloss_basis": {
+            "finding": "HeatLossPercent 不是整炉热损百分比（2026-11-05 审阅意见）",
+            "formula": "Q_loss = (HLP/100)·(m_coal·HHV_d)·(dz/L_norm)·clip((T/1800)^4, 0.1, 5)",
+            "weight_sum_range": [float(mesh_runs["hloss_weight_sum"].min()),
+                                 float(mesh_runs["hloss_weight_sum"].max())],
+            "actual_frac_dry_coal_pct": {
+                "HLP_2": [float(mesh_runs[np.isclose(mesh_runs["HeatLossPercent"], 2.0)]
+                                ["hloss_frac_dry_coal_pct"].min()),
+                          float(mesh_runs[np.isclose(mesh_runs["HeatLossPercent"], 2.0)]
+                                ["hloss_frac_dry_coal_pct"].max())],
+                "HLP_1": [float(mesh_runs[np.isclose(mesh_runs["HeatLossPercent"], 1.0)]
+                                ["hloss_frac_dry_coal_pct"].min()),
+                          float(mesh_runs[np.isclose(mesh_runs["HeatLossPercent"], 1.0)]
+                                ["hloss_frac_dry_coal_pct"].max())],
+            },
+            "code_change": "cell.heat_loss_percent_hloss() 抽出 _calc_energy_balance 的内联算式"
+                           "（运算顺序不变，P1.8-A 18/18 逐位复现）；诊断中新增 hloss_W 等字段",
+            "withdrawn_claims": [
+                "P1.8-A F4 的『R3 最优点 HLP=4–6% 与实测热损不符 / 物理上不可能』",
+                "P1.9-A 的『1–2% 相对实测必然保守、不会高估动力学杠杆』",
+                "P1.9-D 的『0.42–0.91% 是实测热损上限』",
+            ],
+        },
+        "readings_wording": {
+            "q1_failure": "Q1 未收敛 → Q2 的两个网格解之差是『未收敛网格间已观测差异』，"
+                          "不得表述为『相对收敛解误差的下界』；Q1 未通过与 Q2 触发不变",
+            "x_c_pinning": "X_C 贴顶表示指标分辨率饱和，不能量化潜在误差幅度",
+        },
         "bitwise_uniform_reproduction": bool(par["bitwise_equal_uniform_N40"].iloc[0]),
         "p18a_parity": {
             "rule": "本轮同一轮重跑的均匀 N=40 行与 P1.8-A scan.csv 的 grid / grid_extension 行逐位比较",

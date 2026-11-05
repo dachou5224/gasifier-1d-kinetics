@@ -576,6 +576,46 @@ class Cell:
         return self._fortran_wall_report(state, r_het, r_homo, phi, is_combustion,
                                          Ts_avg=Ts_avg, Ts_out=_Ts_out)
 
+    def hhv_percent_hloss(self, state) -> dict:
+        """``hhv_percent`` 热损审计量：本格 Q_loss 及其构成（只读，不改求解）。
+
+        P1.9-A 审阅意见指出的问题：``HeatLossPercent`` **不是**整炉热损百分比。
+        实际逐格热损为
+
+            Q_loss = (HLP/100)·(m_coal·HHV)·(dz/L_norm)·clip((T/1800)^4, 0.1, 5)
+
+        温度权重在气化区通常远小于 1（1200 K 时约 0.198），只在燃烧区接近并触及
+        5 的上限。因此 Σ Q_loss / Q_coal 通常只有 HLP 的 0.38–0.68 倍，且分母用
+        ``coal_flow``（湿煤）乘干基 HHV，与干煤口径还差一个 1/(1−Mt) 因子。
+        要把模型热损与实测水冷壁吸热比较，必须逐格求和后统一分母。
+
+        本方法把 ``_calc_energy_balance`` 里那段内联算式原样抽出，运算顺序不变，
+        因此取值逐位相同；抽出它只为让逐格 Q_loss 可被求和审计。
+        """
+        L_total = self.op_conds.get('L_heatloss_norm', self.op_conds.get('L_reactor', 6.0))  # m
+        L_total = max(float(L_total), 1e-9)
+        loss_pct = self.op_conds.get('HeatLossPercent', 2.0)
+
+        coal_flow_kg_s = self.op_conds['coal_flow']  # wet coal flow [kg/s]
+        hhv_MJ_kg = coal_hhv_kj_kg(self.coal_props) / 1000.0  # dry-basis HHV [MJ/kg_dry]
+        Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6
+
+        T_local = state.T
+        T_ref = self.op_conds.get('HeatLossRefTemp', 1800.0)
+        t_weight = (T_local / T_ref)**4.0
+        t_weight = np.clip(t_weight, 0.1, 5.0)
+
+        Q_loss_W = (loss_pct / 100.0) * Q_total_W * (self.dz / L_total) * t_weight
+        return {
+            "hloss_W": float(Q_loss_W),
+            "hloss_zone": "hhv_percent",
+            "hloss_loss_pct": float(loss_pct),
+            "hloss_Q_total_W": float(Q_total_W),
+            "hloss_t_weight": float(t_weight),
+            "hloss_L_norm_m": float(L_total),
+            "hloss_dz_frac": float(self.dz / L_total),
+        }
+
     def _calc_energy_balance(self, current, energy_src, phys=None, r_het=None, r_homo=None, phi=None, Ts_out=None, gas_src=None, is_combustion_zone=None):
         """
         Computes enthalpy residual for the cell.
@@ -628,30 +668,13 @@ class Cell:
             Q_total_W = float("nan")
         else:
             # L_heatloss_norm 默认为网格总长；未提供时退回几何总长 L_reactor
-            L_total = self.op_conds.get('L_heatloss_norm', self.op_conds.get('L_reactor', 6.0))  # m
-            L_total = max(float(L_total), 1e-9)
-            loss_pct = self.op_conds.get('HeatLossPercent', 2.0)  # % of inlet coal HHV
-
-            coal_flow_kg_s = self.op_conds['coal_flow']  # wet coal flow [kg/s]
-            # P1.7-A：热损基准按文献口径取入炉煤 **高位** 热值；只给 LHV_d 时由
-            # input_contract.coal_hhv_kj_kg 按定义加回 9·Hd·2442（约 +3.4%），不改 2% 这一系数。
-            hhv_MJ_kg = coal_hhv_kj_kg(self.coal_props) / 1000.0  # dry-basis HHV [MJ/kg_dry]
-            # NOTE: using wet flow × dry HHV slightly overstates total power by 1/(1-Mt/100).
-            # This convention is intentional and kept consistent with input_contract.coal_flow_kg_s_for_heat_loss
-            # and the JAX solver path. To correct, pass W_dry via op_conds['coal_flow_dry'] and use that here.
-
-            Q_total_W = coal_flow_kg_s * hhv_MJ_kg * 1e6  # total coal power (W), base for heat loss
-
-            # Radiative Heat Loss Weighting (T^4 bias)
-            # Uniform distribution (dz/L) is often too mild for the extreme combustion zone.
-            # We introduce a T-dependent bias relative to a reference process temperature (1800K).
-            T_local = current.T
-            T_ref = self.op_conds.get('HeatLossRefTemp', 1800.0)
-            # Weight scales from ~0.2 at 1200K to ~2.2 at 2200K
-            t_weight = (T_local / T_ref)**4.0
-            t_weight = np.clip(t_weight, 0.1, 5.0) # Stability guard
-
-            Q_loss_W = (loss_pct / 100.0) * Q_total_W * (self.dz / L_total) * t_weight
+            # P1.9-A：算式抽到 hhv_percent_hloss，运算顺序不变（逐位相同），
+            # 这样逐格 Q_loss 可被求和审计——HLP 不是整炉热损百分比。
+            _hl = self.hhv_percent_hloss(current)
+            Q_loss_W = _hl["hloss_W"]
+            loss_pct = _hl["hloss_loss_pct"]
+            t_weight = _hl["hloss_t_weight"]
+            Q_total_W = _hl["hloss_Q_total_W"]
         
         # Reaction heat from rates (for audit only)
         Q_rxn_total = 0.0

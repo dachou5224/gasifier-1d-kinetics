@@ -714,6 +714,21 @@ class GasifierSystem:
                     row["heat_loss_diagnostic_error"] = f"{type(exc).__name__}: {exc}"
             else:
                 row["heat_loss_model"] = resolve_heat_loss_model(cell.op_conds)
+                # P1.9-A：hhv_percent 下也记录逐格 Q_loss，否则「HLP 不是整炉热损
+                # 百分比」无法从产物核对（审阅意见）。与能量残差用同一算式。
+                try:
+                    hl = cell.hhv_percent_hloss(sol_state)
+                    row.update({
+                        "hloss_W": float(hl["hloss_W"]),
+                        "hloss_zone": str(hl["hloss_zone"]),
+                        "hloss_loss_pct": float(hl["hloss_loss_pct"]),
+                        "hloss_Q_total_W": float(hl["hloss_Q_total_W"]),
+                        "hloss_t_weight": float(hl["hloss_t_weight"]),
+                        "hloss_L_norm_m": float(hl["hloss_L_norm_m"]),
+                        "hloss_dz_frac": float(hl["hloss_dz_frac"]),
+                    })
+                except Exception as exc:  # 诊断失败不改变求解结果
+                    row["heat_loss_diagnostic_error"] = f"{type(exc).__name__}: {exc}"
         except Exception as exc:  # 诊断失败不改变求解结果
             row["diagnostic_error"] = f"{type(exc).__name__}: {exc}"
         return row
