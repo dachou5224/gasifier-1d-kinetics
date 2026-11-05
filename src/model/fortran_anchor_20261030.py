@@ -292,6 +292,7 @@ def solve_fortran_case(
     switches: Mapping[str, Any] | None = None,
     coal_overrides: Mapping[str, Any] | None = None,
     geometry: Mapping[str, Any] | None = None,
+    keep_system: bool = False,
 ) -> dict[str, Any]:
     """mode: 'M'（论文主线）或 'F'（Fortran 兼容）。
 
@@ -364,7 +365,7 @@ def solve_fortran_case(
                     "CH4_vol_pct", "N2_vol_pct", "H2S_vol_pct", "X_C_pct",
                     "outlet_solid_carbon_mol_s", "O2_drop_to_1pct_z_m"):
             out[key] = float("nan")
-    if n_cells == 160:
+    if keep_system or n_cells == 160:
         out["_profile"] = profile
         out["_z"] = z
         out["_system"] = system

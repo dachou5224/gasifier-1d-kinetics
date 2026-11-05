@@ -21,7 +21,13 @@ class MeshConfig:
     # 网格族（P1.5-A，2026-10-30）：
     #   "legacy"              —— 现行点火区加密逻辑；3 <= N <= 20 时只覆盖入口一小段
     #   "uniform_full_length" —— dz_i = L / N，铺满全长；论文全部新轮次使用这一族
+    #   "graded_full_length"  —— P1.9-A（2026-11-05）：全长铺满，燃烧区块 [0, z_b] 等长
+    #                            细格 dz0，其余段沿用均匀 N=40 的格长；z_b 与 dz0 由
+    #                            graded_zone_length / graded_zone_dz 给出，块内格数
+    #                            n_block = round(z_b/dz0)，其余格数 = N - n_block。
     mesh_family: str = "legacy"
+    graded_zone_length: Optional[float] = None
+    graded_zone_dz: Optional[float] = None
 
 class AdaptiveMeshGenerator:
     """
@@ -49,6 +55,32 @@ class AdaptiveMeshGenerator:
         if family == "uniform_full_length":
             # 均匀铺满：每个单元 dz = L / N（旧行为保持不变，需显式选择）
             dz_list[:] = L / float(N)
+        elif family == "graded_full_length":
+            # P1.9-A：燃烧区块细格 + 其余段粗格，两段严格铺满全长。
+            zb = self.cfg.graded_zone_length
+            dz0 = self.cfg.graded_zone_dz
+            if zb is None or dz0 is None:
+                raise ValueError(
+                    "graded_full_length 需要同时给出 graded_zone_length 与 graded_zone_dz"
+                )
+            zb = float(zb)
+            dz0 = float(dz0)
+            if not (0.0 < zb < L) or dz0 <= 0.0:
+                raise ValueError(f"graded_full_length 参数越界：z_b={zb}, dz0={dz0}, L={L}")
+            n_block = int(round(zb / dz0))
+            if n_block < 1 or n_block > N:
+                raise ValueError(
+                    f"graded_full_length 块内格数越界：n_block={n_block}, N={N}"
+                )
+            n_rest = N - n_block
+            if n_rest < 0:
+                raise ValueError("graded_full_length 需要 N >= n_block")
+            # 块的实际长度取 n_block*dz0（不是 z_b），这样 Σdz 逐位等于 L；
+            # 对本轮声明档位 n_block*dz0 == z_b（整数档位）。
+            zb_eff = float(n_block) * dz0
+            dz_list[:n_block] = dz0
+            if n_rest > 0:
+                dz_list[n_block:] = (L - zb_eff) / float(n_rest)
         elif N > 2:
             # 0. First Cell (Tuyere / Inlet)
             # Use defined ignition zone length first step or a specific large inlet cell?

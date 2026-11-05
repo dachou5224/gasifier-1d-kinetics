@@ -1,0 +1,267 @@
+reading,window_id,HeatLossPercent,metric,value,threshold,pass,note
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,dX_C_pp,0.009143150201895711,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,dT_out_K,19.44383603592655,5.0,False,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,dCO2_vol_pct,-0.035729017105673666,0.2,True,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,dX_C_pp,2.4058532943627142e-11,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,dT_out_K,22.814542626298135,5.0,False,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,dCO2_vol_pct,-0.030066322376820498,0.2,True,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,dX_C_pp,0.0,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,dT_out_K,18.964043013364744,5.0,False,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,dCO2_vol_pct,-0.08629613608468922,0.2,True,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,dX_C_pp,0.0,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,dT_out_K,19.92264460916067,5.0,False,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,dCO2_vol_pct,-0.08643133739700692,0.2,True,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,dX_C_pp,-1.3666845433135677e-11,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,dT_out_K,24.543992662907613,5.0,False,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,dCO2_vol_pct,-0.025051347886751785,0.2,True,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,dX_C_pp,0.005308648114421555,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,dT_out_K,25.41846456604253,5.0,False,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,dCO2_vol_pct,-0.03516456325659956,0.2,True,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,dX_C_pp,0.7863268967902237,0.2,False,0.0103 m → 0.00515 m
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,dT_out_K,10.656949441074175,5.0,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,dCO2_vol_pct,-0.34473553669226353,0.2,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,dX_C_pp,0.7977477313334314,0.2,False,0.0103 m → 0.00515 m
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,dT_out_K,11.201698372852661,5.0,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,dCO2_vol_pct,-0.35219790762524505,0.2,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,dX_C_pp,0.757311914199621,0.2,False,0.0103 m → 0.00515 m
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,dT_out_K,11.604195373129642,5.0,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,dCO2_vol_pct,-0.3352835445941067,0.2,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dX_C_pp,-1.176836406102666e-12,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dT_out_K,21.30364179373555,5.0,False,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dCO2_vol_pct,-0.03236794599680648,0.2,True,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dX_C_pp,-2.275957200481571e-12,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dT_out_K,25.064874155793404,5.0,False,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dCO2_vol_pct,-0.03480737521323363,0.2,True,
+Q1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dX_C_pp,1.9317880628477724e-12,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dT_out_K,21.33218581680444,5.0,False,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dCO2_vol_pct,-0.08694621172137351,0.2,True,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dX_C_pp,2.2315482794965646e-12,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dT_out_K,22.263183065646672,5.0,False,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dCO2_vol_pct,-0.08752877942371562,0.2,True,
+Q1,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dX_C_pp,-1.8540724511240114e-12,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dT_out_K,26.875601241780714,5.0,False,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dCO2_vol_pct,-0.029604567966891704,0.2,True,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dX_C_pp,-1.9984014443252818e-12,0.2,True,0.0103 m → 0.00515 m
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dT_out_K,27.986776177823458,5.0,False,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dCO2_vol_pct,-0.0335587331993592,0.2,True,
+Q1,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dX_C_pp,0.7745884003142578,0.2,False,0.0103 m → 0.00515 m
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dT_out_K,11.699375203398404,5.0,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dCO2_vol_pct,-0.33748737908514403,0.2,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dX_C_pp,0.7841364683655372,0.2,False,0.0103 m → 0.00515 m
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dT_out_K,12.39638437351573,5.0,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dCO2_vol_pct,-0.34379899066110253,0.2,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,window_converged,0.0,,False,三项同时满足
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dX_C_pp,0.7331733968185761,0.2,False,0.0103 m → 0.00515 m
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dT_out_K,13.219401139113415,5.0,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dCO2_vol_pct,-0.32268621022568933,0.2,False,
+Q1,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,window_converged,0.0,,False,三项同时满足
+Q1_verdict,ALL,2.0,converged_windows,0.0,9.0,False,燃烧区已分辨 = 所有窗三项同时满足
+Q1_verdict,ALL,1.0,converged_windows,0.0,9.0,False,燃烧区已分辨 = 所有窗三项同时满足
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,dX_C_pp,0.21646145111943182,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,dT_out_K,33.527293133775856,20.0,True,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,dCO2_vol_pct,-0.14642686861615362,0.5,False,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,dX_C_pp,1.2179146580137967e-11,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,dT_out_K,42.484034390224906,20.0,True,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,dCO2_vol_pct,-0.042007336653629324,0.5,False,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,dX_C_pp,1.1102230246251565e-14,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,dT_out_K,36.942608736784905,20.0,True,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,dCO2_vol_pct,-0.09707305638648123,0.5,False,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,dX_C_pp,1.3211653993039363e-11,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,dT_out_K,38.61542859248652,20.0,True,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,dCO2_vol_pct,-0.09688426951864759,0.5,False,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,dX_C_pp,0.004647111224986844,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,dT_out_K,43.442256591834166,20.0,True,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,dCO2_vol_pct,-0.05615293268284649,0.5,False,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,dX_C_pp,0.18758241390134378,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,dT_out_K,40.14543346131404,20.0,True,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,dCO2_vol_pct,-0.13873879529519284,0.5,False,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,dX_C_pp,1.4605195908931279,1.0,True,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,dT_out_K,15.060946101877107,20.0,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,dCO2_vol_pct,-0.6280602390412287,0.5,True,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,dX_C_pp,1.4677863580892625,1.0,True,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,dT_out_K,15.671922604098881,20.0,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,dCO2_vol_pct,-0.633414439707475,0.5,True,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,dX_C_pp,1.409446695005545,1.0,True,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,dT_out_K,16.335493417984708,20.0,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,dCO2_vol_pct,-0.608581098099926,0.5,True,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dX_C_pp,0.01127000307372672,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dT_out_K,32.9943078924141,20.0,True,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dCO2_vol_pct,-0.04198870086194484,0.5,False,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dX_C_pp,-6.461498003318411e-12,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dT_out_K,37.68513993844158,20.0,True,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dCO2_vol_pct,-0.028270703148409737,0.5,False,
+Q2,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dX_C_pp,4.996003610813204e-13,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dT_out_K,32.91481938596462,20.0,True,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dCO2_vol_pct,-0.083678994282685,0.5,False,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dX_C_pp,5.10702591327572e-13,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dT_out_K,34.33196890868021,20.0,True,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dCO2_vol_pct,-0.08359563185377716,0.5,False,
+Q2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dX_C_pp,-2.575717417130363e-12,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dT_out_K,38.71386677915507,20.0,True,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dCO2_vol_pct,-0.03679725112840382,0.5,False,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dX_C_pp,0.005024971333889017,1.0,False,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dT_out_K,39.69729268654669,20.0,True,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dCO2_vol_pct,-0.04854953284927932,0.5,False,
+Q2,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dX_C_pp,1.1822044760166683,1.0,True,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dT_out_K,14.732892902892445,20.0,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dCO2_vol_pct,-0.49453962474488256,0.5,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dX_C_pp,1.194326581922578,1.0,True,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dT_out_K,15.505943784219426,20.0,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dCO2_vol_pct,-0.5011720524595358,0.5,True,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,window_triggered,1.0,,True,任一判据满足
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dX_C_pp,1.1321852243633246,1.0,True,0.2575 m → 0.00515 m（pass=触发阈）
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dT_out_K,16.44395225737071,20.0,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dCO2_vol_pct,-0.4752195323552604,0.5,False,
+Q2,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,window_triggered,1.0,,True,任一判据满足
+Q2_verdict,ALL,2.0,triggered_windows,9.0,0.0,True,pass = 现有基线含火焰区分辨率误差，需在细化网格上重建
+Q2_verdict,ALL,1.0,triggered_windows,9.0,0.0,True,pass = 现有基线含火焰区分辨率误差，需在细化网格上重建
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,block_T_peak_K_finest,2799.7514838846773,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,block_T_peak_K_delta_2finest,275.6371368061068,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,combustion_zone_length_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,combustion_zone_length_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,block_len_frac_co2_limited_delta_2finest,-0.02,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,block_T_peak_K_finest,2865.1657046324303,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,block_T_peak_K_delta_2finest,305.7581405574233,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,combustion_zone_length_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,combustion_zone_length_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,block_len_frac_co2_limited_delta_2finest,-0.02,,,0.0103 → 0.00515
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,block_T_peak_K_finest,2951.8933673596957,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,block_T_peak_K_delta_2finest,288.4422032724342,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,combustion_zone_length_m_finest,0.01545,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,combustion_zone_length_m_delta_2finest,-0.00515,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,block_len_frac_co2_limited_delta_2finest,-0.02,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,block_T_peak_K_finest,2955.8472152625022,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,block_T_peak_K_delta_2finest,298.11838461235857,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,combustion_zone_length_m_finest,0.01545,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,combustion_zone_length_m_delta_2finest,-0.00515,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,block_len_frac_co2_limited_delta_2finest,-0.02,,,0.0103 → 0.00515
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,block_T_peak_K_finest,2920.284498525505,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,block_T_peak_K_delta_2finest,311.9371601528196,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,combustion_zone_length_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,combustion_zone_length_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,block_len_frac_co2_limited_delta_2finest,-0.02,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,block_T_peak_K_finest,2907.0481473738814,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,block_T_peak_K_delta_2finest,315.2856671464456,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,combustion_zone_length_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,combustion_zone_length_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,block_len_frac_co2_limited_delta_2finest,-0.02,,,0.0103 → 0.00515
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,block_T_peak_K_finest,2772.0005637849713,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,block_T_peak_K_delta_2finest,282.25788502639807,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,combustion_zone_length_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,combustion_zone_length_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,block_len_frac_co2_limited_delta_2finest,-0.02,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,block_T_peak_K_finest,2782.8166252628766,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,block_T_peak_K_delta_2finest,301.3060024951551,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,combustion_zone_length_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,combustion_zone_length_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,block_len_frac_co2_limited_delta_2finest,0.0,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,block_T_peak_K_finest,2793.8363216837593,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,block_T_peak_K_delta_2finest,315.5636082181318,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,z_O2_one_pct_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,z_O2_one_pct_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,combustion_zone_length_m_finest,0.0103,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,combustion_zone_length_m_delta_2finest,-0.0103,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,block_len_frac_co2_limited_finest,0.0,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,block_len_frac_co2_limited_delta_2finest,0.0,,,0.0103 → 0.00515
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,block_len_frac_h2o_limited_finest,0.009999999999999998,,,最细档数值
+Q3,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,2.0,block_len_frac_h2o_limited_delta_2finest,-0.010000000000000002,,,0.0103 → 0.00515
+Q4,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dX_C_uniform_N40_pp,-1.6417793483270549,,,f_gas 1 → 1/32
+Q4,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,dX_C_graded_finest_pp,-1.168363927049454,,,f_gas 1 → 1/32
+Q4,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,ratio_finest_over_uniform,0.7116449163768547,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dX_C_uniform_N40_pp,-0.8937719753015383,,,f_gas 1 → 1/32
+Q4,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,dX_C_graded_finest_pp,-0.48232284796719815,,,f_gas 1 → 1/32
+Q4,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,ratio_finest_over_uniform,0.5396486590491646,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dX_C_uniform_N40_pp,-0.15333619049195946,,,f_gas 1 → 1/32
+Q4,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,dX_C_graded_finest_pp,-0.017517216659790336,,,f_gas 1 → 1/32
+Q4,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1.0,ratio_finest_over_uniform,0.11424058862808968,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dX_C_uniform_N40_pp,-0.35922611446664865,,,f_gas 1 → 1/32
+Q4,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,dX_C_graded_finest_pp,-0.10070272423480242,,,f_gas 1 → 1/32
+Q4,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,ratio_finest_over_uniform,0.28033241509826784,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dX_C_uniform_N40_pp,-1.1237943951078022,,,f_gas 1 → 1/32
+Q4,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,dX_C_graded_finest_pp,-0.6211927756455959,,,f_gas 1 → 1/32
+Q4,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,ratio_finest_over_uniform,0.5527637247078517,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dX_C_uniform_N40_pp,-1.5462114147665074,,,f_gas 1 → 1/32
+Q4,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,dX_C_graded_finest_pp,-0.9586985307568852,,,f_gas 1 → 1/32
+Q4,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,ratio_finest_over_uniform,0.6200306902414492,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dX_C_uniform_N40_pp,-1.9774419562209156,,,f_gas 1 → 1/32
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,dX_C_graded_finest_pp,-2.2637872393323377,,,f_gas 1 → 1/32
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,ratio_finest_over_uniform,1.144805910591002,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dX_C_uniform_N40_pp,-2.072095996183687,,,f_gas 1 → 1/32
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,dX_C_graded_finest_pp,-2.353853227141689,,,f_gas 1 → 1/32
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,ratio_finest_over_uniform,1.135976919735829,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dX_C_uniform_N40_pp,-2.1457747480415734,,,f_gas 1 → 1/32
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,dX_C_graded_finest_pp,-2.396365163478653,,,f_gas 1 → 1/32
+Q4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,1.0,ratio_finest_over_uniform,1.116783187827982,3.0,False,中位比值 ≥ 3 记为恢复杠杆
+Q4_verdict,ALL,1.0,median_ratio,0.6200306902414492,3.0,False,中位比值 ≥ 3 → 细化后本征动力学恢复杠杆
