@@ -513,7 +513,8 @@ class Cell:
             return False
         return bool(pO2_Pa > p_o2_atm * 101325.0)
 
-    def _fortran_wall_report(self, current, r_het, r_homo, phi, is_combustion_zone=None) -> dict:
+    def _fortran_wall_report(self, current, r_het, r_homo, phi, is_combustion_zone=None,
+                             Ts_avg=None, Ts_out=None) -> dict:
         """``HeatLossModel="fortran_wall"`` 的本格热损审计（P1.8-A）。
 
         分区按 Fortran 的 ``poxyin > 0.05 atm``（入口 pO2），与 ``_calc_rates`` 同一判据。
@@ -522,11 +523,18 @@ class Cell:
         if is_combustion_zone is None:
             is_combustion_zone = self._inlet_pO2_is_combustion()
         f_co2 = float(self.op_conds.get('Combustion_CO2_Fraction', 1.0))
+        # 碳显焓必须用能量方程同一口径：coal_props 的实际 cp_char，加上固体的温度。
+        # 温度优先取 Ts_out（与 H_solid_out 一致），退回 Ts_avg 再退回气温。
+        # 2026-11-05 更正（审阅意见）：此前内联 1500 与气温，与 material.py 的
+        # cp_char 缺省（1300）及颗粒温度都不一致，改 coal_props 也不会影响该碳项。
+        _T_solid = Ts_out if Ts_out is not None else (Ts_avg if Ts_avg is not None else float(current.T))
         q_rxn_w = reaction_heat_release_w(
             r_het or {}, r_homo or {},
             phi=float(phi if phi is not None else 1.0),
             f_co2=f_co2,
             T_gas_K=float(current.T),
+            T_solid_K=float(_T_solid),
+            cp_char_j_per_kg_k=float(self.coal_props.get('cp_char', 1300.0)),
         )
         report = fortran_wall_heat_loss(
             is_combustion_zone=bool(is_combustion_zone),
@@ -560,7 +568,8 @@ class Cell:
             is_combustion_zone=is_combustion, rho_p=phys.get('rho_p'),
         )
         r_het, r_homo, phi = self._calc_rates(state, phys, g_src, Ts_avg=Ts_avg)
-        return self._fortran_wall_report(state, r_het, r_homo, phi, is_combustion)
+        return self._fortran_wall_report(state, r_het, r_homo, phi, is_combustion,
+                                         Ts_avg=Ts_avg, Ts_out=_Ts_out)
 
     def _calc_energy_balance(self, current, energy_src, phys=None, r_het=None, r_homo=None, phi=None, Ts_out=None, gas_src=None, is_combustion_zone=None):
         """
@@ -606,7 +615,8 @@ class Cell:
         #     u0·π·dt·nc·delh·(tg − tw)。见 model/heat_loss.py。
         heat_loss_model = resolve_heat_loss_model(self.op_conds)
         if heat_loss_model == HEAT_LOSS_MODEL_FORTRAN:
-            report = self._fortran_wall_report(current, r_het, r_homo, phi, is_combustion_zone)
+            report = self._fortran_wall_report(current, r_het, r_homo, phi, is_combustion_zone,
+                                              Ts_out=Ts_out)
             Q_loss_W = float(report["hloss_W"])
             loss_pct = float("nan")
             t_weight = float("nan")

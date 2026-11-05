@@ -813,16 +813,17 @@ def _composition_block(out: dict, xc_model_pp: float, gas: np.ndarray, dry_gas: 
         res[f"{basis}_dCO_closed"] = pred_co - p_co
         res[f"{basis}_dH2_closed"] = pred_h2 - p_h2
         res[f"{basis}_dCO2_closed"] = pred_co2 - p_co2
-        # 氢账本：（模型干气氢原子 + 2ξ）/ 装置干气氢原子。
-        # f_h2 是分子 H2 流量，每个分子含 2 个 H 原子；H_out_dry 按 _hydrogen_budget 的
-        # 定义 = 2·H2 + 4·CH4 + 2·H2S，正是原子口径，且已含 CH4 与 H2S 的氢。
-        # ξ 每次转移 2 个 H 原子（CO + H2O -> CO2 + H2）。
-        # 2026-11-04 更正（审阅意见）：原写法 f_h2 + 2ξ 把分子流量与原子流量相加，
-        # 分子侧少算一半，首行从 0.603 修正到约 1.006。
+        # 氢账本：（模型干气氢原子 + 2ξ）/ 装置干气氢原子，**分子分母同物种口径**。
+        # 2026-11-05 更正（审阅意见）：原实现分子含 CH4/H2S（用 H_out_dry），
+        # 分母却只算 2·y_H2，两边物种不同，1.006 不能当作全干气氢闭合的精确结论。
+        # 这里分子只取 H2 的氢（2·f_h2），与分母的 2·plant_dry·y_H2 对齐；
+        # 含 CH4/H2S 的完整版本另存一列供参考，明确标注它对应的分母未含同物种。
         h_out_dry = 2.0 * float(gas[5]) + 4.0 * float(gas[1]) + 2.0 * float(gas[4])
-        h_model = h_out_dry + 2.0 * xi
+        h_model_h2_only = 2.0 * f_h2 + 2.0 * xi
+        h_model_full = h_out_dry + 2.0 * xi
         h_plant = 2.0 * plant_dry_mol * (p_h2 / 100.0)
-        res[f"{basis}_H_ledger_model_over_plant"] = h_model / max(h_plant, 1e-12)
+        res[f"{basis}_H_ledger_model_over_plant"] = h_model_h2_only / max(h_plant, 1e-12)
+        res[f"{basis}_H_ledger_full_over_plant_h2only"] = h_model_full / max(h_plant, 1e-12)
         # R1 用：X_C 偏差（与组成口径无关，此处只为便于逐行读取而重复）
         res[f"{basis}_model_minus_plant_xc_pp"] = xc_model_pp - float(csv18["xc_measured_pct"])
     return res

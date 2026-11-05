@@ -51,10 +51,11 @@ import numpy as np
 
 from .physics import get_enthalpy_molar
 
-# 炭颗粒比热与碳摩尔质量：用于把固碳显焓并入异相反应焓。
-# 数值与 constants.PhysicalConstants.HEAT_CAPACITY_SOLID 缺省一致（1500 J/(kg·K)）；
-# 此处内联是为了不改变 reaction_heat_release_w 的签名（该函数不收 coal_props）。
-HEAT_CAPACITY_SOLID = 1500.0
+# 炭颗粒比热缺省与碳摩尔质量。``_DEFAULT_CP_CHAR`` 必须与 material.py 中
+# ``coal_props.get('cp_char', 1300.0)`` 的缺省一致——此前内联 1500 与能量方程不符，
+# 见 2026-11-04/05 审阅意见。调用方应显式传 coal_props 的实际 cp_char。
+_DEFAULT_CP_CHAR = 1300.0
+HEAT_CAPACITY_SOLID = _DEFAULT_CP_CHAR
 CARBON_MOLAR_MASS_KG = 0.012011
 
 logger = logging.getLogger(__name__)
@@ -191,6 +192,8 @@ def reaction_heat_release_w(
     phi: float,
     f_co2: float,
     T_gas_K: float,
+    T_solid_K: float | None = None,
+    cp_char_j_per_kg_k: float | None = None,
 ) -> float:
     """一格内所有已解析反应的**净**放热速率 [W]（正 = 放热）。
 
@@ -216,11 +219,18 @@ def reaction_heat_release_w(
         for sp in ("CO", "CO2", "H2", "H2O", "O2", "CH4")
     }
     # 碳（固）的显焓。``char_formation_zero`` 只把**生成焓**归零，显焓
-    # ``cp_char·(T − 298.15)`` 仍在（见 MaterialService.get_solid_enthalpy），
-    # 而异相反应消耗 1 mol 固碳。漏掉它会让反应热与能量方程口径不一致：
-    # 2000 K 时 cp_char 取缺省 1500 J/(kg·K) 约 30 kJ/mol，直接影响 30% 壁损项。
-    # 2026-11-04 更正（审阅意见）。
-    h_c_solid = HEAT_CAPACITY_SOLID * CARBON_MOLAR_MASS_KG * (t - 298.15)  # J/mol C
+    # ``cp_char·(T_s − 298.15)`` 仍在（见 MaterialService.get_solid_enthalpy），
+    # 而异相反应消耗 1 mol 固碳。漏掉它会让反应热与能量方程口径不一致。
+    #
+    # 2026-11-04/05 更正（两轮审阅意见）：显焓必须用**与能量方程相同的**
+    # 热容与固体温度，不能内联常数或用气温：
+    #   - cp 取 ``coal_props['cp_char']``（缺省 1300，见 material.py），不是 1500；
+    #   - 温度取固体温度（Cell 传 Ts_out / Ts_avg），不是 T_gas_K。
+    # 两者由调用方传入；未传时退回 material.py 的缺省口径并记录警告，
+    # 这样单格手算可以显式指定，不依赖内联常量。
+    _cp = float(cp_char_j_per_kg_k) if cp_char_j_per_kg_k is not None else _DEFAULT_CP_CHAR
+    _T_s = float(T_solid_K) if T_solid_K is not None else t
+    h_c_solid = _cp * CARBON_MOLAR_MASS_KG * (_T_s - 298.15)  # J/mol C
 
     f = float(f_co2)
     ph = float(phi)
