@@ -1,0 +1,152 @@
+{
+  "round": "P1.9-A / 2026-11-05",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "3e5c96838d3b88df2b6f43dcc78a1e380c053d87",
+  "mesh_family": {
+    "name": "graded_full_length",
+    "device": {
+      "L_m": 10.3,
+      "z_b_m": 0.515,
+      "n_rest_cells": 38,
+      "dz0_grid_m": [
+        0.2575,
+        0.103,
+        0.0515,
+        0.0206,
+        0.0103,
+        0.00515
+      ],
+      "n_block": {
+        "0.2575": 2,
+        "0.103": 5,
+        "0.0515": 10,
+        "0.0206": 25,
+        "0.0103": 50,
+        "0.00515": 100
+      },
+      "N_cells": {
+        "0.2575": 40,
+        "0.103": 43,
+        "0.0515": 48,
+        "0.0206": 63,
+        "0.0103": 88,
+        "0.00515": 138
+      }
+    },
+    "anchor": {
+      "z_b_m": 0.04125,
+      "n_rest_cells": 158,
+      "dz0_grid_m": [
+        0.020625,
+        0.0103125,
+        0.00515625,
+        0.002578125
+      ]
+    },
+    "rule": "块内 n_block = round(z_b/dz0) 个等长 dz0；其余段 (L − n_block·dz0)/N_rest；Σdz = L 逐位成立",
+    "implementation": "src/model/grid_service.py MeshFamily='graded_full_length'"
+  },
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "source_commit_note": "生成本轮全部产物的代码提交；产物随后另起一次仅含 outputs 的提交",
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.9a-20261105.md",
+  "question": "单独细化燃烧区后，出口 X_C、温度、组成以及气化指前因子的杠杆是否改变",
+  "frozen_items_untouched": [
+    "all Arrhenius constants (except f_gas scanned in section 3)",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor",
+    "H2_OxidationFactor / CO_OxidationFactor",
+    "pyrolysis yields",
+    "negative-WGS hydrogen truncation（只统计绑定）",
+    "USE_RK_GILL_COMBUSTION = False",
+    "ParticleSizeModel = fortran_constant",
+    "steam_flow = 0",
+    "low-heating-value basis",
+    "SolverStrictRoot = True",
+    "HeatLossModel = hhv_percent"
+  ],
+  "runs": {
+    "device": {
+      "windows": 9,
+      "dz0": 6,
+      "heat_loss_pct": [
+        2.0,
+        1.0
+      ],
+      "expected_rows": 108
+    },
+    "anchor": {
+      "cases": [
+        "texaco i-1",
+        "texaco i-2",
+        "texaco i-5c",
+        "texaco i-10",
+        "texaco exxon"
+      ],
+      "dz0": 4,
+      "expected_rows": 20
+    },
+    "leverage": {
+      "finest_dz0_m": 0.00515,
+      "f_gas_extra": [
+        0.125,
+        0.03125
+      ],
+      "control": "uniform N=40（同一轮重跑，逐位核对 P1.8-A）"
+    }
+  },
+  "predeclared_readings": {
+    "Q1": "最细两档 |ΔX_C| < 0.2 pp、|ΔT_out| < 5.0 K、|ΔCO2| < 0.2 vol%",
+    "Q2": "最细档相对 0.2575 m：任一窗 |ΔX_C| ≥ 1.0 pp 或 |ΔT_out| ≥ 20.0 K 或 |ΔCO2| ≥ 0.5 vol%",
+    "Q3": "最细档块内限幅绑定长度份额、峰值温度、O2 1% 位置是否收敛到有限值（只报告）",
+    "Q4": "最细档 f_gas 1→1/32 的 ΔX_C 与均匀 N=40 的比值，中位 ≥ 3.0 记为恢复杠杆"
+  },
+  "unit_checks_all_pass": true,
+  "bitwise_uniform_reproduction": true,
+  "p18a_parity": {
+    "rule": "本轮同一轮重跑的均匀 N=40 行与 P1.8-A scan.csv 的 grid / grid_extension 行逐位比较",
+    "all_bitwise_equal": true,
+    "n_rows": 18
+  },
+  "source_csv": {
+    "p17d": {
+      "round": "p1.7d-20261103",
+      "file": "coal_reconciled_by_window.csv",
+      "sha256": "05b4172f9ee9d509dc6284ac94fdea56af40a9d7b638d8285c4232d962af6345",
+      "read_only": true
+    },
+    "p18d": {
+      "round": "p1.8d-20261104",
+      "file": "carrier_by_window.csv",
+      "sha256": "38c7815de4affd3dd08797dcc935e73ec470d78516ea45fa59debcc33a148550",
+      "read_only": true
+    },
+    "data_repo": "gasifier-data-prep（本轮只读，未修改任何文件）"
+  },
+  "outputs": [
+    "unit_checks.csv",
+    "mesh_runs.csv",
+    "mesh_cells.csv",
+    "anchor_mesh.csv",
+    "leverage.csv",
+    "parity_p18a.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}
