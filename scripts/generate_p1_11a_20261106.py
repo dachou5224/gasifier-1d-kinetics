@@ -842,12 +842,33 @@ def readings(adm: pd.DataFrame, conv: pd.DataFrame, lev: pd.DataFrame,
         sub = lev[(np.isclose(lev["L_wsr"], l_wsr))
                   & (np.isclose(lev["HeatLossPercent"], 1.0))]
         per_window = {}
+        excl_reasons: dict = {}
         for wid in sub["window_id"].unique():
-            g1 = sub[(sub["window_id"] == wid) & np.isclose(sub["f_gas"], 1.0)]["X_C_implied"]
-            g8 = sub[(sub["window_id"] == wid) & np.isclose(sub["f_gas"], F_GAS_LEV[1])]["X_C_implied"]
-            if g1.empty or g8.empty or str(wid) not in ref_by_window:
+            # 协议要求只配对「完成求解」的行：显式检查状态与数值有限性，
+            # 失败端点单独计数并记录原因，不得静默计入有效样本。
+            g1 = sub[(sub["window_id"] == wid) & np.isclose(sub["f_gas"], 1.0)]
+            g8 = sub[(sub["window_id"] == wid)
+                     & np.isclose(sub["f_gas"], F_GAS_LEV[1])]
+            if g1.empty or g8.empty:
+                excl_reasons[str(wid)] = "missing_f_gas_endpoint"
                 continue
-            per_window[str(wid)] = abs(float(g8.iloc[0]) - float(g1.iloc[0])) * 100.0
+            if str(wid) not in ref_by_window:
+                excl_reasons[str(wid)] = "missing_p18a_reference"
+                continue
+            bad = []
+            for tag, g in (("f1", g1), ("f8", g8)):
+                st = str(g["execution_status"].iloc[0]) if "execution_status" in g else "completed"
+                val = g["X_C_implied"].iloc[0]
+                if st != "completed":
+                    bad.append(f"{tag}:{st}")
+                elif not (isinstance(val, (int, float, np.floating))
+                          and math.isfinite(float(val))):
+                    bad.append(f"{tag}:non_finite")
+            if bad:
+                excl_reasons[str(wid)] = "endpoint_failed(" + ",".join(bad) + ")"
+                continue
+            per_window[str(wid)] = abs(float(g8["X_C_implied"].iloc[0])
+                                       - float(g1["X_C_implied"].iloc[0])) * 100.0
         if not per_window:
             continue
         # 逐窗比：分子、分母同窗口、同 HLP、同 f_gas 端点
@@ -867,6 +888,8 @@ def readings(adm: pd.DataFrame, conv: pd.DataFrame, lev: pd.DataFrame,
             best_ratio = med_ratio
         rows_w5.append({
             "L_wsr": l_wsr, "n_eff": n_eff, "n_zero_ref": n_zero_ref,
+            "n_excluded": len(excl_reasons),
+            "excluded_reasons": "; ".join(f"{k[-18:]}={v}" for k, v in excl_reasons.items()),
             "median_of_ratios": med_ratio, "ratio_of_medians": ratio_of_medians,
             "median_abs_dX_C_pp": med_num,
         })
@@ -885,6 +908,13 @@ def readings(adm: pd.DataFrame, conv: pd.DataFrame, lev: pd.DataFrame,
         pass_=bool(math.isfinite(best_ratio) and best_ratio >= 3.0),
         note="各准入档逐窗比中位的最大者是否 ≥3")
     globals()["_W5_ROWS"] = rows_w5
+    # 把每档的有效样本与排除原因也落到 readings.csv，便于事后核对
+    for r in rows_w5:
+        add(reading="W5_samples", L_wsr=r["L_wsr"], metric="n_effective",
+            value=float(r["n_eff"]), threshold=9.0,
+            pass_=bool(r["n_eff"] == 9),
+            note=f"零参考窗口 {r['n_zero_ref']}；排除 {r['n_excluded']}"
+                 + (f"（{r['excluded_reasons']}）" if r["excluded_reasons"] else ""))
 
     # ---- W6 全混区状态 ----
     wsr = lev[(np.isclose(lev["f_gas"], 1.0)) & (np.isclose(lev["HeatLossPercent"], 1.0))]
