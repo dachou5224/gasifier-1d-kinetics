@@ -1,0 +1,61 @@
+reading,L_wsr,metric,value,threshold,pass,note
+W1,0.2575,n_converged_windows,9.0,9.0,True,"dz_down 0.0515 vs 0.02575；max|ΔX_C|=0.022 pp, max|ΔT|=0.40 K, max|ΔCO2|=0.005 vol%；全混区状态逐位不变=True"
+W1,0.5,n_converged_windows,9.0,9.0,True,"dz_down 0.0515 vs 0.02575；max|ΔX_C|=0.017 pp, max|ΔT|=0.34 K, max|ΔCO2|=0.005 vol%；全混区状态逐位不变=True"
+W1,1.0,n_converged_windows,9.0,9.0,True,"dz_down 0.0515 vs 0.02575；max|ΔX_C|=0.016 pp, max|ΔT|=0.31 K, max|ΔCO2|=0.005 vol%；全混区状态逐位不变=True"
+W1,2.0,n_converged_windows,9.0,9.0,True,"dz_down 0.0515 vs 0.02575；max|ΔX_C|=0.017 pp, max|ΔT|=0.24 K, max|ΔCO2|=0.005 vol%；全混区状态逐位不变=True"
+W1,4.0,n_converged_windows,9.0,9.0,True,"dz_down 0.0515 vs 0.02575；max|ΔX_C|=0.018 pp, max|ΔT|=0.36 K, max|ΔCO2|=0.007 vol%；全混区状态逐位不变=True"
+W1,6.0,n_converged_windows,9.0,9.0,True,"dz_down 0.0515 vs 0.02575；max|ΔX_C|=0.025 pp, max|ΔT|=0.61 K, max|ΔCO2|=0.011 vol%；全混区状态逐位不变=True"
+W1_verdict,,n_admitted,6.0,1.0,True,收敛档进入第 4 节；W2/W3 需两端，单档时记不可评估
+W1_verdict,,wsr_state_invariant_all,1.0,1.0,True,全混区不随 dz_down 变化是卡面要求的结构性质
+W2,,dX_C_pp,-3.6687809725865828,,,L_wsr 0.2575→6，9 窗中位；范围 -4.748…-0.6394
+W2,,dT_out_K,-70.39567713515976,,,L_wsr 0.2575→6，9 窗中位；范围 -143.9…-31.96
+W2,,dCO2_vol_pct,1.8805098749896114,,,L_wsr 0.2575→6，9 窗中位；范围 0.7793…2.354
+W2,,dT_wsr_K,-137.67656138335406,,,L_wsr 0.2575→6，9 窗中位；范围 -146.2…-131.5
+W3,,sign::R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,-1.0,,,ΔX_C=-3.669 pp（降），ΔCO2=+1.968 vol%（升）
+W3,,sign::R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,-1.0,,,ΔX_C=-2.234 pp（降），ΔCO2=+1.426 vol%（升）
+W3,,sign::R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,-1.0,,,ΔX_C=-0.639 pp（降），ΔCO2=+0.779 vol%（升）
+W3,,sign::R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,-1.0,,,ΔX_C=-1.253 pp（降），ΔCO2=+1.011 vol%（升）
+W3,,sign::R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,-1.0,,,ΔX_C=-3.061 pp（降），ΔCO2=+1.654 vol%（升）
+W3,,sign::R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,-1.0,,,ΔX_C=-3.690 pp（降），ΔCO2=+1.881 vol%（升）
+W3,,sign::R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,-1.0,,,ΔX_C=-4.748 pp（降），ΔCO2=+2.354 vol%（升）
+W3,,sign::R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,-1.0,,,ΔX_C=-4.709 pp（降），ΔCO2=+2.338 vol%（升）
+W3,,sign::R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,-1.0,,,ΔX_C=-4.680 pp（降），ΔCO2=+2.319 vol%（升）
+W3,,n_windows_X_C_decreases,9.0,9.0,,X_C 随 L_wsr 增大而下降 9 窗 / 上升 0 窗
+W4,0.2575,X_C_dev_median_pp::HLP1,7.317999999999188,1.0,False,9 窗中位偏差 +7.32 pp；|偏差|≤1 pp 的窗数 0/9；边界档
+W4,0.5,X_C_dev_median_pp::HLP1,7.317999999999358,1.0,False,9 窗中位偏差 +7.32 pp；|偏差|≤1 pp 的窗数 0/9；内部档
+W4,1.0,X_C_dev_median_pp::HLP1,6.977222538902012,1.0,False,9 窗中位偏差 +6.98 pp；|偏差|≤1 pp 的窗数 0/9；内部档
+W4,2.0,X_C_dev_median_pp::HLP1,6.154647446498387,1.0,False,9 窗中位偏差 +6.15 pp；|偏差|≤1 pp 的窗数 0/9；内部档
+W4,4.0,X_C_dev_median_pp::HLP1,4.57539009150581,1.0,True,9 窗中位偏差 +4.58 pp；|偏差|≤1 pp 的窗数 1/9；边界档
+W4,6.0,X_C_dev_median_pp::HLP1,2.953063034772569,1.0,False,9 窗中位偏差 +2.95 pp；|偏差|≤1 pp 的窗数 0/9；内部档
+W4,0.2575,X_C_dev_median_pp::HLP2,7.085926304823431,1.0,False,9 窗中位偏差 +7.09 pp；|偏差|≤1 pp 的窗数 0/9；边界档
+W4,0.5,X_C_dev_median_pp::HLP2,6.626968166828718,1.0,False,9 窗中位偏差 +6.63 pp；|偏差|≤1 pp 的窗数 0/9；内部档
+W4,1.0,X_C_dev_median_pp::HLP2,5.733632353155613,1.0,False,9 窗中位偏差 +5.73 pp；|偏差|≤1 pp 的窗数 0/9；内部档
+W4,2.0,X_C_dev_median_pp::HLP2,4.215487701825481,1.0,True,9 窗中位偏差 +4.22 pp；|偏差|≤1 pp 的窗数 1/9；内部档
+W4,4.0,X_C_dev_median_pp::HLP2,1.6364927667220712,1.0,True,9 窗中位偏差 +1.64 pp；|偏差|≤1 pp 的窗数 3/9；边界档
+W4,6.0,X_C_dev_median_pp::HLP2,-0.5961995007285594,1.0,True,9 窗中位偏差 -0.60 pp；|偏差|≤1 pp 的窗数 3/9；内部档
+W4,4.467316489139938,interpolated_L_wsr_at_zero_dev::HLP1::R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,4.467316489139938,,True,窗口 2-09-28D_008__W003 偏差在 4→6 m 之间由 +0.36→-1.19 pp 穿过 0；线性插值 L_wsr*=4.467 m（插值点，非实测档）
+W4,2.0395503025993333,interpolated_L_wsr_at_zero_dev::HLP2::R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,2.0395503025993333,,True,窗口 2-09-28D_008__W003 偏差在 2→4 m 之间由 +0.05→-2.44 pp 穿过 0；线性插值 L_wsr*=2.040 m（插值点，非实测档）
+W4,4.121621837914168,interpolated_L_wsr_at_zero_dev::HLP2::R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,4.121621837914168,,True,窗口 r_2022-09-28__W001 偏差在 4→6 m 之间由 +0.14→-2.09 pp 穿过 0；线性插值 L_wsr*=4.122 m（插值点，非实测档）
+W4,5.465936699454492,interpolated_L_wsr_at_zero_dev::HLP2::R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,5.465936699454492,,True,窗口 2-10-10N_006__W001 偏差在 4→6 m 之间由 +1.64→-0.60 pp 穿过 0；线性插值 L_wsr*=5.466 m（插值点，非实测档）
+W4,4.539334323307401,interpolated_L_wsr_at_zero_dev::HLP2::R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,4.539334323307401,,True,窗口 2-10-11N_009__W002 偏差在 4→6 m 之间由 +0.60→-1.63 pp 穿过 0；线性插值 L_wsr*=4.539 m（插值点，非实测档）
+W4,4.525766970833658,interpolated_L_wsr_at_zero_dev::HLP2::R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,4.525766970833658,,True,窗口 r_2022-10-11__W001 偏差在 4→6 m 之间由 +0.59→-1.64 pp 穿过 0；线性插值 L_wsr*=4.526 m（插值点，非实测档）
+W4_verdict,,any_L_wsr_reaches_plant,1.0,1.0,True,是否存在准入 L_wsr（含线性插值）使某窗 X_C 与装置主口径差 ≤1 pp
+W5,,P1.8A_uniform_median_abs_dX_C_pp,0.49423862886468495,,,P1.8-A 均匀 N=40、HLP=1%，f_gas 1→1/8 的 9 窗中位 |ΔX_C|
+W5,0.2575,median_abs_dX_C_pp,0.5381994525203937,,,f_gas 1→1/8，9 窗中位
+W5,0.2575,ratio_vs_P1.8A_uniform,1.088946555546844,3.0,False,中位比 ≥3 记为本征动力学恢复杠杆
+W5,0.5,median_abs_dX_C_pp,0.6679913022246131,,,f_gas 1→1/8，9 窗中位
+W5,0.5,ratio_vs_P1.8A_uniform,1.3515562386514695,3.0,False,中位比 ≥3 记为本征动力学恢复杠杆
+W5,1.0,median_abs_dX_C_pp,0.8602520521355794,,,f_gas 1→1/8，9 窗中位
+W5,1.0,ratio_vs_P1.8A_uniform,1.7405601300563325,3.0,False,中位比 ≥3 记为本征动力学恢复杠杆
+W5,2.0,median_abs_dX_C_pp,1.0689904101954917,,,f_gas 1→1/8，9 窗中位
+W5,2.0,ratio_vs_P1.8A_uniform,2.162903398811761,3.0,False,中位比 ≥3 记为本征动力学恢复杠杆
+W5,4.0,median_abs_dX_C_pp,1.3881068255757523,,,f_gas 1→1/8，9 窗中位
+W5,4.0,ratio_vs_P1.8A_uniform,2.8085761502786033,3.0,False,中位比 ≥3 记为本征动力学恢复杠杆
+W5,6.0,median_abs_dX_C_pp,1.7914156529499903,,,f_gas 1→1/8，9 窗中位
+W5,6.0,ratio_vs_P1.8A_uniform,3.624596598337628,3.0,True,中位比 ≥3 记为本征动力学恢复杠杆
+W5_verdict,,max_ratio,3.624596598337628,3.0,True,各准入档比值的最大者是否 ≥3
+W6,,T_wsr_min_K,2515.5038336430257,,,
+W6,,T_wsr_max_K,2753.0857731957262,,,
+W6,,n_rows_with_limit_binding,54.0,54.0,,全混区内有限幅绑定的行数（行数 = 准入档 × 9 窗）
+W6,,n_window_level_with_multiple_roots,0.0,0.0,,"(窗口, L_wsr) 组合中根数 > 1 的个数，明细见 roots.csv"
+W6,,n_window_level_with_2plus_flame_roots,0.0,0.0,,两个以上 >1500 K 的根会按卡第 2 节第 3 条停止该窗
