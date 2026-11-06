@@ -10,9 +10,10 @@ from .kinetics_service import KineticsService
 from .pyrolysis_service import PyrolysisService
 from .constants import PhysicalConstants
 from .grid_service import AdaptiveMeshGenerator, MeshConfig
-from .source_terms import EvaporationSource, PyrolysisSource
+from .source_terms import EvaporationSource, OxygenMixingSource, PyrolysisSource
 from .species_bridge import mainline_gas8_to_jax9, jax9_to_mainline_gas8
 from .input_contract import (
+    OXYGEN_MIXING_INSTANT,
     PYROLYSIS_HEAT_MODEL_ZERO,
     SOLID_ENTHALPY_MODEL_DEFAULT,
     ash_mass_fraction_dry,
@@ -22,6 +23,7 @@ from .input_contract import (
     heat_loss_norm_length_m,
     heat_loss_ref_temp_k,
     resolve_f_s_coal,
+    resolve_oxygen_mixing_model,
     resolve_pyrolysis_heat_model,
     uses_fortran_default_model,
     validate_coal_heating_values,
@@ -231,7 +233,30 @@ class GasifierSystem:
         self.tmp_W_h2o_total = W_coal_moist + W_slurry_h2o + W_steam
         self.tmp_W_liq_evap = W_coal_moist + W_slurry_h2o
         F_O2 = (self.op_conds['o2_flow'] / 31.998) * 1000.0; F_CO2, F_N2 = self._carrier_gas_molar_flows(); F_st = W_steam / 18.015 * 1000.0
-        gas = np.zeros(8); gas[0]=F_O2; gas[3]=F_CO2; gas[6]=F_N2; gas[7]=F_st
+        # P1.10-A：OxygenMixingModel != "instant" 时，入口 O2 作为**不反应的旁流**，
+        # 反应流在 z = 0 不含 O2；旁流量按累计分数 F(z) 逐格并入（见 OxygenMixingSource）。
+        # "instant"（缺省）不进入这一分支，gas[0] 仍为 F_O2 → 现行行为逐位不变。
+        self.o2_mixing_model = resolve_oxygen_mixing_model(self.op_conds)
+        self.o2_bypass_mol_s = 0.0
+        self.o2_mixing_length_m = float("nan")
+        if self.o2_mixing_model != OXYGEN_MIXING_INSTANT:
+            L_mix_raw = self.op_conds.get("OxygenMixingLength_m")
+            if L_mix_raw is None:
+                raise ValueError(
+                    f"OxygenMixingModel={self.o2_mixing_model!r} 需要 OxygenMixingLength_m（m），"
+                    "未给出"
+                )
+            L_mix_val = float(L_mix_raw)
+            if not np.isfinite(L_mix_val) or L_mix_val <= 0.0:
+                raise ValueError(
+                    f"OxygenMixingLength_m 必须为有限正数，得到 {L_mix_raw!r}"
+                )
+            self.o2_mixing_length_m = L_mix_val
+        gas = np.zeros(8); gas[3]=F_CO2; gas[6]=F_N2; gas[7]=F_st
+        if self.o2_mixing_model == OXYGEN_MIXING_INSTANT:
+            gas[0] = F_O2
+        else:
+            self.o2_bypass_mol_s = F_O2
         inlet = StateVector(gas_moles=gas, solid_mass=W_dry, carbon_fraction=self.coal_props.get('Cd', 60.0)/100.0, T=self.op_conds['T_in'], P=self.op_conds['P'])
         self.W_dry = W_dry; self.Cd_total = self.coal_props.get('Cd', 60.0)/100.0
         m_y, w_y = self.pyrolysis.calc_yields(self.coal_props)
@@ -280,6 +305,7 @@ class GasifierSystem:
             mesh_family=mesh_family,
             graded_zone_length=self.op_conds.get('GradedZoneLength'),
             graded_zone_dz=self.op_conds.get('GradedZoneDz'),
+            rest_cell_length=self.op_conds.get('RestCellLength'),
         )
         dz_list, self.z_positions = AdaptiveMeshGenerator(mesh_cfg).generate()
         # P1.5-A B1：网格必须铺满反应器。旧族在 3 <= N <= 20 时会被此断言拦下。
@@ -330,6 +356,13 @@ class GasifierSystem:
                 "GasificationRateFactor is not implemented on the JAX batch path "
                 "(GasifierSystem._solve_jax_v4); it would be silently ignored."
             )
+        # P1.10-A：O2 分布式进入在 JAX 批处理路径上没有对应实现——必须报错，不得静默回退。
+        if resolve_oxygen_mixing_model(self.op_conds) != OXYGEN_MIXING_INSTANT:
+            raise ValueError(
+                "OxygenMixingModel != 'instant' is not implemented on the JAX batch path "
+                "(GasifierSystem._solve_jax_v4). Use solver_method='minimize'/'newton_fd' "
+                "(the NumPy sequential path), or set OxygenMixingModel='instant'."
+            )
         # 须先加载 jax_solver，其内会 jax_enable_x64；否则此处先 import jax.numpy 会锁在 float32
         from .jax_solver import reactor_solve_v4
         import jax.numpy as jnp
@@ -366,7 +399,7 @@ class GasifierSystem:
         hhv = coal_hhv_kj_kg(self.coal_props); hhv_mj = hhv / 1000.0
         Ash_d = ash_mass_fraction_dry(self.coal_props)
         f_ash = Ash_d / (self.Cd_total + Ash_d + 1e-9)
-        ref_f = max(inlet.total_gas_moles, 1.0); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
+        ref_f = self._ref_flow_scale(inlet); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
         guesses = np.array([make_x12(t) for t in [3000, 2000, 1500, 1000, 400]])
         if self.op_conds.get("JaxSeedCell0FromMinimize", True):
             seed12 = self._jax_cell0_seed_from_minimize(dz_list, inlet, A, F_H2O_evap, L_evap, ref_f, ref_e)
@@ -439,17 +472,29 @@ class GasifierSystem:
     def _make_cell(self, i, dz_list, A, current_inlet, inlet, cell_ops, ref_f, ref_e):
         F_H2O_evap = (self.tmp_W_liq_evap / 18.015) * 1000.0
         L_evap = self.op_conds.get("L_evap_m", 1e-6)
+        sources = [
+            EvaporationSource(F_H2O_evap, L_evap_m=L_evap),
+            PyrolysisSource(
+                self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T,
+                coal_mass_flow_kg_s=self.W_dry, coal_props=self.coal_props,
+                solid_enthalpy_model=cell_ops.get("SolidEnthalpyModel", SOLID_ENTHALPY_MODEL_DEFAULT),
+            ),
+        ]
+        # P1.10-A：O2 旁流按 F(z) 逐格并入。源项进入 g_src[0]，因此
+        # ① 气相 O2 平衡（cell._calc_balances 的 `inlet.gas_moles[0] + gas_src[0]`）
+        # ② 燃烧区判据（同一表达式）③ 元素守恒 都会自动看到本格并入的 O2，
+        # 无需另开口径 —— 这正是卡面「入口反应流 + 本格并入的 O2」。
+        if self.o2_mixing_model != OXYGEN_MIXING_INSTANT:
+            sources.append(OxygenMixingSource(
+                o2_flow_mol_s=self.o2_bypass_mol_s,
+                L_mix_m=float(self.op_conds.get("OxygenMixingLength_m", float("nan"))),
+                model=self.o2_mixing_model,
+                T_in_K=float(self.op_conds["T_in"]),
+            ))
         cell = Cell(
             i, self.z_positions[i], dz_list[i], A * dz_list[i], A, current_inlet,
             self.kinetics, self.coal_props, cell_ops,
-            sources=[
-                EvaporationSource(F_H2O_evap, L_evap_m=L_evap),
-                PyrolysisSource(
-                    self.tmp_F_vol, self.tmp_W_vol, target_cell_idx=0, T_pyro=inlet.T,
-                    coal_mass_flow_kg_s=self.W_dry, coal_props=self.coal_props,
-                    solid_enthalpy_model=cell_ops.get("SolidEnthalpyModel", SOLID_ENTHALPY_MODEL_DEFAULT),
-                ),
-            ],
+            sources=sources,
         )
         cell.coal_flow_dry = self.W_dry
         cell.Cd_total = self.Cd_total
@@ -473,7 +518,7 @@ class GasifierSystem:
         """
         strict_root = bool(self.op_conds.get("SolverStrictRoot", False))
         cell_ops = self._cell_ops_for_solve(dz_list)
-        ref_f = max(inlet.total_gas_moles, 1.0)
+        ref_f = self._ref_flow_scale(inlet)
         ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
         current_inlet = inlet
         for i in range(N):
@@ -500,10 +545,31 @@ class GasifierSystem:
                     return
             current_inlet = state
 
+    def _ref_flow_scale(self, inlet) -> float:
+        """残差缩放的参考摩尔流量。
+
+        P1.10-A：``OxygenMixingModel != "instant"`` 时旁流 O2 不在 ``inlet.gas_moles`` 里，
+        若仍按 ``inlet.total_gas_moles`` 定标，同一套方程会得到与 instant 不同的缩放，
+        求解器停点随之漂移（实测残差同比放大 4.94 倍）。这里把旁流计入，
+        使 instant 与 linear/exponential 在「全部 O2 落在首格」时共用同一缩放基准。
+        ``instant`` 下 ``o2_bypass_mol_s`` 恒为 0，返回值与旧代码逐位相同。
+        """
+        return max(float(inlet.total_gas_moles) + float(self.o2_bypass_mol_s), 1.0)
+
     def _solve_sequential(self, dz_list, inlet, A, solver_method, jacobian_mode):
         N_cells = len(dz_list); current_inlet = inlet; self.results = []; self.cells = []
-        ref_f = max(inlet.total_gas_moles, 1.0); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
+        ref_f = self._ref_flow_scale(inlet); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
         cell_ops = self._cell_ops_for_solve(dz_list)
+        # 首格会并入的旁流 O2 份额（初值用；instant 下为 0）
+        _o2_frac_cell0 = 0.0
+        if self.o2_mixing_model != OXYGEN_MIXING_INSTANT and len(dz_list) > 0:
+            _probe = OxygenMixingSource(
+                o2_flow_mol_s=self.o2_bypass_mol_s,
+                L_mix_m=self.o2_mixing_length_m,
+                model=self.o2_mixing_model,
+                T_in_K=float(self.op_conds["T_in"]),
+            )
+            _o2_frac_cell0 = _probe.cell_fraction(self.z_positions[0], dz_list[0])
         strict_root = bool(self.op_conds.get("SolverStrictRoot", False))
         cost_threshold = 1e-4
 
@@ -540,6 +606,11 @@ class GasifierSystem:
                 x0[:8] += self.tmp_F_vol
                 x0[8] -= self.tmp_W_vol
                 x0[9] = self.char_Xc0
+                # P1.10-A：旁流 O2 不在 current_inlet 里，但首格会并入一份。
+                # 初值补上本格份额，使 instant 与 mixing 走同一初值路径——
+                # 否则同一套方程会因起点不同而停在不同的收敛点（实测 0.018 K）。
+                if self.o2_mixing_model != OXYGEN_MIXING_INSTANT:
+                    x0[0] += self.o2_bypass_mol_s * _o2_frac_cell0
                 if str(self.op_conds.get("Cell0GuessMode", "pyrolysis_only")) == "oxidation_prestep":
                     xi1 = min(x0[1] * 0.99, x0[0] * 0.99 / 2.0)
                     x0[1] -= xi1
@@ -698,6 +769,21 @@ class GasifierSystem:
                 "phi": float(snap["phi"]),
             })
             row.update({k: bool(v) for k, v in snap["limits"].items() if k != "is_combustion_zone"})
+            # P1.10-A：本格 O2 并入量与判据用 pO2（审计用；instant 下并入量为 0）
+            try:
+                _src_tot = np.zeros(8)
+                for _s in cell.sources:
+                    _g, _sm, _e = _s.get_sources(cell.idx, cell.z, cell.dz)
+                    _src_tot += _g
+                _o2_in = max(float(cell.inlet.gas_moles[0]) + float(_src_tot[0]), 0.0)
+                _f_tot = max(
+                    float(np.sum([cell.inlet.gas_moles[_k] + _src_tot[_k] for _k in range(8)])),
+                    1e-12,
+                )
+                row["o2_src_mol_s"] = float(_src_tot[0])
+                row["pO2_criterion_atm"] = float(sol_state.P * (_o2_in / _f_tot) / 101325.0)
+            except Exception as exc:  # 诊断失败不改变求解结果
+                row["diagnostic_o2_error"] = f"{type(exc).__name__}: {exc}"
             # P1.8-A：fortran_wall 下逐单元的 hloss / tw / tg（只记录，不改求解）
             if resolve_heat_loss_model(cell.op_conds) == HEAT_LOSS_MODEL_FORTRAN:
                 try:

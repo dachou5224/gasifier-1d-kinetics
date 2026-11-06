@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 from dataclasses import dataclass
 from typing import Optional
@@ -25,9 +27,13 @@ class MeshConfig:
     #                            细格 dz0，其余段沿用均匀 N=40 的格长；z_b 与 dz0 由
     #                            graded_zone_length / graded_zone_dz 给出，块内格数
     #                            n_block = round(z_b/dz0)，其余格数 = N - n_block。
+    #   "graded_block_tail"   —— P1.10-A（2026-11-05）：块内格数向上取整、余段用固定格长
+    #                            平铺、不足一格做尾格。详见 AdaptiveMeshGenerator 内注释。
     mesh_family: str = "legacy"
     graded_zone_length: Optional[float] = None
     graded_zone_dz: Optional[float] = None
+    # 仅 "graded_block_tail" 使用：余段（块之后到 L）的目标格长。
+    rest_cell_length: Optional[float] = None
 
 class AdaptiveMeshGenerator:
     """
@@ -81,6 +87,56 @@ class AdaptiveMeshGenerator:
             dz_list[:n_block] = dz0
             if n_rest > 0:
                 dz_list[n_block:] = (L - zb_eff) / float(n_rest)
+        elif family == "graded_block_tail":
+            # P1.10-A（2026-11-05 卡第 3.1 节）：确定性构造，不留实现自由。
+            #   1  z_b_target = graded_zone_length            （卡面取 max(L_mix, 0.515)）
+            #   2  n_block    = ceil(z_b_target / dz0)        ← 向上取整
+            #   3  z_b_eff    = n_block · dz0
+            #   4  rest_len   = L − z_b_eff
+            #   5  n_rest     = floor(rest_len / rest_dz0)
+            #   6  tail       = rest_len − n_rest · rest_dz0  → > 0 时追加 1 格
+            #   7  N          = n_block + n_rest + (tail > 0 ? 1 : 0)
+            # 块内格长严格为 dz0；余段除末格外严格为 rest_dz0；Σdz = L 在 1e-12
+            # 相对容差内成立（n_rest·rest_dz0 的浮点和与 rest_len 可差 ~1e-15，
+            # 不要断言"逐位相等"）。调用方传入的 n_cells 必须等于此处导出的 N。
+            zb_t = self.cfg.graded_zone_length
+            dz0 = self.cfg.graded_zone_dz
+            rest_dz = self.cfg.rest_cell_length
+            if zb_t is None or dz0 is None or rest_dz is None:
+                raise ValueError(
+                    "graded_block_tail 需要 graded_zone_length、graded_zone_dz、"
+                    "rest_cell_length 三者同时给出"
+                )
+            zb_t = float(zb_t)
+            dz0 = float(dz0)
+            rest_dz = float(rest_dz)
+            if dz0 <= 0.0 or rest_dz <= 0.0 or zb_t <= 0.0:
+                raise ValueError(
+                    f"graded_block_tail 参数必须为正：z_b_target={zb_t}, "
+                    f"dz0={dz0}, rest_dz0={rest_dz}"
+                )
+            n_block = int(math.ceil(zb_t / dz0 - 1e-12))
+            zb_eff = float(n_block) * dz0
+            rest_len = L - zb_eff
+            if rest_len < -1e-12 * L:
+                raise ValueError(
+                    f"graded_block_tail 块长超过总长：z_b_eff={zb_eff}, L={L}"
+                )
+            n_rest = int(math.floor(max(rest_len, 0.0) / rest_dz + 1e-12))
+            tail = max(rest_len, 0.0) - float(n_rest) * rest_dz
+            has_tail = bool(tail > 1e-12)
+            n_derived = n_block + n_rest + (1 if has_tail else 0)
+            if int(N) != n_derived:
+                raise ValueError(
+                    "graded_block_tail 的 N_cells 与构造不一致："
+                    f"调用方 N_cells={N}, 构造导出 N={n_derived} "
+                    f"(n_block={n_block}, n_rest={n_rest}, tail={tail:.6e})"
+                )
+            dz_list[:n_block] = dz0
+            if n_rest > 0:
+                dz_list[n_block:n_block + n_rest] = rest_dz
+            if has_tail:
+                dz_list[n_block + n_rest] = tail
         elif N > 2:
             # 0. First Cell (Tuyere / Inlet)
             # Use defined ignition zone length first step or a specific large inlet cell?
