@@ -182,6 +182,8 @@ Status: `EXECUTED — model repo`
 
 ## 3. W1 下游收敛（卡第 3 节）
 
+判据：`dz_down` = 0.0515 与 0.02575 之间的出口差。**这是测试网格对之间的差值判据**，只说明在该区间内加密不再改变结果；不等于整炉解已达平推流极限。
+
 | L_wsr | n_converged | n_windows | admitted | max_abs_dX_C_pp | max_abs_dT_K | max_abs_dCO2_vol | wsr_state_all_invariant |
 |---|---|---|---|---|---|---|---|
 | 0.258 | 9.000 | 9.000 | 1.000 | 0.022 | 0.404 | 0.005 | 1.000 |
@@ -192,7 +194,9 @@ Status: `EXECUTED — model repo`
 | 6.000 | 9.000 | 9.000 | 1.000 | 0.025 | 0.605 | 0.011 | 1.000 |
 
 - 准入档数 **6**；准入 `L_wsr`：[0.2575, 0.5, 1.0, 2.0, 4.0, 6.0]
-- 全混区状态对 `dz_down` 逐位不变：**True**（卡面要求的结构性质：`L_wsr` 是物理参数，不随网格加密改变）
+- 首格（全混流区）状态对 `dz_down` 逐位不变：**True**（54/54）——这是**该离散结构的性质**：首格长度固定、求解按顺序推进，首格不读取下游格长。它**不是**验证结果，只是被确认。
+- 整炉出口量在 `dz_down` = 0.0515 与 0.02575 之间的差满足预定容差 （0.2 pp / 5 K / 0.2 vol%），这是**测试网格对之间的差值判据**，不是「已达平推流极限」的证明。
+- 因此本节可支持的结论只有一句：**在首格长度固定的前提下，下游加密在 0.0515→0.02575 这一测试区间内通过了 W1 容差**。整炉解是否已与网格无关、是否已接近平推流极限，本轮**没有**建立。
 
 ## 4. 杠杆与到达（W2–W6）
 
@@ -247,19 +251,25 @@ Status: `EXECUTED — model repo`
 
 | L_wsr | metric | value | threshold | pass | note |
 |---|---|---|---|---|---|
-| nan | P1.8A_uniform_median_abs_dX_C_pp | 0.494 | nan | None | P1.8-A 均匀 N=40、HLP=1%，f_gas 1→1/8 的 9 窗中位 |ΔX_C| |
-| 0.258 | median_abs_dX_C_pp | 0.538 | nan | None | f_gas 1→1/8，9 窗中位 |
-| 0.258 | ratio_vs_P1.8A_uniform | 1.089 | 3.000 | 0.000 | 中位比 ≥3 记为本征动力学恢复杠杆 |
-| 0.500 | median_abs_dX_C_pp | 0.668 | nan | None | f_gas 1→1/8，9 窗中位 |
-| 0.500 | ratio_vs_P1.8A_uniform | 1.352 | 3.000 | 0.000 | 中位比 ≥3 记为本征动力学恢复杠杆 |
-| 1.000 | median_abs_dX_C_pp | 0.860 | nan | None | f_gas 1→1/8，9 窗中位 |
-| 1.000 | ratio_vs_P1.8A_uniform | 1.741 | 3.000 | 0.000 | 中位比 ≥3 记为本征动力学恢复杠杆 |
-| 2.000 | median_abs_dX_C_pp | 1.069 | nan | None | f_gas 1→1/8，9 窗中位 |
-| 2.000 | ratio_vs_P1.8A_uniform | 2.163 | 3.000 | 0.000 | 中位比 ≥3 记为本征动力学恢复杠杆 |
-| 4.000 | median_abs_dX_C_pp | 1.388 | nan | None | f_gas 1→1/8，9 窗中位 |
-| 4.000 | ratio_vs_P1.8A_uniform | 2.809 | 3.000 | 0.000 | 中位比 ≥3 记为本征动力学恢复杠杆 |
-| 6.000 | median_abs_dX_C_pp | 1.791 | nan | None | f_gas 1→1/8，9 窗中位 |
-| 6.000 | ratio_vs_P1.8A_uniform | 3.625 | 3.000 | 1.000 | 中位比 ≥3 记为本征动力学恢复杠杆 |
+| nan | P1.8A_uniform_median_abs_dX_C_pp | 0.494 | nan | None | P1.8-A 均匀 N=40、HLP=1%，逐窗 |ΔX_C| 的中位（仅展示；判据用逐窗比） |
+| 0.258 | median_abs_dX_C_pp | 0.538 | nan | None | f_gas 1→1/8，9 窗中位；有效样本 9 |
+| 0.258 | median_of_window_ratios | 1.089 | 3.000 | 0.000 | **卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位 |
+| 0.258 | ratio_of_medians_report_only | 1.089 | nan | None | 口径对照（median/median），仅供参考，不参与判定 |
+| 0.500 | median_abs_dX_C_pp | 0.668 | nan | None | f_gas 1→1/8，9 窗中位；有效样本 9 |
+| 0.500 | median_of_window_ratios | 1.196 | 3.000 | 0.000 | **卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位 |
+| 0.500 | ratio_of_medians_report_only | 1.352 | nan | None | 口径对照（median/median），仅供参考，不参与判定 |
+| 1.000 | median_abs_dX_C_pp | 0.860 | nan | None | f_gas 1→1/8，9 窗中位；有效样本 9 |
+| 1.000 | median_of_window_ratios | 1.669 | 3.000 | 0.000 | **卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位 |
+| 1.000 | ratio_of_medians_report_only | 1.741 | nan | None | 口径对照（median/median），仅供参考，不参与判定 |
+| 2.000 | median_abs_dX_C_pp | 1.069 | nan | None | f_gas 1→1/8，9 窗中位；有效样本 9 |
+| 2.000 | median_of_window_ratios | 2.163 | 3.000 | 0.000 | **卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位 |
+| 2.000 | ratio_of_medians_report_only | 2.163 | nan | None | 口径对照（median/median），仅供参考，不参与判定 |
+| 4.000 | median_abs_dX_C_pp | 1.388 | nan | None | f_gas 1→1/8，9 窗中位；有效样本 9 |
+| 4.000 | median_of_window_ratios | 2.713 | 3.000 | 0.000 | **卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位 |
+| 4.000 | ratio_of_medians_report_only | 2.809 | nan | None | 口径对照（median/median），仅供参考，不参与判定 |
+| 6.000 | median_abs_dX_C_pp | 1.791 | nan | None | f_gas 1→1/8，9 窗中位；有效样本 9 |
+| 6.000 | median_of_window_ratios | 3.444 | 3.000 | 1.000 | **卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位 |
+| 6.000 | ratio_of_medians_report_only | 3.625 | nan | None | 口径对照（median/median），仅供参考，不参与判定 |
 
 ### W6 全混区状态
 
@@ -277,9 +287,22 @@ Status: `EXECUTED — model repo`
 - **W3**：X_C 随 L_wsr 增大而下降 9 窗 / 上升 0 窗——**方向一致且朝装置值**：`L_wsr` 增大使 X_C 下降、CO2 上升，9 个窗口无一例外。
 - **W4**：到达（|偏差| ≤ 1 pp）判定为 **存在**；但只有 `L_wsr` = 4 m 这一档有 1/9 窗落在 ±1 pp 内，其余档 0/9。中位偏差随 `L_wsr` 单调下降（0.2575 m 的 +7.32 pp → 6 m 的 +2.95 pp），6 m 时最小窗已越过装置值（−1.19 pp）。
 
-### W5 的通过只发生在扫描上界，必须按边界值读
+### W5 结论改按逐窗比重读（判据口径修正）
 
-- 比值随 `L_wsr` **单调增**：0.2575 m 时 1.09，4 m 时 2.81，6 m 时 **3.62**（阈值 3）。
+原实现用 `median(ΔX_C) / median(ΔX_C_ref)`，而卡面读法是**逐窗求比后取中位**；`median(a)/median(b) ≠ median(a/b)`，两者确实不同。本轮已改为逐窗配对（同窗口、同 `HLP`、同 `f_gas` 端点），比值与样本数见上表两行：`median_of_window_ratios`（**卡面判据**）与 `ratio_of_medians_report_only`（仅供对照）。
+
+| `L_wsr` m | 有效样本 | 逐窗比中位（**判据**） | 中位数之比（对照） |
+|---|---|---|---|
+| 0.2575 | 9 | 1.089 | 1.089 |
+| 0.5 | 9 | 1.196 | 1.352 |
+| 1 | 9 | 1.669 | 1.741 |
+| 2 | 9 | 2.163 | 2.163 |
+| 4 | 9 | 2.713 | 2.809 |
+| 6 | 9 | 3.444 | 3.625 |
+
+两种口径在同一档上给出 3.444 与 3.625——**都跨过 3**，因此口径修正**不改变**「只有上界档通过」这一结论；但它改变了可以引用的具体数值，故按逐窗比为准。
+
+- 比值随 `L_wsr` **单调增**。
 - 即「本征动力学恢复杠杆」**只在 6 m 成立**，而 6 m 是卡面允许的**唯一追加档、且是扫描上界**。4 m 及以下均不满足。
 - 这与 P1.8-A R3 的教训同形：判定阈值在扫描边界上被跨过，意味着真实最优点可能在此之外，或该指标本身已接近失效。**不得**把「6 m 通过」写成「加入全混流区后动力学恢复杠杆」，正确表述是「在本扫描的 6 个档位上，唯一达到阈值的是上界档 6 m」。
 

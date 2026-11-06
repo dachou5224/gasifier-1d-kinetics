@@ -1,7 +1,7 @@
 {
   "round": "P1.11-A / 2026-11-06",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "0cd216ecf3d48af0c68f1aa91fe5a2adbacaaa3a",
+  "source_commit": "8a49e3358c695019f176e5cae5d5de44912642f4",
   "mesh_family": "uniform_full_length",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -48,6 +48,10 @@
     "W4": "是否有准入 L_wsr（含线性插值）使某窗 X_C 与装置主口径差 ≤1 pp",
     "W5": "各准入档 f_gas 1→1/8 的 ΔX_C 与 P1.8-A 均匀 N=40 之比；中位 ≥3 记为恢复杠杆",
     "W6": "全混区温度范围、限幅绑定比例、多解情况"
+  },
+  "statistic_definitions": {
+    "W5_ratio": "逐窗配对求比后取中位（median of ratios）——卡面判据。配对键：同 window_id、同 HeatLossPercent、同 f_gas 两端点、均完成求解。参考杠杆≈0（≤1e-12）的窗口单独计数并排除，不计入中位。同时报告 median/median 作对照，但不参与判定。",
+    "W1_scope": "W1 是测试网格对（dz_down 0.0515 vs 0.02575）之间的差值判据，只说明该区间内加密不再改变出口；不等于已达平推流极限，也不构成「整炉网格独立由结构保证」的结论。首格状态对 dz_down 不变是该离散结构的性质（首格长度固定、顺序求解），不是验证结果。"
   },
   "root_rule": {
     "cost_tol": 1e-10,
