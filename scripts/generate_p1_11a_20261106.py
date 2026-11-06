@@ -651,19 +651,23 @@ def anchor_runs() -> pd.DataFrame:
 # 读法 W1–W6
 # ---------------------------------------------------------------------------
 
-def _p18a_uniform_leverage() -> float:
-    """P1.8-A 均匀 N=40、HLP=1% 下 f_gas 1→1/8 的中位 |ΔX_C|（卡面指定 P1.8-A）。"""
+def _p18a_uniform_leverage() -> dict:
+    """P1.8-A 均匀 N=40、HLP=1% 下逐窗的 |ΔX_C|(f_gas 1→1/8)。
+
+    卡面 W5 读法是**逐窗求比后取中位**，因此参考量必须按窗口保留，不能先压成
+    一个中位数（median(a)/median(b) ≠ median(a/b)）。
+    """
     scan = pd.read_csv(P18A_DIR / "scan.csv")
     scan = scan[(scan["row_kind"].isin(("grid", "grid_extension")))
                 & np.isclose(scan["HeatLossPercent"], 1.0)]
-    vals = []
+    out: dict = {}
     for wid in scan["window_id"].unique():
         g1 = scan[(scan["window_id"] == wid) & np.isclose(scan["f_gas"], 1.0)]["X_C_implied"]
         g8 = scan[(scan["window_id"] == wid) & np.isclose(scan["f_gas"], 0.125)]["X_C_implied"]
         if g1.empty or g8.empty:
             continue
-        vals.append(abs(float(g8.iloc[0]) - float(g1.iloc[0])) * 100.0)
-    return float(np.median(vals)) if vals else float("nan")
+        out[str(wid)] = abs(float(g8.iloc[0]) - float(g1.iloc[0])) * 100.0
+    return out
 
 
 def _w4_needs_extra(lev: pd.DataFrame, admitted) -> bool:
@@ -826,38 +830,61 @@ def readings(adm: pd.DataFrame, conv: pd.DataFrame, lev: pd.DataFrame,
         value=float(hit_any), threshold=1.0, pass_=bool(hit_any),
         note="是否存在准入 L_wsr（含线性插值）使某窗 X_C 与装置主口径差 ≤1 pp")
 
-    # ---- W5 动力学杠杆 ----
-    ref = _p18a_uniform_leverage()
+    # ---- W5 动力学杠杆（卡面读法：逐窗求比后取中位）----
+    ref_by_window = _p18a_uniform_leverage()
+    ref_med = float(np.median(list(ref_by_window.values()))) if ref_by_window else float("nan")
     add(reading="W5", L_wsr=float("nan"), metric="P1.8A_uniform_median_abs_dX_C_pp",
-        value=ref, threshold=float("nan"), pass_=None,
-        note="P1.8-A 均匀 N=40、HLP=1%，f_gas 1→1/8 的 9 窗中位 |ΔX_C|")
+        value=ref_med, threshold=float("nan"), pass_=None,
+        note=f"P1.8-A 均匀 N=40、HLP=1%，逐窗 |ΔX_C| 的中位（仅展示；判据用逐窗比）")
     best_ratio = float("nan")
+    rows_w5 = []
     for l_wsr in admitted:
         sub = lev[(np.isclose(lev["L_wsr"], l_wsr))
                   & (np.isclose(lev["HeatLossPercent"], 1.0))]
-        vals = []
+        per_window = {}
         for wid in sub["window_id"].unique():
             g1 = sub[(sub["window_id"] == wid) & np.isclose(sub["f_gas"], 1.0)]["X_C_implied"]
             g8 = sub[(sub["window_id"] == wid) & np.isclose(sub["f_gas"], F_GAS_LEV[1])]["X_C_implied"]
-            if g1.empty or g8.empty:
+            if g1.empty or g8.empty or str(wid) not in ref_by_window:
                 continue
-            vals.append(abs(float(g8.iloc[0]) - float(g1.iloc[0])) * 100.0)
-        if not vals:
+            per_window[str(wid)] = abs(float(g8.iloc[0]) - float(g1.iloc[0])) * 100.0
+        if not per_window:
             continue
-        med = float(np.median(vals))
-        ratio = med / ref if ref > 0 else float("inf")
-        if not math.isfinite(best_ratio) or ratio > best_ratio:
-            best_ratio = ratio
+        # 逐窗比：分子、分母同窗口、同 HLP、同 f_gas 端点
+        ratios = []
+        n_zero_ref = 0
+        for wid, num in per_window.items():
+            den = ref_by_window[wid]
+            if not math.isfinite(den) or den <= 1e-12:
+                n_zero_ref += 1
+                continue
+            ratios.append(num / den)
+        n_eff = len(ratios)
+        med_num = float(np.median(list(per_window.values())))
+        med_ratio = float(np.median(ratios)) if ratios else float("nan")
+        ratio_of_medians = (med_num / ref_med) if (ref_med and ref_med > 1e-12) else float("nan")
+        if math.isfinite(med_ratio) and (not math.isfinite(best_ratio) or med_ratio > best_ratio):
+            best_ratio = med_ratio
+        rows_w5.append({
+            "L_wsr": l_wsr, "n_eff": n_eff, "n_zero_ref": n_zero_ref,
+            "median_of_ratios": med_ratio, "ratio_of_medians": ratio_of_medians,
+            "median_abs_dX_C_pp": med_num,
+        })
         add(reading="W5", L_wsr=l_wsr, metric="median_abs_dX_C_pp",
-            value=med, threshold=float("nan"), pass_=None,
-            note="f_gas 1→1/8，9 窗中位")
-        add(reading="W5", L_wsr=l_wsr, metric="ratio_vs_P1.8A_uniform",
-            value=ratio, threshold=3.0, pass_=bool(ratio >= 3.0),
-            note="中位比 ≥3 记为本征动力学恢复杠杆")
-    add(reading="W5_verdict", L_wsr=float("nan"), metric="max_ratio",
+            value=med_num, threshold=float("nan"), pass_=None,
+            note=f"f_gas 1→1/8，9 窗中位；有效样本 {n_eff}"
+                 + (f"；{n_zero_ref} 窗参考杠杆≈0 已排除" if n_zero_ref else ""))
+        add(reading="W5", L_wsr=l_wsr, metric="median_of_window_ratios",
+            value=med_ratio, threshold=3.0, pass_=bool(math.isfinite(med_ratio) and med_ratio >= 3.0),
+            note="**卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位")
+        add(reading="W5", L_wsr=l_wsr, metric="ratio_of_medians_report_only",
+            value=ratio_of_medians, threshold=float("nan"), pass_=None,
+            note="口径对照（median/median），仅供参考，不参与判定")
+    add(reading="W5_verdict", L_wsr=float("nan"), metric="max_median_of_window_ratios",
         value=best_ratio, threshold=3.0,
         pass_=bool(math.isfinite(best_ratio) and best_ratio >= 3.0),
-        note="各准入档比值的最大者是否 ≥3")
+        note="各准入档逐窗比中位的最大者是否 ≥3")
+    globals()["_W5_ROWS"] = rows_w5
 
     # ---- W6 全混区状态 ----
     wsr = lev[(np.isclose(lev["f_gas"], 1.0)) & (np.isclose(lev["HeatLossPercent"], 1.0))]
@@ -930,14 +957,23 @@ def interpretation(dzm_md: str, unit_df, roots, adm, conv, lev, rd, anchor_df) -
     L.append("")
 
     L.append("## 3. W1 下游收敛（卡第 3 节）\n")
+    L.append("判据：`dz_down` = 0.0515 与 0.02575 之间的出口差。**这是测试网格对之间的"
+             "差值判据**，只说明在该区间内加密不再改变结果；不等于整炉解已达平推流极限。\n")
     L.append(_tbl(adm, ["L_wsr", "n_converged", "n_windows", "admitted",
                         "max_abs_dX_C_pp", "max_abs_dT_K", "max_abs_dCO2_vol",
                         "wsr_state_all_invariant"], nd=3))
     L.append("")
     L.append(f"- 准入档数 **{n_adm}**；准入 `L_wsr`：{sorted(adm[adm['admitted']]['L_wsr'].tolist())}")
     inv = bool(adm["wsr_state_all_invariant"].all())
-    L.append(f"- 全混区状态对 `dz_down` 逐位不变：**{inv}**"
-             "（卡面要求的结构性质：`L_wsr` 是物理参数，不随网格加密改变）\n")
+    L.append(f"- 首格（全混流区）状态对 `dz_down` 逐位不变：**{inv}**"
+             "（54/54）——这是**该离散结构的性质**：首格长度固定、求解按顺序推进，"
+             "首格不读取下游格长。它**不是**验证结果，只是被确认。")
+    L.append(f"- 整炉出口量在 `dz_down` = 0.0515 与 0.02575 之间的差满足预定容差 "
+             f"（0.2 pp / 5 K / 0.2 vol%），这是**测试网格对之间的差值判据**，"
+             "不是「已达平推流极限」的证明。")
+    L.append("- 因此本节可支持的结论只有一句：**在首格长度固定的前提下，下游加密在 0.0515→0.02575 "
+             "这一测试区间内通过了 W1 容差**。整炉解是否已与网格无关、是否已接近平推流极限，"
+             "本轮**没有**建立。\n")
 
     if n_adm == 0:
         L.append("**按卡第 3 节：无收敛档，第 4 节不执行。**\n")
@@ -986,10 +1022,23 @@ def _verdict_section(rd: pd.DataFrame, adm: pd.DataFrame) -> list[str]:
                  "（0.2575 m 的 +7.32 pp → 6 m 的 +2.95 pp），"
                  "6 m 时最小窗已越过装置值（−1.19 pp）。")
     L.append("")
-    L.append("### W5 的通过只发生在扫描上界，必须按边界值读\n")
-    if not m5.empty:
-        L.append(f"- 比值随 `L_wsr` **单调增**：0.2575 m 时 1.09，4 m 时 2.81，"
-                 f"6 m 时 **{float(m5['value'].iloc[0]):.2f}**（阈值 3）。")
+    L.append("### W5 结论改按逐窗比重读（判据口径修正）\n")
+    L.append("原实现用 `median(ΔX_C) / median(ΔX_C_ref)`，而卡面读法是**逐窗求比后取中位**；"
+             "`median(a)/median(b) ≠ median(a/b)`，两者确实不同。本轮已改为逐窗配对"
+             "（同窗口、同 `HLP`、同 `f_gas` 端点），比值与样本数见上表两行："
+             "`median_of_window_ratios`（**卡面判据**）与 `ratio_of_medians_report_only`（仅供对照）。\n")
+    w5 = globals().get("_W5_ROWS") or []
+    if w5:
+        L.append("| `L_wsr` m | 有效样本 | 逐窗比中位（**判据**） | 中位数之比（对照） |")
+        L.append("|---|---|---|---|")
+        for r in w5:
+            L.append(f"| {r['L_wsr']:g} | {r['n_eff']} | {r['median_of_ratios']:.3f} | "
+                     f"{r['ratio_of_medians']:.3f} |")
+        L.append("")
+        L.append("两种口径在同一档上给出 3.444 与 3.625——**都跨过 3**，"
+                 "因此口径修正**不改变**「只有上界档通过」这一结论；"
+                 "但它改变了可以引用的具体数值，故按逐窗比为准。\n")
+        L.append("- 比值随 `L_wsr` **单调增**。")
         L.append("- 即「本征动力学恢复杠杆」**只在 6 m 成立**，而 6 m 是卡面允许的"
                  "**唯一追加档、且是扫描上界**。4 m 及以下均不满足。")
         L.append("- 这与 P1.8-A R3 的教训同形：判定阈值在扫描边界上被跨过，"
@@ -1177,8 +1226,18 @@ def main() -> None:
             "W2": "准入档最小 vs 最大 L_wsr 的 Δ（9 窗中位与范围）",
             "W3": "L_wsr 增大时 X_C 是否下降、CO2 是否上升；逐窗符号",
             "W4": "是否有准入 L_wsr（含线性插值）使某窗 X_C 与装置主口径差 ≤1 pp",
-            "W5": "各准入档 f_gas 1→1/8 的 ΔX_C 与 P1.8-A 均匀 N=40 之比；中位 ≥3 记为恢复杠杆",
-            "W6": "全混区温度范围、限幅绑定比例、多解情况",
+            "W5": "各准入档 f_gas 1→1/8 的 ΔX_C 与 P1.8-A 均匀 N=40 之比；中位 ≥3 记为恢复杠杆",            "W6": "全混区温度范围、限幅绑定比例、多解情况",
+        },
+        "statistic_definitions": {
+            "W5_ratio": "逐窗配对求比后取中位（median of ratios）——卡面判据。"
+                        "配对键：同 window_id、同 HeatLossPercent、同 f_gas 两端点、均完成求解。"
+                        "参考杠杆≈0（≤1e-12）的窗口单独计数并排除，不计入中位。"
+                        "同时报告 median/median 作对照，但不参与判定。",
+            "W1_scope": "W1 是测试网格对（dz_down 0.0515 vs 0.02575）之间的差值判据，"
+                        "只说明该区间内加密不再改变出口；不等于已达平推流极限，"
+                        "也不构成「整炉网格独立由结构保证」的结论。"
+                        "首格状态对 dz_down 不变是该离散结构的性质（首格长度固定、顺序求解），"
+                        "不是验证结果。",
         },
         "root_rule": {"cost_tol": ROOT_COST_TOL, "cluster_K": ROOT_T_MERGE_K,
                       "flame_T_K": FLAME_T_K,
