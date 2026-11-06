@@ -1,7 +1,7 @@
 {
   "round": "P1.10-A / 2026-11-05",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "af3f88bf33c350dac46faf965f5657499d7e78d2",
+  "source_commit": "c3878409d90f9a77449678b1124efded70475496",
   "mesh_family": "uniform_full_length",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -70,6 +70,7 @@
     "mesh_convergence.csv",
     "admission.csv",
     "m1e.json",
+    "ignition_share_scan.csv",
     "leverage.csv",
     "cells.csv",
     "anchor_mix.csv",

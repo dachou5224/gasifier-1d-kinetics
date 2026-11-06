@@ -1,11 +1,12 @@
 check,context,metric,expect,tolerance,value,pass,note
 1,instant 与 P1.9-A 均匀 N=40 基线（9 窗，HLP=2%）,max_abs_diff_over_9_windows,0.0,1e-12,0.0,True,逐位不变：缺省路径不进入混合分支
-2,"linear, L_mix=0.5",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,1.221144834704564e-16,True,Σ=465.492849 / 入口=465.492849 mol/s
-2,"exponential, L_mix=0.5",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,1.221144834704564e-16,True,Σ=465.492849 / 入口=465.492849 mol/s
-2,"linear, L_mix=1.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,1.221144834704564e-16,True,Σ=465.492849 / 入口=465.492849 mol/s
-2,"exponential, L_mix=1.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,0.0,True,Σ=465.492849 / 入口=465.492849 mol/s
-2,"linear, L_mix=2.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,2.442289669409128e-16,True,Σ=465.492849 / 入口=465.492849 mol/s
-2,"exponential, L_mix=2.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,3.6634345041136924e-16,True,Σ=465.492849 / 入口=465.492849 mol/s
+2,"linear, L_mix=0.5",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,1.221144834704564e-16,True,Σ=465.492849 / 入口=465.492849 mol/s；状态=completed，已解 40 格
+2,"exponential, L_mix=0.5",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,1.221144834704564e-16,True,Σ=465.492849 / 入口=465.492849 mol/s；状态=completed，已解 40 格
+2,"linear, L_mix=1.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,1.221144834704564e-16,True,Σ=465.492849 / 入口=465.492849 mol/s；状态=completed，已解 40 格
+2,"exponential, L_mix=1.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,0.0,True,Σ=465.492849 / 入口=465.492849 mol/s；状态=completed，已解 40 格
+2,"linear, L_mix=2.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,2.442289669409128e-16,True,Σ=465.492849 / 入口=465.492849 mol/s；状态=completed，已解 40 格
+2,"exponential, L_mix=2.0",sum_o2_src_over_inlet_o2_minus_1,0.0,1e-12,3.6634345041136924e-16,True,Σ=465.492849 / 入口=465.492849 mol/s；状态=completed，已解 40 格
+2b,L_mix = 2 × L（应拒绝）,raises_on_L_mix_gt_L,1.0,0.0,1.0,True,L_mix=2L 被拒绝：网格末端 z=10.300000 m 小于 OxygenMixingLength_m=20.600000 m：旁流 O2…
 2,"linear, L_mix=1.0，全炉 O 原子闭合 vs 同轮基线",O_closure_rel_over_baseline_max,1.0,10.0,2.6404251515068755,True,linear=4.429e-05，同轮 instant 基线 max=1.677e-05；旁流 O2 已计入入口氧原子，O_inlet 与 instant 一致
 2,"linear, L_mix=1.0，全炉 O 原子闭合（绝对值记录）",O_closure_fraction_abs,,,4.428974330366043e-05,,仅记录；判据见上一行（同量级）
 3,L_mix=0.25 < 首格 0.2575 m，linear vs instant,max_abs_outlet_diff,0.0,1e-09,0.0,True,O2 全部在首格并入，两种口径须退化到同一解
