@@ -1,0 +1,81 @@
+{
+  "round": "P1.10-A / 2026-11-05",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "af3f88bf33c350dac46faf965f5657499d7e78d2",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.10a-20261105.md",
+  "equation_change": {
+    "oxygen_mixing": "新增 op_conds['OxygenMixingModel'] ∈ {instant(缺省), linear, exponential} 与 op_conds['OxygenMixingLength_m']。非 instant 时入口 O2 作不反应旁流，按 F(z) 逐格并入；F_linear=min(z/L_mix,1)，F_exp=1−exp(−z/λ)（λ=L_mix/3，z≥L_mix 取 1）。",
+    "combustion_criterion": "pO2 口径改为『入口反应流 + 本格并入的 O2』；阈值 0.05 atm 不变；instant 下与现行判据逐位一致（单元检查 1）。",
+    "energy_source": "并入份额在入口温度下的摩尔焓（旁流不升温，显式简化）。",
+    "jax_guard": "JAX 批处理路径遇非 instant 直接抛错，不静默回退。",
+    "residual_scaling": "ref_f 计入旁流（instant 下为 0，逐位不变）；否则同一方程缩放不同，实测残差同比放大 4.94 倍、出口温度漂移 0.018 K。"
+  },
+  "mesh": {
+    "family": "graded_block_tail",
+    "construction": "n_block=ceil(z_b_target/dz0); z_b_eff=n_block·dz0; n_rest=floor((L−z_b_eff)/rest_dz0); tail=余量(>0 时追加 1 格); N=n_block+n_rest+tail?1:0",
+    "z_b_target": "max(L_mix, 0.515) for device; max(L_mix, 0.04125) for anchor",
+    "rest_dz0": 0.2575,
+    "params_all_match_card_table": true,
+    "old_family_untouched": "graded_full_length 默认行为未改（P1.9-A 证据依赖它）"
+  },
+  "predeclared": {
+    "M1": "L_mix/20 vs /40：|ΔX_C|<0.2 pp、|ΔT|<5.0 K、|ΔCO2|<0.2 vol%、|ΔTpeak|<20.0 K；整档准入需 9/9 窗",
+    "M1_E": "L_mix=1 m 的 exponential 独立过同一检查；不得由 linear 推断",
+    "M2_M3": "准入档中 L_mix 最小 vs 最大；n_adm<2 记不可评估",
+    "M4": "是否有准入 L_mix 使某窗模型 X_C 与装置值差 ≤1 pp",
+    "M5": "各准入档 f_gas 1→1/8 的 ΔX_C 与 P1.9-A 均匀 N=40 之比；中位 ≥3 记为恢复杠杆",
+    "M6": "linear vs exponential（L_mix=1 m）；需 linear 已准入且 exponential 过 M1-E"
+  },
+  "unit_checks_all_pass": true,
+  "n_adm": 0,
+  "admitted_L_mix": [],
+  "m1e_passed": false,
+  "source_csv": {
+    "p17d": {
+      "round": "p1.7d-20261103",
+      "file": "coal_reconciled_by_window.csv",
+      "sha256": "05b4172f9ee9d509dc6284ac94fdea56af40a9d7b638d8285c4232d962af6345"
+    },
+    "p18d": {
+      "round": "p1.8d-20261104",
+      "file": "carrier_by_window.csv",
+      "sha256": "38c7815de4affd3dd08797dcc935e73ec470d78516ea45fa59debcc33a148550"
+    },
+    "p19a_baseline": {
+      "round": "p1.9a-20261105",
+      "files": [
+        "mesh_runs.csv",
+        "leverage.csv"
+      ]
+    }
+  },
+  "outputs": [
+    "unit_checks.csv",
+    "mesh_params.csv",
+    "mesh_convergence.csv",
+    "admission.csv",
+    "m1e.json",
+    "leverage.csv",
+    "cells.csv",
+    "anchor_mix.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}

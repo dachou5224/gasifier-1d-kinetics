@@ -1,0 +1,6 @@
+L_mix,n_windows,n_converged,admitted,max_abs_dX_C_pp,max_abs_dT_K,max_abs_dCO2_vol,max_abs_dTpeak_K
+0.25,9,0,False,,,,
+0.5,9,0,False,,,,
+1.0,9,0,False,,,,
+2.0,9,0,False,,,,
+4.0,9,0,False,,,,
