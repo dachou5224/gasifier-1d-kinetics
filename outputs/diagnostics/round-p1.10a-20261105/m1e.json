@@ -1,0 +1,53 @@
+{
+  "L_mix": 1.0,
+  "n_converged": 0,
+  "n_windows": 9,
+  "passed": false,
+  "rows": [
+    {
+      "window_id": "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003",
+      "converged": false,
+      "reason": "completed / no_root"
+    },
+    {
+      "window_id": "R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",
+      "converged": false,
+      "reason": "completed / no_root"
+    },
+    {
+      "window_id": "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001",
+      "converged": false,
+      "reason": "completed / no_root"
+    },
+    {
+      "window_id": "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",
+      "converged": false,
+      "reason": "completed / no_root"
+    },
+    {
+      "window_id": "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004",
+      "converged": false,
+      "reason": "completed / cold_branch_T_at_lower_bound"
+    },
+    {
+      "window_id": "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",
+      "converged": false,
+      "reason": "completed / no_root"
+    },
+    {
+      "window_id": "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001",
+      "converged": false,
+      "reason": "cold_branch_T_at_lower_bound / no_root"
+    },
+    {
+      "window_id": "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002",
+      "converged": false,
+      "reason": "cold_branch_T_at_lower_bound / no_root"
+    },
+    {
+      "window_id": "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",
+      "converged": false,
+      "reason": "cold_branch_T_at_lower_bound / no_root"
+    }
+  ]
+}

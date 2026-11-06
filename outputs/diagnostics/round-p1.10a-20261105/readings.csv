@@ -1,0 +1,14 @@
+reading,L_mix,metric,value,threshold,pass,note
+M1,0.25,admitted,0.0,9.0,False,"9/9 窗同时满足四项阈值；max|ΔX_C|=nan pp, max|ΔT|=nan K, max|ΔCO2|=nan vol%, max|ΔTpeak|=nan K"
+M1,0.5,admitted,0.0,9.0,False,"9/9 窗同时满足四项阈值；max|ΔX_C|=nan pp, max|ΔT|=nan K, max|ΔCO2|=nan vol%, max|ΔTpeak|=nan K"
+M1,1.0,admitted,0.0,9.0,False,"9/9 窗同时满足四项阈值；max|ΔX_C|=nan pp, max|ΔT|=nan K, max|ΔCO2|=nan vol%, max|ΔTpeak|=nan K"
+M1,2.0,admitted,0.0,9.0,False,"9/9 窗同时满足四项阈值；max|ΔX_C|=nan pp, max|ΔT|=nan K, max|ΔCO2|=nan vol%, max|ΔTpeak|=nan K"
+M1,4.0,admitted,0.0,9.0,False,"9/9 窗同时满足四项阈值；max|ΔX_C|=nan pp, max|ΔT|=nan K, max|ΔCO2|=nan vol%, max|ΔTpeak|=nan K"
+M1_verdict,,n_admitted,0.0,2.0,False,准入档数决定 M2–M5 的可评估性（卡 3.2.1）
+M1_E,1.0,exponential_converged,0.0,9.0,False,L_mix=1 m 的 exponential 独立准入；不得由 linear 推断
+M6_gate,1.0,two_preconditions,0.0,1.0,False,(i) linear 该档已准入 且 (ii) exponential 通过 M1-E；缺一即不可评估
+M2,,assessable,0.0,1.0,,n_adm=0：不可评估（卡 3.2.1）
+M3,,assessable,0.0,1.0,,n_adm=0：不可评估（卡 3.2.1）
+M4,,assessable,0.0,1.0,,n_adm=0：不可评估（卡 3.2.1）
+M5,,assessable,0.0,1.0,,n_adm=0：不可评估（卡 3.2.1）
+STOP,,n_adm,0.0,0.0,False,无准入档：按卡 3.2.1 停止，不执行第 4 节

@@ -129,6 +129,30 @@ def resolve_pyrolysis_heat_model(op_conds: Mapping[str, Any]) -> str:
     )
 
 
+# 烧嘴近场 O2 混合口径（P1.10-A）。
+#   instant（缺省）：O2 全部随入口反应流进入，现行行为**逐位不变**。
+#   linear / exponential：入口 O2 作不反应旁流，按累计分数 F(z) 在 [0, L_mix] 内并入。
+OXYGEN_MIXING_INSTANT = "instant"
+OXYGEN_MIXING_LINEAR = "linear"
+OXYGEN_MIXING_EXPONENTIAL = "exponential"
+OXYGEN_MIXING_MODEL_DEFAULT = OXYGEN_MIXING_INSTANT
+VALID_OXYGEN_MIXING_MODELS = (
+    OXYGEN_MIXING_INSTANT,
+    OXYGEN_MIXING_LINEAR,
+    OXYGEN_MIXING_EXPONENTIAL,
+)
+
+
+def resolve_oxygen_mixing_model(op_conds: Mapping[str, Any]) -> str:
+    """解析 O2 混合口径。非法值直接报错，不静默退回缺省。"""
+    return _resolve_choice(
+        op_conds,
+        "OxygenMixingModel",
+        OXYGEN_MIXING_MODEL_DEFAULT,
+        VALID_OXYGEN_MIXING_MODELS,
+    )
+
+
 def heating_value_kj_kg(coal_props: Mapping[str, Any], key: str) -> float | None:
     """读取一个热值字段并归一到 kJ/kg；缺失返回 ``None``（不落到默认值）。"""
     raw = coal_props.get(key)

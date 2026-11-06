@@ -295,6 +295,11 @@ def reactor_element_flows(system: GasifierSystem, outlet: StateVector) -> dict[s
     coal_mol["H"] += 2.0 * moisture_mol_s
     coal_mol["O"] += moisture_mol_s
     inlet_gas = atoms_from_gas(system.cells[0].inlet.gas_moles)
+    # P1.10-A：OxygenMixingModel != "instant" 时入口 O2 是旁流，不在 cells[0].inlet 里，
+    # 但它是真实进料，必须计入入口氧原子（卡面：元素守恒检查须计入源项）。
+    o2_bypass = float(getattr(system, "o2_bypass_mol_s", 0.0) or 0.0)
+    if o2_bypass > 0.0:
+        inlet_gas["O"] = inlet_gas.get("O", 0.0) + 2.0 * o2_bypass
     outlet_gas = atoms_from_gas(outlet.gas_moles)
     outlet_solid = {element: 0.0 for element in ELEMENTS}
     outlet_solid["C"] = float(outlet.solid_mass) * float(outlet.carbon_fraction) / ELEMENT_KG_PER_MOL["C"]

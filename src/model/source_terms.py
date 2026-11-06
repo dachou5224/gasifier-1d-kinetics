@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import numpy as np
 from typing import Tuple
 
+from .physics import get_enthalpy_molar
+
 class SourceTerm(ABC):
     """
     Abstract Base Class for generic source terms in the conservation equations.
@@ -60,6 +62,85 @@ class EvaporationSource(SourceTerm):
 
         gas_src[7] = self.water_flow * frac
         energy_src = self.water_flow * frac * self.h_liq
+        return gas_src, solid_src, energy_src
+
+
+class OxygenMixingSource(SourceTerm):
+    """P1.10-A 烧嘴近场 O2 分布式进入（``OxygenMixingModel`` ∈ {linear, exponential}）。
+
+    物理图像：反应流在 z = 0 只含煤、载气与热解产物；入口 O2 作为**不反应的旁流**，
+    按累计分数 ``F(z)`` 逐格并入反应流，到 ``z = L_mix`` 全部并入。
+
+        F_linear(z)      = min(z / L_mix, 1)
+        F_exponential(z) = 1 − exp(−z / λ)，λ = L_mix / 3，且 z ≥ L_mix 时取 1
+
+    第 i 格的并入量 = ``F_O2_in × [F(z_i,out) − F(z_i,in)]``。
+
+    关于 exponential 的两个量必须分清（2026-11-05 卡面第 2 节检查 4）：
+
+    - ``F`` 在 ``L_mix`` 的**左极限** = ``1 − exp(−3)`` ≈ 95.02%（连续部分已注入的量）
+    - ``F`` 在 ``L_mix`` 的**右侧值** = 1，因此有一个**阶跃分量** ``exp(−3)`` ≈ 4.98%
+      落在下游边界恰为 ``L_mix`` 的那一格
+
+    该边界格的**总源项**是「连续部分 + 阶跃」= ``exp(−3·(1 − dz0/L_mix))``，
+    在 ``dz0 = L_mix/40`` 时为 5.37%，**不是** 4.98%。把总源项当作 ``exp(−3)`` 会
+    使全炉 Σ 源项只到 95.02%，破坏守恒；``exp(−3)`` 指阶跃分量。
+
+    能量源项 = 该份 O2 在**入口温度**下的摩尔焓（旁流不升温，这是本卡的显式简化）。
+    并入后的 O2 与反应流同温，差额由能量方程承担。
+    """
+
+    MODEL_LINEAR = "linear"
+    MODEL_EXPONENTIAL = "exponential"
+
+    def __init__(self, o2_flow_mol_s: float, L_mix_m: float, model: str,
+                 T_in_K: float, enthalpy_j_per_mol: float | None = None):
+        self.F_O2_in = float(o2_flow_mol_s)
+        self.L_mix = max(float(L_mix_m), 1e-12)
+        self.model = str(model).lower()
+        if self.model not in (self.MODEL_LINEAR, self.MODEL_EXPONENTIAL):
+            raise ValueError(
+                f"OxygenMixingSource 不支持 model={model!r}；"
+                f"应为 {self.MODEL_LINEAR!r} 或 {self.MODEL_EXPONENTIAL!r}"
+            )
+        self.T_in = float(T_in_K)
+        self.lam = self.L_mix / 3.0 if self.model == self.MODEL_EXPONENTIAL else None
+        self.h_O2 = (float(enthalpy_j_per_mol) if enthalpy_j_per_mol is not None
+                     else get_enthalpy_molar("O2", self.T_in))
+
+    def F(self, z: float) -> float:
+        """累计并入分数。z ≤ 0 → 0；z ≥ L_mix → 1（右侧值，含 exponential 的阶跃）。"""
+        if z <= 0.0:
+            return 0.0
+        if z >= self.L_mix:
+            return 1.0
+        if self.model == self.MODEL_LINEAR:
+            return min(z / self.L_mix, 1.0)
+        return 1.0 - np.exp(-z / self.lam)
+
+    def continuous_F(self, z: float) -> float:
+        """连续部分（不含 L_mix 处阶跃分量），仅用于审计与检查 4 的分段核对。"""
+        if z <= 0.0:
+            return 0.0
+        if self.model == self.MODEL_LINEAR:
+            return min(z / self.L_mix, 1.0)
+        return 1.0 - np.exp(-z / self.lam)
+
+    def cell_fraction(self, z: float, dz: float) -> float:
+        z_in = z - 0.5 * float(dz)
+        z_out = z + 0.5 * float(dz)
+        return float(self.F(z_out) - self.F(z_in))
+
+    def get_sources(self, cell_idx: int, z: float, dz: float) -> Tuple[np.ndarray, float, float]:
+        gas_src = np.zeros(8)
+        solid_src = 0.0
+        energy_src = 0.0
+        frac = self.cell_fraction(z, dz)
+        if frac <= 0.0:
+            return gas_src, solid_src, energy_src
+        flow = self.F_O2_in * frac
+        gas_src[0] = flow
+        energy_src = flow * self.h_O2
         return gas_src, solid_src, energy_src
 
 
