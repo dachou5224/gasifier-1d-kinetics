@@ -251,6 +251,16 @@ class GasifierSystem:
                 raise ValueError(
                     f"OxygenMixingLength_m 必须为有限正数，得到 {L_mix_raw!r}"
                 )
+            # P1.10-A 审阅意见：L_mix 超过反应器长度时，F(z) 到出口仍 < 1，
+            # 旁流会有一部分**永远没有并入**；但入口元素账本计的是全部旁流，
+            # 于是 O2 静默丢失且守恒检查会显示一个假的"闭合"。这里直接拒绝。
+            L_reactor = float(self.geometry["L"])
+            if L_mix_val > L_reactor * (1.0 + 1e-12):
+                raise ValueError(
+                    f"OxygenMixingLength_m={L_mix_val} 超过反应器长度 L={L_reactor}；"
+                    "此时 F(L) < 1，部分旁流 O2 永远不并入，元素守恒会被破坏。"
+                    "请给出 L_mix <= L，或改用其它混合描述。"
+                )
             self.o2_mixing_length_m = L_mix_val
         gas = np.zeros(8); gas[3]=F_CO2; gas[6]=F_N2; gas[7]=F_st
         if self.o2_mixing_model == OXYGEN_MIXING_INSTANT:
@@ -320,6 +330,18 @@ class GasifierSystem:
                 "Use MeshFamily='uniform_full_length' for paper rounds, or set "
                 "AllowTruncatedMesh=True to reproduce legacy (truncated) rounds."
             )
+        # P1.10-A 审阅意见（第二条防线）：即使 L_mix <= L，若网格在 L_mix 之前就结束
+        # （例如截断网格或块覆盖不足），同样会留下未并入的旁流。这里核一次覆盖。
+        if resolve_oxygen_mixing_model(self.op_conds) != OXYGEN_MIXING_INSTANT:
+            L_mix_cfg = float(self.op_conds.get("OxygenMixingLength_m", float("nan")))
+            z_end = float(np.sum(dz_list))
+            if not np.isfinite(L_mix_cfg):
+                raise ValueError("OxygenMixingLength_m 未给出或非有限")
+            if z_end < L_mix_cfg * (1.0 - 1e-12):
+                raise ValueError(
+                    f"网格末端 z={z_end:.6f} m 小于 OxygenMixingLength_m="
+                    f"{L_mix_cfg:.6f} m：旁流 O2 无法全部并入，元素守恒会被破坏。"
+                )
         # 每轮求解的接受状态与逐单元诊断（P1.5-A B2/B5/B6）
         self.solve_stats = {"fallback_count": 0, "poor_convergence_count": 0}
         self.cell_diagnostics = []

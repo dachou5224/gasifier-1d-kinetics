@@ -184,10 +184,17 @@ def unit_checks(window_ids, by_id, p17d, p18d) -> pd.DataFrame:
     })
 
     # ---- 检查 2：Σ 源项 = 入口 O2 ----
+    # 注意：Σ 只能覆盖**已求解**的格。若求解提前停止（no_root / 冷支），
+    # Σ 会小于入口而看起来"守恒失败"；这不是模型错，但也不能当作通过。
+    # 因此下面同时断言 execution_status == completed 且诊断行数等于网格格数，
+    # 否则该行记 fail 并写明原因（P1.10-A 审阅意见）。
     for l_mix in (0.5, 1.0, 2.0):
         for model in ("linear", "exponential"):
             rec = _run(OxygenMixingModel=model, OxygenMixingLength_m=l_mix)
             sysm: GasifierSystem = rec["_system"]
+            st = _branch_status(rec, sysm)
+            n_solved = len(sysm.cell_diagnostics)
+            completed = (st == "completed")
             tot = float(sum(float(d.get("o2_src_mol_s", 0.0) or 0.0)
                             for d in sysm.cell_diagnostics))
             ref = float(sysm.o2_bypass_mol_s)
@@ -198,9 +205,29 @@ def unit_checks(window_ids, by_id, p17d, p18d) -> pd.DataFrame:
                 "metric": "sum_o2_src_over_inlet_o2_minus_1",
                 "expect": 0.0, "tolerance": TOL_O2_SUM_REL,
                 "value": rel,
-                "pass": bool(rel < TOL_O2_SUM_REL),
-                "note": f"Σ={tot:.6f} / 入口={ref:.6f} mol/s",
+                "pass": bool(completed and rel < TOL_O2_SUM_REL),
+                "note": f"Σ={tot:.6f} / 入口={ref:.6f} mol/s；状态={st}，已解 {n_solved} 格"
+                        + ("" if completed else "；求解未完成，Σ 不覆盖全炉，不能作为守恒通过"),
             })
+    # ---- 检查 2b：L_mix 超过反应器长度必须报错（审阅意见）----
+    L_reactor = 10.3
+    try:
+        _run(OxygenMixingModel="linear", OxygenMixingLength_m=L_reactor * 2.0)
+        guard_ok = False
+        guard_note = "L_mix=2L 未被拒绝：旁流 O2 会静默丢失"
+    except ValueError as exc:
+        guard_ok = True
+        guard_note = f"L_mix=2L 被拒绝：{str(exc)[:60]}…"
+    rows.append({
+        "check": "2b",
+        "context": "L_mix = 2 × L（应拒绝）",
+        "metric": "raises_on_L_mix_gt_L",
+        "expect": 1.0, "tolerance": 0.0,
+        "value": 1.0 if guard_ok else 0.0,
+        "pass": bool(guard_ok),
+        "note": guard_note,
+    })
+
     # 元素守恒（O 原子）：卡面要求「与 P1.9-A 同量级」，因此以同一轮测得的基线为标尺，
     # 不用拍定的绝对阈值（基线自身 O 闭合就有 ~1e-5 量级的离散残差）。
     base_o = []
@@ -1005,11 +1032,15 @@ def _extinction_section() -> list[str]:
              "10% 只有 3/9 窗返回完成且温度 ≤335 K，5% 与 2.5% 全部 `no_root`。"
              "卡面 M1 网格（`L_mix/20`、`L_mix/40`）整体落在熄火区，"
              "因此 **M1 无法在本模型的这一实现下评估**，`n_adm` = 0。\n")
-    L.append("**锚点提供了独立佐证**：同一混合模型在 Fortran 几何上（煤流小 3 个数量级）"
-             "对 `L_mix` = 0.5、0.75 m 是**收敛的**，`dz0 = L_mix/20`（同样是 5% 份额）却仍能点火。"
-             "所以阈值取决于「单格放热 ÷ 整股固体的热容流率」，而不是份额本身——"
-             "装置工况 `W_dry` ≈ 19 kg/s 与锚点差三个量级，正是差别所在。"
-             "这排除了「代码写错」的可能，把结论锁定在机理上。\n")
+    L.append("**锚点是支持性证据，但不是充分证明。** 同一混合模型在 Fortran 几何上"
+             "（煤流小 3 个数量级）对 `L_mix` = 0.5、0.75 m 是收敛的，`dz0 = L_mix/20`"
+             "（同为 5% 份额）仍能点火。这与「单格放热 ÷ 整股固体热容流率」的机理一致，"
+             "因此排除了「装置工况下单纯是代码写错」这一解释；"
+             "但锚点与装置算例的**几何、煤流、氧量同时不同**，它不是受控对照，"
+             "**不能据此断言机理已被完全确定**——求解器行为（初值路径、严格根判据）"
+             "与实现细节仍可能是贡献项。本报告把结论限定为："
+             "在本模型这一实现下，稀释型混合使装置工况无法点火；"
+             "更细的归因需要受控实验（固定煤流、只改份额）另行确认。\n")
     L.append("### 这不是调参问题，是「稀释」与「点火」的冲突\n")
     L.append("卡面的混合模型是**把 O2 摊薄到 `L_mix` 上**。摊薄降低了每一格的可燃比与放热集中度，"
              "而一维模型里点火恰恰要求某一格内放热足以把整股固体加热。"
@@ -1189,9 +1220,9 @@ def main() -> None:
                               "files": ["mesh_runs.csv", "leverage.csv"]},
         },
         "outputs": ["unit_checks.csv", "mesh_params.csv", "mesh_convergence.csv",
-                    "admission.csv", "m1e.json", "leverage.csv", "cells.csv",
-                    "anchor_mix.csv", "readings.csv", "protocol.json",
-                    "interpretation.md", "sha256.txt"],
+                    "admission.csv", "m1e.json", "ignition_share_scan.csv",
+                    "leverage.csv", "cells.csv", "anchor_mix.csv", "readings.csv",
+                    "protocol.json", "interpretation.md", "sha256.txt"],
     })
 
     text = interpretation(unit_df, params, m1, adm, m1e, lev, rd, anchor_df)
