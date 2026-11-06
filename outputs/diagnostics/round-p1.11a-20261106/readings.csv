@@ -60,6 +60,12 @@ W5,6.0,median_abs_dX_C_pp,1.7914156529499903,,,f_gas 1→1/8，9 窗中位；有
 W5,6.0,median_of_window_ratios,3.443588766829985,3.0,True,**卡面判据**：逐窗 ΔX_C 与 P1.8-A 同窗 ΔX_C 之比，再取中位
 W5,6.0,ratio_of_medians_report_only,3.624596598337628,,,口径对照（median/median），仅供参考，不参与判定
 W5_verdict,,max_median_of_window_ratios,3.443588766829985,3.0,True,各准入档逐窗比中位的最大者是否 ≥3
+W5_samples,0.2575,n_effective,9.0,9.0,True,零参考窗口 0；排除 0
+W5_samples,0.5,n_effective,9.0,9.0,True,零参考窗口 0；排除 0
+W5_samples,1.0,n_effective,9.0,9.0,True,零参考窗口 0；排除 0
+W5_samples,2.0,n_effective,9.0,9.0,True,零参考窗口 0；排除 0
+W5_samples,4.0,n_effective,9.0,9.0,True,零参考窗口 0；排除 0
+W5_samples,6.0,n_effective,9.0,9.0,True,零参考窗口 0；排除 0
 W6,,T_wsr_min_K,2515.5038336430257,,,
 W6,,T_wsr_max_K,2753.0857731957262,,,
 W6,,n_rows_with_limit_binding,54.0,54.0,,全混区内有限幅绑定的行数（行数 = 准入档 × 9 窗）
