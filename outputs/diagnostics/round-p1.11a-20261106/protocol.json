@@ -1,0 +1,107 @@
+{
+  "round": "P1.11-A / 2026-11-06",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "82dd4f069b24cb3e4828ac83db114bef1b3914e5",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.11a-20261106.md",
+  "structure": {
+    "mesh_family": "wsr_plus_pfr",
+    "rule": "dz[0] = L_wsr（全混流区）；RL = L − L_wsr；n_full = floor(RL/dz_down)；rem > 1e-12 时追加末格 = rem；N = 1 + n_full + (rem ? 1 : 0)",
+    "wsr_is_physical": "首格长度不随 dz_down 改变；卡面要求其状态逐位不变（W1 内检查）",
+    "downstream_note": "下游每格仍是 CSTR，因此是串联 CSTR（tanks-in-series），加密使其逼近平推流；W1 检验该近似是否收敛"
+  },
+  "frozen": [
+    "OxygenMixingModel = instant",
+    "hhv_percent",
+    "煤量主口径",
+    "实测载气",
+    "全部速率式与限幅",
+    "燃烧区判据阈值 0.05 atm",
+    "求解器容差"
+  ],
+  "dz_dependence": {
+    "file": "dz_dependence.md",
+    "verdict": "无任何一项在格内做轴向积分，卡第 1 节停止条件不触发",
+    "declared_approximations": [
+      "大格用单一 τ 会高估颗粒-气体热弛豫（停留时间分布实际较宽）",
+      "大格内温度被视为均匀（热损权重与颗粒温度都用出口温度）"
+    ]
+  },
+  "predeclared": {
+    "W1": "dz_down 0.0515 vs 0.02575：|ΔX_C|<0.2 pp、|ΔT|<5.0 K、|ΔCO2|<0.2 vol%；同时检查全混区状态逐位不变",
+    "W2": "准入档最小 vs 最大 L_wsr 的 Δ（9 窗中位与范围）",
+    "W3": "L_wsr 增大时 X_C 是否下降、CO2 是否上升；逐窗符号",
+    "W4": "是否有准入 L_wsr（含线性插值）使某窗 X_C 与装置主口径差 ≤1 pp",
+    "W5": "各准入档 f_gas 1→1/8 的 ΔX_C 与 P1.8-A 均匀 N=40 之比；中位 ≥3 记为恢复杠杆",
+    "W6": "全混区温度范围、限幅绑定比例、多解情况"
+  },
+  "statistic_definitions": {
+    "W5_ratio": "逐窗配对求比后取中位（median of ratios）——卡面判据。配对键：同 window_id、同 HeatLossPercent、同 f_gas 两端点、均完成求解。参考杠杆≈0（≤1e-12）的窗口单独计数并排除，不计入中位。同时报告 median/median 作对照，但不参与判定。",
+    "W1_scope": "W1 是测试网格对（dz_down 0.0515 vs 0.02575）之间的差值判据，只说明该区间内加密不再改变出口；不等于已达平推流极限，也不构成「整炉网格独立由结构保证」的结论。首格状态对 dz_down 不变是该离散结构的性质（首格长度固定、顺序求解），不是验证结果。"
+  },
+  "root_rule": {
+    "cost_tol": 1e-10,
+    "cluster_K": 10.0,
+    "flame_T_K": 1500.0,
+    "stop": "两个以上 >1500 K 的根 → 列出并停止该窗，不自动挑选"
+  },
+  "unit_checks_all_pass": true,
+  "n_adm": 6,
+  "admitted_L_wsr": [
+    0.2575,
+    0.5,
+    1.0,
+    2.0,
+    4.0,
+    6.0
+  ],
+  "extra_level": {
+    "L_wsr_m": 6.0,
+    "card_rule": "若 W4 最优点落在 4 m 边界，只追加一档 L_wsr = 6 m（先做该档 W1）",
+    "execution_deviation": "本轮实现于 W4 判定之前即追加（原条件仅要求 4 m 已被准入）；事后核实 4 m 确为 W4 有效最优点（1/9 窗到达、中位偏差最小），故卡面追加条件成立，6 m 属允许的额外一档，阈值与判读不受影响。脚本已改为先判 W4 再追加，供复现。"
+  },
+  "source_csv": {
+    "p17d": {
+      "round": "p1.7d-20261103",
+      "file": "coal_reconciled_by_window.csv",
+      "sha256": "05b4172f9ee9d509dc6284ac94fdea56af40a9d7b638d8285c4232d962af6345"
+    },
+    "p18d": {
+      "round": "p1.8d-20261104",
+      "file": "carrier_by_window.csv",
+      "sha256": "38c7815de4affd3dd08797dcc935e73ec470d78516ea45fa59debcc33a148550"
+    },
+    "p18a_baseline": {
+      "round": "p1.8a-20261104",
+      "file": "scan.csv"
+    }
+  },
+  "outputs": [
+    "dz_dependence.md",
+    "unit_checks.csv",
+    "roots.csv",
+    "downstream_convergence.csv",
+    "admission.csv",
+    "leverage.csv",
+    "cells.csv",
+    "anchor_wsr.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}

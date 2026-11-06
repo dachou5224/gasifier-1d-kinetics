@@ -1,0 +1,113 @@
+check,context,metric,expect,tolerance,value,pass,note
+1,L_wsr = dz_down = 0.2575 m,mesh_bitwise_equal_uniform_N40,1.0,0.0,1.0,True,N=40，Σdz−L=0.00e+00
+1,L_wsr = dz_down = 0.2575，9 窗出口量,max_abs_outlet_diff_vs_uniform_N40,0.0,1e-12,0.0,True,网格逐位相同时求解结果必须逐位相同
+2,"L_wsr=0.2575, dz_down=0.2575",sum_dz_rel_error,0.0,1e-12,0.0,True,N=40，末格=0.000000
+2,"L_wsr=0.2575, dz_down=0.103",sum_dz_rel_error,0.0,1e-12,0.0,True,N=99，末格=0.051500
+2,"L_wsr=0.2575, dz_down=0.0515",sum_dz_rel_error,0.0,1e-12,0.0,True,N=196，末格=0.000000
+2,"L_wsr=0.2575, dz_down=0.02575",sum_dz_rel_error,0.0,1e-12,0.0,True,N=391，末格=0.000000
+2,"L_wsr=0.5, dz_down=0.2575",sum_dz_rel_error,0.0,1e-12,0.0,True,N=40，末格=0.015000
+2,"L_wsr=0.5, dz_down=0.103",sum_dz_rel_error,0.0,1e-12,0.0,True,N=97，末格=0.015000
+2,"L_wsr=0.5, dz_down=0.0515",sum_dz_rel_error,0.0,1e-12,0.0,True,N=192，末格=0.015000
+2,"L_wsr=0.5, dz_down=0.02575",sum_dz_rel_error,0.0,1e-12,0.0,True,N=382，末格=0.015000
+2,"L_wsr=1.0, dz_down=0.2575",sum_dz_rel_error,0.0,1e-12,3.4492365813597096e-16,True,N=38，末格=0.030000
+2,"L_wsr=1.0, dz_down=0.103",sum_dz_rel_error,0.0,1e-12,0.0,True,N=92，末格=0.030000
+2,"L_wsr=1.0, dz_down=0.0515",sum_dz_rel_error,0.0,1e-12,0.0,True,N=182，末格=0.030000
+2,"L_wsr=1.0, dz_down=0.02575",sum_dz_rel_error,0.0,1e-12,0.0,True,N=363，末格=0.004250
+2,"L_wsr=2.0, dz_down=0.2575",sum_dz_rel_error,0.0,1e-12,1.7246182906798548e-16,True,N=34，末格=0.060000
+2,"L_wsr=2.0, dz_down=0.103",sum_dz_rel_error,0.0,1e-12,0.0,True,N=82，末格=0.060000
+2,"L_wsr=2.0, dz_down=0.0515",sum_dz_rel_error,0.0,1e-12,0.0,True,N=163，末格=0.008500
+2,"L_wsr=2.0, dz_down=0.02575",sum_dz_rel_error,0.0,1e-12,0.0,True,N=324，末格=0.008500
+2,"L_wsr=4.0, dz_down=0.2575",sum_dz_rel_error,0.0,1e-12,0.0,True,N=26，末格=0.120000
+2,"L_wsr=4.0, dz_down=0.103",sum_dz_rel_error,0.0,1e-12,1.7246182906798548e-16,True,N=63，末格=0.017000
+2,"L_wsr=4.0, dz_down=0.0515",sum_dz_rel_error,0.0,1e-12,1.7246182906798548e-16,True,N=124，末格=0.017000
+2,"L_wsr=4.0, dz_down=0.02575",sum_dz_rel_error,0.0,1e-12,5.173854872039564e-16,True,N=246，末格=0.017000
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.10722503243608571,True,rel=1.533e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.2300821956514705,True,rel=3.289e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.7995716212590167,True,rel=1.143e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.9381897922142475,True,rel=1.341e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.267754696339134,True,rel=3.828e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,1.0,True,rel=1.430e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.2563787704389996,True,rel=3.665e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.07832489261739436,True,rel=1.120e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.16600045881082243,True,rel=2.373e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P1__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.5963305517358947,True,rel=8.526e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.6290277253074941,True,rel=8.993e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.20566762394864213,True,rel=2.940e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.17261627052919415,True,rel=2.468e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.3601133220790586,True,rel=5.148e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.4644968904589808,True,rel=6.641e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.5058939153506891,True,rel=7.233e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.11412487746528775,True,rel=1.632e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.1611786200636326,True,rel=2.304e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.09918509145405856,True,rel=1.418e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P2__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.6817884341469279,True,rel=9.747e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.18666106208181765,True,rel=2.669e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.7633261124356113,True,rel=1.091e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.6494838804906008,True,rel=9.286e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.39951788856066045,True,rel=5.712e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.5516118461943361,True,rel=7.886e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.7722630756398707,True,rel=1.104e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.537171187080904,True,rel=7.680e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.30959488364958276,True,rel=4.426e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.11208518465593921,True,rel=1.602e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P3__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,1.414372772304354,True,rel=2.022e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.4388681157489858,True,rel=6.274e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.3721933124563899,True,rel=5.321e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,1.86653690426301,True,rel=2.669e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.9747464504201666,True,rel=1.394e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.34652028903666204,True,rel=4.954e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.5691212773689932,True,rel=8.137e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,2.998084060538317,True,rel=4.286e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,4.339310268097882,True,rel=6.204e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,2.1751411541236667,True,rel=3.110e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.09812784573745971,True,rel=1.403e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.2575（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.22325989171917635,True,rel=3.192e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=0.5（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.19849348143724632,True,rel=2.838e-06，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=1.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.977614799124019,True,rel=1.398e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=2.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,3.7445163879911947,True,rel=5.353e-05，基线 max=1.430e-05，状态=completed
+2,元素守恒 O，L_wsr=4.0（R52-C-75__P4__huayi_sy）,O_closure_rel_over_baseline_max,1.0,10.0,0.39442288719877755,True,rel=5.639e-06，基线 max=1.430e-05，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2708.8 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2719.0 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2711.3 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2679.5 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2618.3 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2707.1 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2720.1 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2714.4 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2683.5 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P1__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2622.8 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2727.7 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2746.2 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2744.2 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2714.3 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2649.3 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2735.5 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2753.1 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2750.4 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2719.9 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P2__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2653.4 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2738.9 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2753.1 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2747.9 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2715.6 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2648.8 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2727.2 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2740.8 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2735.2 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2702.7 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P3__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2638.2 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2655.0 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2664.3 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2657.0 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2628.3 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2570.4 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2648.0 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2658.0 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2651.3 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2623.1 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2566.0 K，状态=completed
+3,多解，L_wsr=0.2575（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2650.1 K，状态=completed
+3,多解，L_wsr=0.5（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2660.7 K，状态=completed
+3,多解，L_wsr=1.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2654.4 K，状态=completed
+3,多解，L_wsr=2.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2626.3 K，状态=completed
+3,多解，L_wsr=4.0（R52-C-75__P4__huayi_sy）,n_flame_roots_above_1500K,1.0,1.0,1.0,True,共 1 个根（按 10 K 聚类），其中 >1500 K 的有 1 个；选中根 T=2569.1 K，状态=completed

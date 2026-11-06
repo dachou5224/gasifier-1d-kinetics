@@ -29,11 +29,16 @@ class MeshConfig:
     #                            n_block = round(z_b/dz0)，其余格数 = N - n_block。
     #   "graded_block_tail"   —— P1.10-A（2026-11-05）：块内格数向上取整、余段用固定格长
     #                            平铺、不足一格做尾格。详见 AdaptiveMeshGenerator 内注释。
+    #   "wsr_plus_pfr"        —— P1.11-A（2026-11-06）：首格长度恰为 L_wsr（烧嘴近场全混流区），
+    #                            其后 [L_wsr, L] 用等长 dz_down 的串联 CSTR（末格吸收余数）。
     mesh_family: str = "legacy"
     graded_zone_length: Optional[float] = None
     graded_zone_dz: Optional[float] = None
     # 仅 "graded_block_tail" 使用：余段（块之后到 L）的目标格长。
     rest_cell_length: Optional[float] = None
+    # 仅 "wsr_plus_pfr" 使用：首格物理长度与下游格长。
+    wsr_length: Optional[float] = None
+    pfr_dz: Optional[float] = None
 
 class AdaptiveMeshGenerator:
     """
@@ -137,6 +142,41 @@ class AdaptiveMeshGenerator:
                 dz_list[n_block:n_block + n_rest] = rest_dz
             if has_tail:
                 dz_list[n_block + n_rest] = tail
+        elif family == "wsr_plus_pfr":
+            # P1.11-A（2026-11-06 卡第 1 节）：烧嘴近场全混流区 + 下游串联格。
+            #   1  首格 dz[0] = L_wsr（体积 = A·L_wsr，即一个全混流区）
+            #   2  RL = L − L_wsr
+            #   3  n_full = floor(RL / dz_down + 1e-12)  ← 完整的 dz_down 格数
+            #   4  rem = RL − n_full·dz_down；rem > 1e-12 时追加末格 = rem
+            #   5  N = 1 + n_full + (rem > 1e-12 ? 1 : 0)
+            # 首格长度**不随网格加密改变**，这是卡面的核心要求：全混流区尺寸是物理参数。
+            # 下游格是串联 CSTR（tanks-in-series），加密使其逼近平推流。
+            wsr = self.cfg.wsr_length
+            dz_down = self.cfg.pfr_dz
+            if wsr is None or dz_down is None:
+                raise ValueError("wsr_plus_pfr 需要同时给出 wsr_length 与 pfr_dz")
+            wsr = float(wsr)
+            dz_down = float(dz_down)
+            if not (0.0 < wsr < L) or dz_down <= 0.0:
+                raise ValueError(
+                    f"wsr_plus_pfr 参数越界：L_wsr={wsr}, dz_down={dz_down}, L={L}"
+                )
+            RL = L - wsr
+            n_full = int(math.floor(RL / dz_down + 1e-12))
+            rem = RL - float(n_full) * dz_down
+            has_rem = bool(rem > 1e-12)
+            n_derived = 1 + n_full + (1 if has_rem else 0)
+            if int(N) != n_derived:
+                raise ValueError(
+                    "wsr_plus_pfr 的 N_cells 与构造不一致："
+                    f"调用方 N_cells={N}, 构造导出 N={n_derived} "
+                    f"(L_wsr={wsr}, dz_down={dz_down}, n_full={n_full}, rem={rem:.6e})"
+                )
+            dz_list[0] = wsr
+            if n_full > 0:
+                dz_list[1:1 + n_full] = dz_down
+            if has_rem:
+                dz_list[1 + n_full] = rem
         elif N > 2:
             # 0. First Cell (Tuyere / Inlet)
             # Use defined ignition zone length first step or a specific large inlet cell?

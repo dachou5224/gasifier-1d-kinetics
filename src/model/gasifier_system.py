@@ -316,6 +316,8 @@ class GasifierSystem:
             graded_zone_length=self.op_conds.get('GradedZoneLength'),
             graded_zone_dz=self.op_conds.get('GradedZoneDz'),
             rest_cell_length=self.op_conds.get('RestCellLength'),
+            wsr_length=self.op_conds.get('WSRLength_m'),
+            pfr_dz=self.op_conds.get('PFRCellLength_m'),
         )
         dz_list, self.z_positions = AdaptiveMeshGenerator(mesh_cfg).generate()
         # P1.5-A B1：网格必须铺满反应器。旧族在 3 <= N <= 20 时会被此断言拦下。
@@ -484,6 +486,8 @@ class GasifierSystem:
         if str(self.op_conds.get("MeshFamily", "legacy")).lower() in (
             "uniform_full_length",
             "graded_full_length",
+            "graded_block_tail",
+            "wsr_plus_pfr",
         ):
             cell_ops["L_heatloss_norm"] = max(float(self.geometry["L"]), 1e-9)
         else:
@@ -804,6 +808,14 @@ class GasifierSystem:
                 )
                 row["o2_src_mol_s"] = float(_src_tot[0])
                 row["pO2_criterion_atm"] = float(sol_state.P * (_o2_in / _f_tot) / 101325.0)
+                # P1.11-A：全混流区尺寸是物理参数，需要逐格记录驻留时间与持料量，
+                # 供 dz_dependence.md 量化「格长数米时是否仍是全混流」。
+                _v_g = float(snap["phys"]["v_g"])
+                _tau = float(cell.dz) / max(_v_g, 1e-12)
+                row["v_g_m_s"] = _v_g
+                row["tau_s"] = _tau
+                row["m_hold_kg"] = float(sol_state.solid_mass) * _tau
+                row["cell_volume_m3"] = float(cell.V)
             except Exception as exc:  # 诊断失败不改变求解结果
                 row["diagnostic_o2_error"] = f"{type(exc).__name__}: {exc}"
             # P1.8-A：fortran_wall 下逐单元的 hloss / tw / tg（只记录，不改求解）
