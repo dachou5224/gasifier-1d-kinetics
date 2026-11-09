@@ -909,13 +909,18 @@ def main() -> None:
         alloc = pd.read_csv(OUT_DIR / "alloc_sensitivity.csv")
         inputs = pd.read_csv(OUT_DIR / "input_sensitivity.csv")
         jac = pd.read_csv(OUT_DIR / "jacobian.csv")
+        # 不能硬编码 True：检查 4 未通过时这里必须如实为 False
+        gate = unit_df[unit_df["pass"].notna()]
+        unit_pass = bool(gate["pass"].astype(bool).all())
+        hard = unit_df[(unit_df["check"].astype(str).isin(["1", "2", "3"]))
+                       & unit_df["pass"].notna()]
+        hard_pass = bool(hard["pass"].astype(bool).all())
         iters_df = globals().get("_ITERS")
         if iters_df is None or "HL_tot" not in iters_df.columns:
             iters_df = scan.dropna(subset=["hloss_iters"]).rename(
                 columns={"hloss_iters": "iters", "hloss_sum_rel_err": "sum_rel",
                          "execution_status": "status", "HL_tot_pct": "HL_tot"})
             iters_df = iters_df[["window_id", "L_wsr", "HL_tot", "iters", "sum_rel", "status"]]
-        unit_pass = True
     else:
         unit_df = unit_checks(window_ids, by_id, p17d, p18d)
         unit_df.to_csv(OUT_DIR / "unit_checks.csv", index=False)

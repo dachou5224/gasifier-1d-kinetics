@@ -1,7 +1,7 @@
 {
   "round": "P1.12-A / 2026-11-06",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "a6490f76a20e3b660c6c5e0a1ed25bb827cc5eff",
+  "source_commit": "d97d8e6c7228804c754d47e002ea3d210c6bb859",
   "mesh_family": "uniform_full_length",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -91,7 +91,7 @@
     "K7": "到达点附近两种口径的 ξ、残差、氢账本；Mt 4% 的影响",
     "K8": "total_percent 与 total_percent_uniform 在 HL_tot=1% 下的出口差"
   },
-  "unit_checks_all_pass": true,
+  "unit_checks_all_pass": false,
   "source_csv": {
     "p17d": {
       "round": "p1.7d-20261103",
