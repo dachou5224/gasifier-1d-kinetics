@@ -6,27 +6,27 @@ Status: `EXECUTED — model repo`
 
 ## 0. 结构与热损模型
 
-结构冻结为 `wsr_plus_pfr`、`dz_down` = 0.0515 m、`OxygenMixingModel = instant`。热损改为**整炉总量**：`Q_tot = HL_tot/100 × m_dry × HHV_d`（**干煤**口径），逐格按 `w_i = dz_i·clip((T_i/1800)^4, 0.1, 5)` 归一化分配。逐格推进的求解器在解第 i 格时不知道下游温度，因此 T 权重来自**上一轮全炉温度场**，外层不动点迭代至 `|ΣQ−Q_tot|/Q_tot < 1e-6` 且未松弛残差 `max|(w_new−w)/w| < 1e-4`，最多 30 轮。欠松弛只用于推进迭代。本轮 450 行扫描在代码修正前用的是松弛步残差；检查 4 把权重容差收紧 100 倍只移动 0.039 K，X_C 结论在 0.1 pp 量级不受影响，故未重跑主扫描。
+结构冻结为 `wsr_plus_pfr`、`dz_down` = 0.0515 m、`OxygenMixingModel = instant`。热损改为**整炉总量**：`Q_tot = HL_tot/100 × m_dry × HHV_d`（**干煤**口径），逐格按 `w_i = dz_i·clip((T_i/1800)^4, 0.1, 5)` 归一化分配。逐格推进的求解器在解第 i 格时不知道下游温度，因此 T 权重来自**上一轮全炉温度场**，外层不动点迭代至 `|ΣQ−Q_tot|/Q_tot < 1e-6` 且未松弛残差 `max|(w_new−w)/w| < 1e-4`，最多 30 轮。欠松弛只用于推进迭代。本轮扫描与判读均用该未松弛判据重跑；逐行 `hloss_raw_dw` 写入 scan.csv。
 
 `total_percent_uniform` 是同总量的对照：`w_i = dz_i`，无需迭代，`ΣQ` 逐位等于 `Q_tot`（第 2 节检查 2）。
 
 ## 1. 单元检查（卡第 2 节）
 
-- 共 19 项，全部通过：**False**
+- 共 30 项，全部通过：**False**
   - 检查 1：1/1 通过
   - 检查 2：4/4 通过
-  - 检查 3：10/10 通过
-  - 检查 3b：1/1 通过
+  - 检查 3：20/20 通过
+  - 检查 3b：2/2 通过
   - 检查 4：0/3 通过
 
 ### 迭代轮数分布（主扫描全量）
 
 | L_wsr | HL_tot | min | median | max |
 |---|---|---|---|---|
-| 0 | 0 | 3 | 4 | 6 |
+| 0 | 0 | 3 | 4 | 7 |
 | 0 | 1 | 4 | 4 | 6 |
-| 0 | 2 | 5 | 5 | 7 |
-| 0 | 3 | 5 | 5 | 6 |
+| 0 | 2 | 5 | 5 | 8 |
+| 0 | 3 | 5 | 5 | 7 |
 | 0 | 4 | 6 | 6 | 10 |
 | 1 | 0 | 4 | 4 | 6 |
 | 1 | 1 | 4 | 4 | 5 |
@@ -34,12 +34,12 @@ Status: `EXECUTED — model repo`
 | 1 | 3 | 5 | 5 | 6 |
 | 1 | 4 | 5 | 6 | 8 |
 | 2 | 0 | 4 | 4 | 6 |
-| 2 | 1 | 4 | 4 | 7 |
+| 2 | 1 | 4 | 4 | 10 |
 | 2 | 2 | 4 | 5 | 5 |
 | 2 | 3 | 5 | 5 | 5 |
 | 2 | 4 | 5 | 6 | 6 |
 | 4 | 0 | 3 | 4 | 5 |
-| 4 | 1 | 4 | 4 | 6 |
+| 4 | 1 | 4 | 4 | 8 |
 | 4 | 2 | 4 | 4 | 5 |
 | 4 | 3 | 4 | 5 | 5 |
 | 4 | 4 | 5 | 5 | 5 |
@@ -50,6 +50,7 @@ Status: `EXECUTED — model repo`
 | 6 | 4 | 5 | 5 | 5 |
 
 - 最终 `|ΣQ−Q_tot|/Q_tot` 最大 5.61e-16（450 行全部须 < 1e-06）
+- 最终未松弛 `max|(w_new−w)/w|` 最大 9.946e-05（450 行全部须 < 0.0001）
 - 状态分布：{'completed': 450}
 
 ## 2. K1–K8 结论
@@ -82,7 +83,7 @@ Status: `EXECUTED — model repo`
 | 1.0000 | dT_out_K_per_pct | -53.3653 | nan | None | 每 1% HL_tot 的变化（45 档线拟合，9 窗池化） |
 | 1.0000 | dCO2_vol_pct_per_pct | 0.6856 | nan | None | 每 1% HL_tot 的变化（45 档线拟合，9 窗池化） |
 | 4.0000 | dX_C_pp_per_pct | -1.5394 | nan | None | 每 1% HL_tot 的变化（45 档线拟合，9 窗池化） |
-| 4.0000 | dT_out_K_per_pct | -41.5297 | nan | None | 每 1% HL_tot 的变化（45 档线拟合，9 窗池化） |
+| 4.0000 | dT_out_K_per_pct | -41.5287 | nan | None | 每 1% HL_tot 的变化（45 档线拟合，9 窗池化） |
 | 4.0000 | dCO2_vol_pct_per_pct | 0.8566 | nan | None | 每 1% HL_tot 的变化（45 档线拟合，9 窗池化） |
 
 ### K3 可信热损下的到达（HL_tot ≤ 1%）
@@ -222,7 +223,7 @@ Status: `EXECUTED — model repo`
 | 1.0000 | median_dH2_closed_vol_pct::liu_phase::K3_neighborhood_HL1 | -2.6919 | nan | None | K3_neighborhood_HL1；闭合后 H2 残差 |
 | 1.0000 | median_H_ledger_h2only::liu_phase::K3_neighborhood_HL1 | 0.9710 | nan | None | K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢 |
 | 4.0000 | median_X_C_dev_pp | 6.3333 | nan | None | K3 邻域 HL_tot=1%，未到达 |
-| 4.0000 | median_xi_mol_s::analyzer::K3_neighborhood_HL1 | 98.9011 | nan | None | K3_neighborhood_HL1；n=9 |
+| 4.0000 | median_xi_mol_s::analyzer::K3_neighborhood_HL1 | 98.9110 | nan | None | K3_neighborhood_HL1；n=9 |
 | 4.0000 | median_dCO_closed_vol_pct::analyzer::K3_neighborhood_HL1 | -0.9912 | nan | None | K3_neighborhood_HL1；闭合后 CO 残差 |
 | 4.0000 | median_dH2_closed_vol_pct::analyzer::K3_neighborhood_HL1 | 0.8429 | nan | None | K3_neighborhood_HL1；闭合后 H2 残差 |
 | 4.0000 | median_H_ledger_h2only::analyzer::K3_neighborhood_HL1 | 1.0947 | nan | None | K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢 |

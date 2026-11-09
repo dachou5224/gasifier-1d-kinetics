@@ -12,9 +12,9 @@ K1_compare,,dT_out_K__unmatched_amplitude_ratio,0.6137564512245433,,,1−|Δ_new
 K2,1.0,dX_C_pp_per_pct,-1.114948292025033,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
 K2,1.0,dT_out_K_per_pct,-53.365289861262156,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
 K2,1.0,dCO2_vol_pct_per_pct,0.6856190833185938,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
-K2,4.0,dX_C_pp_per_pct,-1.5393548299103355,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
-K2,4.0,dT_out_K_per_pct,-41.52974094175123,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
-K2,4.0,dCO2_vol_pct_per_pct,0.8565621892379606,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
+K2,4.0,dX_C_pp_per_pct,-1.5393548299103184,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
+K2,4.0,dT_out_K_per_pct,-41.528679456772366,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
+K2,4.0,dCO2_vol_pct_per_pct,0.8565695298244903,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
 K3,0.2575,n_windows_within_1pp::HL0.5,0.0,0.0,False,9 窗中位偏差 +7.32 pp；|偏差|≤1 pp 的窗数 0/9
 K3,0.2575,n_windows_within_1pp::HL1,0.0,0.0,False,9 窗中位偏差 +7.03 pp；|偏差|≤1 pp 的窗数 0/9
 K3,1.0,n_windows_within_1pp::HL0.5,0.0,0.0,False,9 窗中位偏差 +7.32 pp；|偏差|≤1 pp 的窗数 0/9
@@ -71,19 +71,19 @@ K4,1.0,HL_tot_star_pct::22-10-11__W001,,,,偏差范围 +0.60…+6.37 pp；区间
 K4,2.0,HL_tot_star_pct::22-10-11__W001,3.82216789353842,,,偏差范围 -0.34…+6.29 pp；区间内插值
 K4,4.0,HL_tot_star_pct::22-10-11__W001,3.495017251137022,,,偏差范围 -1.10…+6.12 pp；区间内插值
 K4,6.0,HL_tot_star_pct::22-10-11__W001,3.2803144156882285,,,偏差范围 -1.61…+5.72 pp；区间内插值
-K5,,unit_hloss_dX_C_pp_per_pct,1.3271515609676843,,,K2 各档斜率 |ΔX_C| 的中位，用作输入扰动的等价换算
+K5,,unit_hloss_dX_C_pp_per_pct,1.3271515609676756,,,K2 各档斜率 |ΔX_C| 的中位，用作输入扰动的等价换算
 K5,,dX_C_pp::Mt_4,-0.07817667949931995,,,perturbed−baseline 中位；ΔT_out 中位 -25.34 K；ΔCO2 中位 +0.753 vol%
-K5,,equivalent_HL_tot_pct::Mt_4,0.05890561545383551,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,equivalent_HL_tot_pct::Mt_4,0.058905615453835894,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
 K5,,dX_C_pp::coal_x0.97,0.26696544151253443,,,perturbed−baseline 中位；ΔT_out 中位 +95.02 K；ΔCO2 中位 +0.769 vol%
-K5,,equivalent_HL_tot_pct::coal_x0.97,-0.20115670987711323,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,equivalent_HL_tot_pct::coal_x0.97,-0.20115670987711456,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
 K5,,dX_C_pp::coal_x1.03,-2.5063783356663705,,,perturbed−baseline 中位；ΔT_out 中位 -27.99 K；ΔCO2 中位 +0.084 vol%
-K5,,equivalent_HL_tot_pct::coal_x1.03,1.8885396433839556,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,equivalent_HL_tot_pct::coal_x1.03,1.8885396433839678,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
 K5,,dX_C_pp::o2_x0.97,-2.588363125744814,,,perturbed−baseline 中位；ΔT_out 中位 -32.74 K；ΔCO2 中位 +0.225 vol%
-K5,,equivalent_HL_tot_pct::o2_x0.97,1.9503146451920872,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,equivalent_HL_tot_pct::o2_x0.97,1.9503146451920998,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
 K5,,dX_C_pp::o2_x1.03,0.2669654415124012,,,perturbed−baseline 中位；ΔT_out 中位 +96.31 K；ΔCO2 中位 +0.611 vol%
-K5,,equivalent_HL_tot_pct::o2_x1.03,-0.20115670987701287,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,equivalent_HL_tot_pct::o2_x1.03,-0.20115670987701417,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
 K5_verdict,,K4_HL_tot_star_median_pct,3.489599369507827,,,K4 绝对水平（到达所需 HL_tot* 中位），不是局部增量
-K5_verdict,,local_increment_o2_x0.97_plus_coal_x1.03_pct,3.8388542885760426,,,两个单扰动局部增量之和（HL_tot=1% 线性外推，未做组合实测）
+K5_verdict,,local_increment_o2_x0.97_plus_coal_x1.03_pct,3.8388542885760675,,,两个单扰动局部增量之和（HL_tot=1% 线性外推，未做组合实测）
 K5_verdict,,o2_over_coal_ratio_change_if_both,-0.058252427184466105,,,O2×0.97 且煤×1.03 时氧煤比变化 = 0.97/1.03−1，超出 ≤3% 比偏差预算
 K5_verdict,,covers_K4_absolute,0.0,1.0,False,不能把局部增量与 K4 绝对水平相比；也不能把两个独立 ±3% 流量误差当成 ≤3% 氧煤比。O2−3% 的 ΔX_C=-2.59 pp（扰动−基准，下降），煤+3% 的 ΔX_C=-2.51 pp。两者与加热损同方向，使过预测缩小，但未回答卡面的 ≤3% 比偏差问题。
 K6,2.0,singular_value::SV1,2.678417045813346,,,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
@@ -120,7 +120,7 @@ K7,1.0,median_dCO_closed_vol_pct::liu_phase::K3_neighborhood_HL1,2.7819552671462
 K7,1.0,median_dH2_closed_vol_pct::liu_phase::K3_neighborhood_HL1,-2.691933597331289,,,K3_neighborhood_HL1；闭合后 H2 残差
 K7,1.0,median_H_ledger_h2only::liu_phase::K3_neighborhood_HL1,0.9710366800395613,,,K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢
 K7,4.0,median_X_C_dev_pp,6.333303039790195,,,K3 邻域 HL_tot=1%，未到达
-K7,4.0,median_xi_mol_s::analyzer::K3_neighborhood_HL1,98.9011080263657,,,K3_neighborhood_HL1；n=9
+K7,4.0,median_xi_mol_s::analyzer::K3_neighborhood_HL1,98.9109658662184,,,K3_neighborhood_HL1；n=9
 K7,4.0,median_dCO_closed_vol_pct::analyzer::K3_neighborhood_HL1,-0.9912117772929534,,,K3_neighborhood_HL1；闭合后 CO 残差
 K7,4.0,median_dH2_closed_vol_pct::analyzer::K3_neighborhood_HL1,0.8428649578918304,,,K3_neighborhood_HL1；闭合后 H2 残差
 K7,4.0,median_H_ledger_h2only::analyzer::K3_neighborhood_HL1,1.094673696597082,,,K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢

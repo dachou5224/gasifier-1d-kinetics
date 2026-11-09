@@ -1,7 +1,7 @@
 {
   "round": "P1.12-A / 2026-11-06",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "552f5926e84d7d178a45316159d497d266220b65",
+  "source_commit": "7eaa84ff9b3f8a0c29c1b42a5f4f1db6c42134a0",
   "mesh_family": "uniform_full_length",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -37,7 +37,7 @@
     ],
     "total_W": "Q_tot = HL_tot/100 × m_dry × HHV_d —— **干煤**口径，与 P1.9-D 汽包吸热同一分母",
     "allocation": "w_i = dz_i · clip((T_i/1800)^4, 0.1, 5)；Q_i = Q_tot·w_i/Σw",
-    "outer_iteration": "权重用上一轮全炉温度场；第 0 轮按长度均匀；收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且未松弛残差 max|(w_new−w)/w|<1e-4；欠松弛只用于推进；最多 30 轮；未收敛标 hloss_not_converged 并保留该轮解。本轮扫描证据仍用修正前的松弛步残差；检查 4 显示容差收紧 100 倍只移动 0.039 K",
+    "outer_iteration": "权重用上一轮全炉温度场；第 0 轮按长度均匀；收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且未松弛残差 max|(w_new−w)/w|<1e-4；欠松弛只用于推进；最多 30 轮；未收敛标 hloss_not_converged 并保留该轮解。本轮 scan/alloc/input/jac 均用未松弛判据重跑，逐行记录 hloss_raw_dw",
     "default_unchanged": "hhv_percent 逐位不变（检查 1）",
     "jax_guard": "JAX 路径遇 total_percent* 直接报错"
   },
