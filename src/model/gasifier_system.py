@@ -504,6 +504,10 @@ class GasifierSystem:
         self.heat_loss_iterations = int(iters) + 1
         self.heat_loss_history = hist
         self.heat_loss_converged = bool(converged)
+        last = hist[-1] if hist else {}
+        self.heat_loss_raw_dw = float(last.get("max_rel_dw", float("nan")))
+        self.heat_loss_step_dw = float(last.get("step_rel_dw", float("nan")))
+        self.heat_loss_alpha = float(last.get("alpha", float("nan")))
         # ΣQ / Q_tot 最终值
         Q_sum_final = float(sum(float(d.get("hloss_W", 0.0)) for d in self.cell_diagnostics))
         self.heat_loss_Q_sum_W = Q_sum_final

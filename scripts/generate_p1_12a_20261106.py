@@ -122,6 +122,9 @@ def _heatloss_fields(system: GasifierSystem, dry: float, hhv_kj: float) -> dict:
         "hloss_status": str(getattr(system, "hloss_status", "n/a")),
         "hloss_Q_sum_W": float(getattr(system, "heat_loss_Q_sum_W", float("nan"))),
         "hloss_Q_tot_W": float(getattr(system, "heat_loss_Q_tot_W", float("nan"))),
+        "hloss_raw_dw": float(getattr(system, "heat_loss_raw_dw", float("nan"))),
+        "hloss_step_dw": float(getattr(system, "heat_loss_step_dw", float("nan"))),
+        "hloss_alpha": float(getattr(system, "heat_loss_alpha", float("nan"))),
     }
     q_tot = out["hloss_Q_tot_W"]
     q_sum = out["hloss_Q_sum_W"]
@@ -280,8 +283,12 @@ def unit_checks(window_ids, by_id, p17d, p18d) -> pd.DataFrame:
             q_s = float(getattr(sysm, "heat_loss_Q_sum_W", float("nan")))
             q_t = float(getattr(sysm, "heat_loss_Q_tot_W", float("nan")))
             rel = abs(q_s - q_t) / max(abs(q_t), 1e-30) if np.isfinite(q_t) else float("nan")
+            raw_dw = float(getattr(sysm, "heat_loss_raw_dw", float("nan")))
+            converged = bool(getattr(sysm, "heat_loss_converged", False))
             iters_all.append({"L_wsr": l_wsr, "HL_tot": hl, "iters": it,
-                              "sum_rel": rel, "status": str(rec.get("execution_status")),
+                              "sum_rel": rel, "raw_dw": raw_dw,
+                              "status": str(rec.get("execution_status")),
+                              "hloss_status": str(getattr(sysm, "hloss_status", "")),
                               "window_id": wid0})
             rows.append({
                 "check": 3, "context": f"gate: L_wsr={l_wsr}, HL_tot={hl}%（{wid0[-14:]}）",
@@ -289,6 +296,13 @@ def unit_checks(window_ids, by_id, p17d, p18d) -> pd.DataFrame:
                 "tolerance": TOL_SUMQ_REL, "value": rel,
                 "pass": bool(np.isfinite(rel) and rel < TOL_SUMQ_REL),
                 "note": f"迭代 {it} 轮，状态={rec.get('execution_status')}",
+            })
+            rows.append({
+                "check": 3, "context": f"gate: L_wsr={l_wsr}, HL_tot={hl}%（{wid0[-14:]}）",
+                "metric": "raw_dw", "expect": 0.0,
+                "tolerance": TOL_DW_REL, "value": raw_dw,
+                "pass": bool(np.isfinite(raw_dw) and raw_dw < TOL_DW_REL and converged),
+                "note": f"未松弛残差；hloss_status={getattr(sysm, 'hloss_status', '')}",
             })
     globals()["_ITERS"] = pd.DataFrame(iters_all)
 
@@ -956,8 +970,7 @@ def interpretation(unit_df, scan, alloc, inputs, jac, rd, iters_df) -> str:
              "逐格推进的求解器在解第 i 格时不知道下游温度，因此 T 权重来自**上一轮全炉温度场**，"
              "外层不动点迭代至 `|ΣQ−Q_tot|/Q_tot < 1e-6` 且未松弛残差 "
              "`max|(w_new−w)/w| < 1e-4`，最多 30 轮。欠松弛只用于推进迭代。"
-             "本轮 450 行扫描在代码修正前用的是松弛步残差；检查 4 把权重容差收紧 100 倍只移动 "
-             "0.039 K，X_C 结论在 0.1 pp 量级不受影响，故未重跑主扫描。\n")
+             "本轮扫描与判读均用该未松弛判据重跑；逐行 `hloss_raw_dw` 写入 scan.csv。\n")
     L.append("`total_percent_uniform` 是同总量的对照：`w_i = dz_i`，无需迭代，"
              "`ΣQ` 逐位等于 `Q_tot`（第 2 节检查 2）。\n")
 
@@ -978,6 +991,9 @@ def interpretation(unit_df, scan, alloc, inputs, jac, rd, iters_df) -> str:
         L.append("")
         L.append(f"- 最终 `|ΣQ−Q_tot|/Q_tot` 最大 {float(iters_df['sum_rel'].max()):.2e}"
                  f"（{len(iters_df)} 行全部须 < {TOL_SUMQ_REL:g}）")
+        if "raw_dw" in iters_df.columns:
+            L.append(f"- 最终未松弛 `max|(w_new−w)/w|` 最大 {float(iters_df['raw_dw'].max()):.3e}"
+                     f"（{len(iters_df)} 行全部须 < {TOL_DW_REL:g}）")
         st = iters_df["status"].value_counts().to_dict()
         L.append(f"- 状态分布：{st}\n")
 
@@ -1176,10 +1192,14 @@ def main() -> None:
         hard_pass = bool(hard["pass"].astype(bool).all())
         iters_df = globals().get("_ITERS")
         if iters_df is None or "HL_tot" not in iters_df.columns:
-            iters_df = scan.dropna(subset=["hloss_iters"]).rename(
+            cols = ["window_id", "L_wsr", "HL_tot_pct", "hloss_iters",
+                    "hloss_sum_rel_err", "execution_status"]
+            if "hloss_raw_dw" in scan.columns:
+                cols.append("hloss_raw_dw")
+            iters_df = scan.dropna(subset=["hloss_iters"])[cols].rename(
                 columns={"hloss_iters": "iters", "hloss_sum_rel_err": "sum_rel",
-                         "execution_status": "status", "HL_tot_pct": "HL_tot"})
-            iters_df = iters_df[["window_id", "L_wsr", "HL_tot", "iters", "sum_rel", "status"]]
+                         "execution_status": "status", "HL_tot_pct": "HL_tot",
+                         "hloss_raw_dw": "raw_dw"})
     else:
         unit_df = unit_checks(window_ids, by_id, p17d, p18d)
         unit_df.to_csv(OUT_DIR / "unit_checks.csv", index=False)
@@ -1202,22 +1222,43 @@ def main() -> None:
         scan = main_scan(window_ids, by_id, p17d, p18d)
         scan.to_csv(OUT_DIR / "scan.csv", index=False)
         # 检查 3 的全量分布：从主扫描的逐行迭代记录汇总（与闸门同一判定口径）
-        iters_df = scan.dropna(subset=["hloss_iters"])[
-            ["window_id", "L_wsr", "HL_tot_pct", "hloss_iters",
-             "hloss_sum_rel_err", "execution_status"]].rename(
+        keep = ["window_id", "L_wsr", "HL_tot_pct", "hloss_iters",
+                "hloss_sum_rel_err", "execution_status"]
+        if "hloss_raw_dw" in scan.columns:
+            keep.append("hloss_raw_dw")
+        if "hloss_status" in scan.columns:
+            keep.append("hloss_status")
+        iters_df = scan.dropna(subset=["hloss_iters"])[keep].rename(
             columns={"hloss_iters": "iters", "hloss_sum_rel_err": "sum_rel",
-                     "execution_status": "status", "HL_tot_pct": "HL_tot"})
+                     "execution_status": "status", "HL_tot_pct": "HL_tot",
+                     "hloss_raw_dw": "raw_dw"})
         if not iters_df.empty:
-            full_ok = bool((iters_df["sum_rel"] < TOL_SUMQ_REL).all())
+            sum_ok = bool((iters_df["sum_rel"] < TOL_SUMQ_REL).all())
+            if "raw_dw" in iters_df.columns:
+                raw_ok = bool((iters_df["raw_dw"] < TOL_DW_REL).all())
+                max_raw = float(iters_df["raw_dw"].max())
+            else:
+                raw_ok = False
+                max_raw = float("nan")
+            n_hloss = int((scan.get("hloss_status", pd.Series(dtype=str))
+                           == "hloss_not_converged").sum()) if "hloss_status" in scan.columns else -1
+            full_ok = bool(sum_ok and raw_ok)
             unit_df = pd.concat([unit_df, pd.DataFrame([{
                 "check": "3b", "context": f"主扫描全量 {len(iters_df)} 行",
                 "metric": "max_sum_Q_rel_err", "expect": 0.0,
                 "tolerance": TOL_SUMQ_REL,
                 "value": float(iters_df["sum_rel"].max()),
-                "pass": full_ok,
+                "pass": sum_ok,
                 "note": f"迭代轮数 {int(iters_df['iters'].min())}–"
                         f"{int(iters_df['iters'].max())}；"
                         f"状态 {iters_df['status'].value_counts().to_dict()}",
+            }, {
+                "check": "3b", "context": f"主扫描全量 {len(iters_df)} 行，未松弛残差",
+                "metric": "max_raw_dw", "expect": 0.0,
+                "tolerance": TOL_DW_REL,
+                "value": max_raw,
+                "pass": raw_ok,
+                "note": f"hloss_not_converged={n_hloss}；判据 max|(w_new−w)/w| < {TOL_DW_REL:g}",
             }])], ignore_index=True)
             unit_df.to_csv(OUT_DIR / "unit_checks.csv", index=False)
         alloc = alloc_sensitivity(window_ids, by_id, p17d, p18d)
@@ -1226,7 +1267,7 @@ def main() -> None:
         inputs.to_csv(OUT_DIR / "input_sensitivity.csv", index=False)
         jac = jacobian(window_ids, by_id, p17d, p18d)
         jac.to_csv(OUT_DIR / "jacobian.csv", index=False)
-        iters_df = globals().get("_ITERS")
+        # 迭代分布用主扫描全量，不用单元检查闸门的 10 行 _ITERS
         if args.stage == "scan":
             return
 
@@ -1254,7 +1295,7 @@ def main() -> None:
             "outer_iteration": "权重用上一轮全炉温度场；第 0 轮按长度均匀；"
                                "收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且未松弛残差 max|(w_new−w)/w|<1e-4；"
                                "欠松弛只用于推进；最多 30 轮；未收敛标 hloss_not_converged 并保留该轮解。"
-                               "本轮扫描证据仍用修正前的松弛步残差；检查 4 显示容差收紧 100 倍只移动 0.039 K",
+                               "本轮 scan/alloc/input/jac 均用未松弛判据重跑，逐行记录 hloss_raw_dw",
             "default_unchanged": "hhv_percent 逐位不变（检查 1）",
             "jax_guard": "JAX 路径遇 total_percent* 直接报错",
         },
