@@ -1,42 +1,71 @@
 row_kind,param,value,note
-singular_value,SV1,62.855867314151304,
-singular_value,SV2,1.8170100712064756,
-singular_value,SV3,0.500212128884432,
-singular_value,SV4,0.0022059642648037192,
-condition_number,cond(J),28493.60178540519,最大/最小奇异值
-weakest_direction,L_wsr,0.976886104343663,与最小奇异值对应的参数组合（Vt 最后一行）
-weakest_direction,HL_tot,-0.014026216367933034,与最小奇异值对应的参数组合（Vt 最后一行）
-weakest_direction,ln_f_gas,0.21329977943332565,与最小奇异值对应的参数组合（Vt 最后一行）
-weakest_direction,o2_ratio,9.213227878159231e-05,与最小奇异值对应的参数组合（Vt 最后一行）
-corr,L_wsr~L_wsr,1.0,
-corr,L_wsr~HL_tot,-0.9904390856461911,
-corr,L_wsr~ln_f_gas,0.9998035365023137,
-corr,L_wsr~o2_ratio,0.889482423848892,
-corr,HL_tot~L_wsr,-0.9904390856462059,
-corr,HL_tot~HL_tot,1.0,
-corr,HL_tot~ln_f_gas,-0.9881981275666275,
-corr,HL_tot~o2_ratio,-0.8391268046623839,
-corr,ln_f_gas~L_wsr,0.9998035365023124,
-corr,ln_f_gas~HL_tot,-0.9881981275666114,
-corr,ln_f_gas~ln_f_gas,1.0,
-corr,ln_f_gas~o2_ratio,0.8932358632435997,
-corr,o2_ratio~L_wsr,0.8894824238488439,
-corr,o2_ratio~HL_tot,-0.8391268046623234,
-corr,o2_ratio~ln_f_gas,0.893235863243553,
-corr,o2_ratio~o2_ratio,1.0,
-J,d(L_wsr)/d(L_wsr),-0.09896221861112053,未缩放
-J,d(L_wsr)/d(HL_tot),-1.0402830643283778,未缩放
-J,d(L_wsr)/d(ln_f_gas),0.3596853905943931,未缩放
-J,d(L_wsr)/d(o2_ratio),52.840533728661754,未缩放
-J,d(HL_tot)/d(L_wsr),0.056103174755423035,未缩放
-J,d(HL_tot)/d(HL_tot),0.6224931258868738,未缩放
-J,d(HL_tot)/d(ln_f_gas),-0.21495804440072153,未缩放
-J,d(HL_tot)/d(o2_ratio),4.129629298861503,未缩放
-J,d(ln_f_gas)/d(L_wsr),-0.025091502230623064,未缩放
-J,d(ln_f_gas)/d(HL_tot),-0.6406115947142155,未缩放
-J,d(ln_f_gas)/d(ln_f_gas),0.07129421763053756,未缩放
-J,d(ln_f_gas)/d(o2_ratio),11.828998750566555,未缩放
-J,d(o2_ratio)/d(L_wsr),-0.05806343444789697,未缩放
-J,d(o2_ratio)/d(HL_tot),-0.02625379333604627,未缩放
-J,d(o2_ratio)/d(ln_f_gas),0.27123782002838936,未缩放
-J,d(o2_ratio)/d(o2_ratio),-11.50467215495663,未缩放
+param_scale,L_wsr,1.0,1 m
+param_scale,HL_tot,1.0,1 percentage point
+param_scale,ln_f_gas,2.0794415416798357,"ln(8) (f_gas ×8, the scan grid)"
+param_scale,o2_ratio,0.03,0.03 (K5 ±3%)
+singular_value,SV1,2.678417045813346,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+singular_value,SV2,1.674953734605298,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+singular_value,SV3,0.7803974134708563,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+singular_value,SV4,0.0022455719885611227,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+condition_number,cond(J),1192.7549236707277,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+weakest_direction,L_wsr,0.994426299921491,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+weakest_direction,HL_tot,-0.014279076199608512,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+weakest_direction,ln_f_gas,0.1044158594851711,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+weakest_direction,o2_ratio,0.0031257471606154904,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+singular_value_obs_only,SV1,62.855867314151304,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+singular_value_obs_only,SV2,1.8170100712064756,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+singular_value_obs_only,SV3,0.500212128884432,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+singular_value_obs_only,SV4,0.0022059642648037192,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+condition_number_obs_only,cond(J),28493.60178540519,native parameter units; not invariant under rescaling a column
+weakest_direction_obs_only,L_wsr,0.976886104343663,native parameter units; not invariant under rescaling a column
+weakest_direction_obs_only,HL_tot,-0.014026216367933034,native parameter units; not invariant under rescaling a column
+weakest_direction_obs_only,ln_f_gas,0.21329977943332565,native parameter units; not invariant under rescaling a column
+weakest_direction_obs_only,o2_ratio,9.213227878159231e-05,native parameter units; not invariant under rescaling a column
+corr,L_wsr~L_wsr,1.0,from obs+param scaled J
+corr,L_wsr~HL_tot,-0.9904390856461919,from obs+param scaled J
+corr,L_wsr~ln_f_gas,0.9998035365023127,from obs+param scaled J
+corr,L_wsr~o2_ratio,0.8894824238487777,from obs+param scaled J
+corr,HL_tot~L_wsr,-0.9904390856461887,from obs+param scaled J
+corr,HL_tot~HL_tot,1.0,from obs+param scaled J
+corr,HL_tot~ln_f_gas,-0.988198127566608,from obs+param scaled J
+corr,HL_tot~o2_ratio,-0.8391268046622223,from obs+param scaled J
+corr,ln_f_gas~L_wsr,0.999803536502313,from obs+param scaled J
+corr,ln_f_gas~HL_tot,-0.9881981275666113,from obs+param scaled J
+corr,ln_f_gas~ln_f_gas,1.0,from obs+param scaled J
+corr,ln_f_gas~o2_ratio,0.8932358632434895,from obs+param scaled J
+corr,o2_ratio~L_wsr,0.8894824238487841,from obs+param scaled J
+corr,o2_ratio~HL_tot,-0.8391268046622313,from obs+param scaled J
+corr,o2_ratio~ln_f_gas,0.8932358632434956,from obs+param scaled J
+corr,o2_ratio~o2_ratio,1.0000000000000002,from obs+param scaled J
+corr_obs_only,L_wsr~L_wsr,1.0,from obs-only scaled J
+corr_obs_only,L_wsr~HL_tot,-0.9904390856461911,from obs-only scaled J
+corr_obs_only,L_wsr~ln_f_gas,0.9998035365023137,from obs-only scaled J
+corr_obs_only,L_wsr~o2_ratio,0.889482423848892,from obs-only scaled J
+corr_obs_only,HL_tot~L_wsr,-0.9904390856462059,from obs-only scaled J
+corr_obs_only,HL_tot~HL_tot,1.0,from obs-only scaled J
+corr_obs_only,HL_tot~ln_f_gas,-0.9881981275666275,from obs-only scaled J
+corr_obs_only,HL_tot~o2_ratio,-0.8391268046623839,from obs-only scaled J
+corr_obs_only,ln_f_gas~L_wsr,0.9998035365023124,from obs-only scaled J
+corr_obs_only,ln_f_gas~HL_tot,-0.9881981275666114,from obs-only scaled J
+corr_obs_only,ln_f_gas~ln_f_gas,1.0,from obs-only scaled J
+corr_obs_only,ln_f_gas~o2_ratio,0.8932358632435997,from obs-only scaled J
+corr_obs_only,o2_ratio~L_wsr,0.8894824238488439,from obs-only scaled J
+corr_obs_only,o2_ratio~HL_tot,-0.8391268046623234,from obs-only scaled J
+corr_obs_only,o2_ratio~ln_f_gas,0.893235863243553,from obs-only scaled J
+corr_obs_only,o2_ratio~o2_ratio,1.0,from obs-only scaled J
+J,d(X_C_pp)/d(L_wsr),-0.09896221861112053,unscaled; X_C_pp in pp; L_wsr native unit
+J,d(X_C_pp)/d(HL_tot),-1.0402830643283778,unscaled; X_C_pp in pp; HL_tot native unit
+J,d(X_C_pp)/d(ln_f_gas),0.3596853905943931,unscaled; X_C_pp in pp; ln_f_gas native unit
+J,d(X_C_pp)/d(o2_ratio),52.840533728661754,unscaled; X_C_pp in pp; o2_ratio native unit
+J,d(CO2_vol_pct)/d(L_wsr),0.056103174755423035,unscaled; CO2_vol_pct in vol%; L_wsr native unit
+J,d(CO2_vol_pct)/d(HL_tot),0.6224931258868738,unscaled; CO2_vol_pct in vol%; HL_tot native unit
+J,d(CO2_vol_pct)/d(ln_f_gas),-0.21495804440072153,unscaled; CO2_vol_pct in vol%; ln_f_gas native unit
+J,d(CO2_vol_pct)/d(o2_ratio),4.129629298861503,unscaled; CO2_vol_pct in vol%; o2_ratio native unit
+J,d(CO_vol_pct)/d(L_wsr),-0.025091502230623064,unscaled; CO_vol_pct in vol%; L_wsr native unit
+J,d(CO_vol_pct)/d(HL_tot),-0.6406115947142155,unscaled; CO_vol_pct in vol%; HL_tot native unit
+J,d(CO_vol_pct)/d(ln_f_gas),0.07129421763053756,unscaled; CO_vol_pct in vol%; ln_f_gas native unit
+J,d(CO_vol_pct)/d(o2_ratio),11.828998750566555,unscaled; CO_vol_pct in vol%; o2_ratio native unit
+J,d(H2_vol_pct)/d(L_wsr),-0.05806343444789697,unscaled; H2_vol_pct in vol%; L_wsr native unit
+J,d(H2_vol_pct)/d(HL_tot),-0.02625379333604627,unscaled; H2_vol_pct in vol%; HL_tot native unit
+J,d(H2_vol_pct)/d(ln_f_gas),0.27123782002838936,unscaled; H2_vol_pct in vol%; ln_f_gas native unit
+J,d(H2_vol_pct)/d(o2_ratio),-11.50467215495663,unscaled; H2_vol_pct in vol%; o2_ratio native unit

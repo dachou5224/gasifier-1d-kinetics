@@ -109,6 +109,20 @@ def temperature_weight(T_K: float, T_ref: float = 1800.0) -> float:
     return float(np.clip(w, 0.1, 5.0))
 
 
+def heat_loss_weight_relative_residual(w, w_new) -> float:
+    """未松弛不动点残差 ``max |Δw_i / w_i|``。
+
+    ``total_percent`` 的收敛必须测这个量，而不是欠松弛步 ``α(w_new − w)``。
+    当 ``α < 1`` 时，松弛步可以低于容差，但权重仍与 ``dz · temperature_weight(T)``
+    不一致。
+    """
+    w = np.asarray(w, dtype=float).ravel()
+    w_new = np.asarray(w_new, dtype=float).ravel()
+    if w.size == 0 or w_new.size != w.size:
+        return float("inf")
+    return float(np.max(np.abs(w_new - w) / np.maximum(np.abs(w), 1e-30)))
+
+
 def total_heat_loss_w(m_dry_kg_s: float, hhv_kj_kg: float, hl_tot_pct: float) -> float:
     """整炉热损总量 [W]：``HL_tot/100 × m_dry × HHV_d``。
 
@@ -335,6 +349,7 @@ __all__ = [
     "resolve_heat_loss_model",
     "total_heat_loss_w",
     "temperature_weight",
+    "heat_loss_weight_relative_residual",
     "combustion_zone_heat_loss_w",
     "gasification_zone_heat_loss_w",
     "fortran_wall_heat_loss",

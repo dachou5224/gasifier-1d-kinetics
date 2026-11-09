@@ -3,8 +3,12 @@ K1,,dX_C_pp,-0.7736559454081249,,,HL_tot=1%，L_wsr 0.2575→6；9 窗中位，�
 K1,,dT_out_K,27.18987615513538,,,HL_tot=1%，L_wsr 0.2575→6；9 窗中位，范围 5.727…32.76
 K1,,dCO2_vol_pct,0.35151310674384595,,,HL_tot=1%，L_wsr 0.2575→6；9 窗中位，范围 0.06196…0.464
 K1,,dT_wsr_K,-7.945195032680203,,,HL_tot=1%，L_wsr 0.2575→6；9 窗中位，范围 -15.41…3.097
-K1_compare,,dX_C_pp__explained_by_coupling,0.7891245208724799,,,"P1.11-A（hhv_percent, HLP=1%）同档 -3.669；本卡（HL_tot=1%）-0.774；被热损耦合解释掉的比例 78.9%"
-K1_compare,,dT_out_K__explained_by_coupling,0.6137564512245433,,,"P1.11-A（hhv_percent, HLP=1%）同档 -70.396；本卡（HL_tot=1%）+27.190；被热损耦合解释掉的比例 61.4%"
+K1_compare,,dX_C_pp__p11a,-3.6687809725865828,,,P1.11-A hhv_percent HLP=1%；实际 ΣQ 随高温区变长，与 HL_tot=1% 不是同一总量
+K1_compare,,dX_C_pp__p12a,-0.7736559454081249,,,P1.12-A total_percent HL_tot=1%（干煤口径，总量固定）
+K1_compare,,dX_C_pp__unmatched_amplitude_ratio,0.7891245208724799,,,1−|Δ_new|/|Δ_old|。只描述两个未匹配配置的幅度比，不是方差分解，也不是耦合归因。HLP=1% 与 HL_tot=1% 的实际 ΣQ 不同。
+K1_compare,,dT_out_K__p11a,-70.39567713515976,,,P1.11-A hhv_percent HLP=1%；实际 ΣQ 随高温区变长，与 HL_tot=1% 不是同一总量
+K1_compare,,dT_out_K__p12a,27.18987615513538,,,P1.12-A total_percent HL_tot=1%（干煤口径，总量固定）
+K1_compare,,dT_out_K__unmatched_amplitude_ratio,0.6137564512245433,,,1−|Δ_new|/|Δ_old|。只描述两个未匹配配置的幅度比，不是方差分解，也不是耦合归因。HLP=1% 与 HL_tot=1% 的实际 ΣQ 不同。
 K2,1.0,dX_C_pp_per_pct,-1.114948292025033,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
 K2,1.0,dT_out_K_per_pct,-53.365289861262156,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
 K2,1.0,dCO2_vol_pct_per_pct,0.6856190833185938,,,每 1% HL_tot 的变化（45 档线拟合，9 窗池化）
@@ -68,33 +72,73 @@ K4,2.0,HL_tot_star_pct::22-10-11__W001,3.82216789353842,,,偏差范围 -0.34…+
 K4,4.0,HL_tot_star_pct::22-10-11__W001,3.495017251137022,,,偏差范围 -1.10…+6.12 pp；区间内插值
 K4,6.0,HL_tot_star_pct::22-10-11__W001,3.2803144156882285,,,偏差范围 -1.61…+5.72 pp；区间内插值
 K5,,unit_hloss_dX_C_pp_per_pct,1.3271515609676843,,,K2 各档斜率 |ΔX_C| 的中位，用作输入扰动的等价换算
-K5,,dX_C_pp::Mt_4,-0.07817667949931995,,,ΔT_out 中位 -25.34 K；ΔCO2 中位 +0.753 vol%
-K5,,equivalent_HL_tot_pct::Mt_4,0.05890561545383551,,,等效热损变化 = −ΔX_C(扰动)/单位热损 ΔX_C；正值表示该扰动相当于**多**移除这些 % 的热损
-K5,,dX_C_pp::coal_x0.97,0.26696544151253443,,,ΔT_out 中位 +95.02 K；ΔCO2 中位 +0.769 vol%
-K5,,equivalent_HL_tot_pct::coal_x0.97,-0.20115670987711323,,,等效热损变化 = −ΔX_C(扰动)/单位热损 ΔX_C；正值表示该扰动相当于**多**移除这些 % 的热损
-K5,,dX_C_pp::coal_x1.03,-2.5063783356663705,,,ΔT_out 中位 -27.99 K；ΔCO2 中位 +0.084 vol%
-K5,,equivalent_HL_tot_pct::coal_x1.03,1.8885396433839556,,,等效热损变化 = −ΔX_C(扰动)/单位热损 ΔX_C；正值表示该扰动相当于**多**移除这些 % 的热损
-K5,,dX_C_pp::o2_x0.97,-2.588363125744814,,,ΔT_out 中位 -32.74 K；ΔCO2 中位 +0.225 vol%
-K5,,equivalent_HL_tot_pct::o2_x0.97,1.9503146451920872,,,等效热损变化 = −ΔX_C(扰动)/单位热损 ΔX_C；正值表示该扰动相当于**多**移除这些 % 的热损
-K5,,dX_C_pp::o2_x1.03,0.2669654415124012,,,ΔT_out 中位 +96.31 K；ΔCO2 中位 +0.611 vol%
-K5,,equivalent_HL_tot_pct::o2_x1.03,-0.20115670987701287,,,等效热损变化 = −ΔX_C(扰动)/单位热损 ΔX_C；正值表示该扰动相当于**多**移除这些 % 的热损
-K6,2.0,singular_value::SV1,62.855867314151304,,,nan
-K6,2.0,singular_value::SV2,1.8170100712064756,,,nan
-K6,2.0,singular_value::SV3,0.500212128884432,,,nan
-K6,2.0,singular_value::SV4,0.0022059642648037192,,,nan
-K6,2.0,condition_number::cond(J),28493.60178540519,,,最大/最小奇异值
-K6,2.0,weakest_direction::L_wsr,0.976886104343663,,,与最小奇异值对应的参数组合（Vt 最后一行）
-K6,2.0,weakest_direction::HL_tot,-0.014026216367933034,,,与最小奇异值对应的参数组合（Vt 最后一行）
-K6,2.0,weakest_direction::ln_f_gas,0.21329977943332565,,,与最小奇异值对应的参数组合（Vt 最后一行）
-K6,2.0,weakest_direction::o2_ratio,9.213227878159231e-05,,,与最小奇异值对应的参数组合（Vt 最后一行）
-K6_verdict,2.0,min_over_max_singular_value,3.5095598216446386e-05,,,cond = 2.85e+04；小于 1e-6 说明存在几乎不可辨识的方向
-K7,1.0,median_X_C_dev_pp,6.6410851534563164,,,HL_tot=1%
-K7,1.0,median_CO_vol_pct,72.88811754197908,,,
-K7,1.0,median_H2_vol_pct,23.372606284376268,,,
-K7,4.0,median_X_C_dev_pp,6.333303039790195,,,HL_tot=1%
-K7,4.0,median_CO_vol_pct,72.82007544145898,,,
-K7,4.0,median_H2_vol_pct,23.176876475664823,,,
-K7,,Mt_alt_median_dH2_vol_pct,0.647631976202116,,,Mt 4% 相对基准的 H2 变化（水汽带入氢）
+K5,,dX_C_pp::Mt_4,-0.07817667949931995,,,perturbed−baseline 中位；ΔT_out 中位 -25.34 K；ΔCO2 中位 +0.753 vol%
+K5,,equivalent_HL_tot_pct::Mt_4,0.05890561545383551,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,dX_C_pp::coal_x0.97,0.26696544151253443,,,perturbed−baseline 中位；ΔT_out 中位 +95.02 K；ΔCO2 中位 +0.769 vol%
+K5,,equivalent_HL_tot_pct::coal_x0.97,-0.20115670987711323,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,dX_C_pp::coal_x1.03,-2.5063783356663705,,,perturbed−baseline 中位；ΔT_out 中位 -27.99 K；ΔCO2 中位 +0.084 vol%
+K5,,equivalent_HL_tot_pct::coal_x1.03,1.8885396433839556,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,dX_C_pp::o2_x0.97,-2.588363125744814,,,perturbed−baseline 中位；ΔT_out 中位 -32.74 K；ΔCO2 中位 +0.225 vol%
+K5,,equivalent_HL_tot_pct::o2_x0.97,1.9503146451920872,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5,,dX_C_pp::o2_x1.03,0.2669654415124012,,,perturbed−baseline 中位；ΔT_out 中位 +96.31 K；ΔCO2 中位 +0.611 vol%
+K5,,equivalent_HL_tot_pct::o2_x1.03,-0.20115670987701287,,,局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。
+K5_verdict,,K4_HL_tot_star_median_pct,3.489599369507827,,,K4 绝对水平（到达所需 HL_tot* 中位），不是局部增量
+K5_verdict,,local_increment_o2_x0.97_plus_coal_x1.03_pct,3.8388542885760426,,,两个单扰动局部增量之和（HL_tot=1% 线性外推，未做组合实测）
+K5_verdict,,o2_over_coal_ratio_change_if_both,-0.058252427184466105,,,O2×0.97 且煤×1.03 时氧煤比变化 = 0.97/1.03−1，超出 ≤3% 比偏差预算
+K5_verdict,,covers_K4_absolute,0.0,1.0,False,不能把局部增量与 K4 绝对水平相比；也不能把两个独立 ±3% 流量误差当成 ≤3% 氧煤比。O2−3% 的 ΔX_C=-2.59 pp（扰动−基准，下降），煤+3% 的 ΔX_C=-2.51 pp。两者与加热损同方向，使过预测缩小，但未回答卡面的 ≤3% 比偏差问题。
+K6,2.0,singular_value::SV1,2.678417045813346,,,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,singular_value::SV2,1.674953734605298,,,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,singular_value::SV3,0.7803974134708563,,,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,singular_value::SV4,0.0022455719885611227,,,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,condition_number::cond(J),1192.7549236707277,,,"obs+param scaled; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,weakest_direction::L_wsr,0.994426299921491,,,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,weakest_direction::HL_tot,-0.014279076199608512,,,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,weakest_direction::ln_f_gas,0.1044158594851711,,,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,weakest_direction::o2_ratio,0.0031257471606154904,,,"Vt last row after obs+param scaling; L_wsr unit = 1 m; HL_tot unit = 1 percentage point; ln_f_gas unit = ln(8) (f_gas ×8, the scan grid); o2_ratio unit = 0.03 (K5 ±3%)"
+K6,2.0,singular_value_obs_only::SV1,62.855867314151304,,,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+K6,2.0,singular_value_obs_only::SV2,1.8170100712064756,,,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+K6,2.0,singular_value_obs_only::SV3,0.500212128884432,,,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+K6,2.0,singular_value_obs_only::SV4,0.0022059642648037192,,,"rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units (m, %, ln, ratio) — cond depends on those units"
+K6,2.0,condition_number_obs_only::cond(J),28493.60178540519,,,native parameter units; not invariant under rescaling a column
+K6,2.0,weakest_direction_obs_only::L_wsr,0.976886104343663,,,native parameter units; not invariant under rescaling a column
+K6,2.0,weakest_direction_obs_only::HL_tot,-0.014026216367933034,,,native parameter units; not invariant under rescaling a column
+K6,2.0,weakest_direction_obs_only::ln_f_gas,0.21329977943332565,,,native parameter units; not invariant under rescaling a column
+K6,2.0,weakest_direction_obs_only::o2_ratio,9.213227878159231e-05,,,native parameter units; not invariant under rescaling a column
+K6,2.0,param_scale::L_wsr,1.0,,,1 m
+K6,2.0,param_scale::HL_tot,1.0,,,1 percentage point
+K6,2.0,param_scale::ln_f_gas,2.0794415416798357,,,"ln(8) (f_gas ×8, the scan grid)"
+K6,2.0,param_scale::o2_ratio,0.03,,,0.03 (K5 ±3%)
+K6_verdict,2.0,min_over_max_singular_value,0.0008383951976676647,,,obs+param scaled cond = 1.19e+03；限于本窗口、L_wsr=2.0 m、HL_tot=1%、以及声明的列尺度
+K7_scope,,full_species_H_ledger_available,0.0,1.0,False,scan.csv 无 CH4/H2S 摩尔流，完整物种氢账本标为不完整；下列 ξ / 闭合残差 / H2-only 账本由存档 F_CO2、dry_total、vol% 与装置组成重建
+K7,1.0,median_X_C_dev_pp,6.6410851534563164,,,K3 邻域 HL_tot=1%，未到达
+K7,1.0,median_xi_mol_s::analyzer::K3_neighborhood_HL1,101.26086166982499,,,K3_neighborhood_HL1；n=9
+K7,1.0,median_dCO_closed_vol_pct::analyzer::K3_neighborhood_HL1,-1.1955513139282417,,,K3_neighborhood_HL1；闭合后 CO 残差
+K7,1.0,median_dH2_closed_vol_pct::analyzer::K3_neighborhood_HL1,1.1092453260790833,,,K3_neighborhood_HL1；闭合后 H2 残差
+K7,1.0,median_H_ledger_h2only::analyzer::K3_neighborhood_HL1,1.1128572184191001,,,K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢
+K7,1.0,median_xi_mol_s::liu_phase::K3_neighborhood_HL1,100.66882436862596,,,K3_neighborhood_HL1；n=9
+K7,1.0,median_dCO_closed_vol_pct::liu_phase::K3_neighborhood_HL1,2.781955267146259,,,K3_neighborhood_HL1；闭合后 CO 残差
+K7,1.0,median_dH2_closed_vol_pct::liu_phase::K3_neighborhood_HL1,-2.691933597331289,,,K3_neighborhood_HL1；闭合后 H2 残差
+K7,1.0,median_H_ledger_h2only::liu_phase::K3_neighborhood_HL1,0.9710366800395613,,,K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢
+K7,4.0,median_X_C_dev_pp,6.333303039790195,,,K3 邻域 HL_tot=1%，未到达
+K7,4.0,median_xi_mol_s::analyzer::K3_neighborhood_HL1,98.9011080263657,,,K3_neighborhood_HL1；n=9
+K7,4.0,median_dCO_closed_vol_pct::analyzer::K3_neighborhood_HL1,-0.9912117772929534,,,K3_neighborhood_HL1；闭合后 CO 残差
+K7,4.0,median_dH2_closed_vol_pct::analyzer::K3_neighborhood_HL1,0.8428649578918304,,,K3_neighborhood_HL1；闭合后 H2 残差
+K7,4.0,median_H_ledger_h2only::analyzer::K3_neighborhood_HL1,1.094673696597082,,,K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢
+K7,4.0,median_xi_mol_s::liu_phase::K3_neighborhood_HL1,97.12877757338697,,,K3_neighborhood_HL1；n=9
+K7,4.0,median_dCO_closed_vol_pct::liu_phase::K3_neighborhood_HL1,2.9707376742357425,,,K3_neighborhood_HL1；闭合后 CO 残差
+K7,4.0,median_dH2_closed_vol_pct::liu_phase::K3_neighborhood_HL1,-2.9369066267334354,,,K3_neighborhood_HL1；闭合后 H2 残差
+K7,4.0,median_H_ledger_h2only::liu_phase::K3_neighborhood_HL1,0.9575538458882907,,,K3_neighborhood_HL1；H2-only 氢账本（模型+2ξ）/装置 H2 氢
+K7,,n_K4_arrival_nearest_grid,16.0,,,K4 区间内零点对应的最近扫描档（不是 HL* 插值点重解）
+K7,,median_xi_mol_s::analyzer::K4_arrival_nearest_grid,49.363767967006964,,,K4_arrival_nearest_grid；n=16
+K7,,median_dCO_closed_vol_pct::analyzer::K4_arrival_nearest_grid,1.5530289206112755,,,K4_arrival_nearest_grid；闭合后 CO 残差
+K7,,median_dH2_closed_vol_pct::analyzer::K4_arrival_nearest_grid,-1.7010596062522598,,,K4_arrival_nearest_grid；闭合后 H2 残差
+K7,,median_H_ledger_h2only::analyzer::K4_arrival_nearest_grid,0.9154320051711002,,,K4_arrival_nearest_grid；H2-only 氢账本（模型+2ξ）/装置 H2 氢
+K7,,median_xi_mol_s::liu_phase::K4_arrival_nearest_grid,46.88220449741217,,,K4_arrival_nearest_grid；n=16
+K7,,median_dCO_closed_vol_pct::liu_phase::K4_arrival_nearest_grid,4.784502512057692,,,K4_arrival_nearest_grid；闭合后 CO 残差
+K7,,median_dH2_closed_vol_pct::liu_phase::K4_arrival_nearest_grid,-4.75144671678561,,,K4_arrival_nearest_grid；闭合后 H2 残差
+K7,,median_H_ledger_h2only::liu_phase::K4_arrival_nearest_grid,0.834024130914131,,,K4_arrival_nearest_grid；H2-only 氢账本（模型+2ξ）/装置 H2 氢
+K7,,Mt_alt_median_dH2_vol_pct,0.6537328658957318,,,Mt 4% 相对基准的 H2 变化（水汽带入氢）
+K7,,Mt_alt_median_dH_ledger_analyzer,0.002119517251357117,,,Mt 4% 相对基准，analyzer 口径 H2-only 氢账本之差
 K8,0.2575,median_abs_dX_C_pp,0.06461797141055214,,,ΔT 中位 +2.62 K；ΔCO2 中位 +0.033 vol%
 K8,1.0,median_abs_dX_C_pp,0.18229728222529662,,,ΔT 中位 +6.46 K；ΔCO2 中位 +0.084 vol%
 K8,2.0,median_abs_dX_C_pp,0.24500632025203917,,,ΔT 中位 +8.03 K；ΔCO2 中位 +0.107 vol%

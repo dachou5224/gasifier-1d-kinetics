@@ -34,6 +34,7 @@ from .heat_loss import (
     HEAT_LOSS_MODEL_FORTRAN,
     HEAT_LOSS_MODEL_TOTAL,
     HEAT_LOSS_MODEL_TOTAL_UNIFORM,
+    heat_loss_weight_relative_residual,
     resolve_heat_loss_model,
     temperature_weight,
     total_heat_loss_w,
@@ -396,9 +397,10 @@ class GasifierSystem:
         ``w_i = dz_i·clip((T_i/1800)^4, 0.1, 5)`` 用第 k 轮的全炉温度场。
         第 0 轮按长度均匀（``w_i = dz_i``）。
 
-        收敛：(a) ``|ΣQ_i − Q_tot| / Q_tot < 1e-6`` 且 (b) ``max|Δw_i/w_i| < 1e-4``；
-        最多 30 轮。未收敛时 ``execution_status`` 置 ``hloss_not_converged``，
-        但**保留**该轮解，供判读时如实报告。
+        收敛：(a) ``|ΣQ_i − Q_tot| / Q_tot < 1e-6`` 且
+        (b) 未松弛残差 ``max|(w_new − w)/w| < 1e-4``（``w_new = dz · temperature_weight(T)``）；
+        最多 30 轮。欠松弛只用于推进迭代，不进入收敛判据。未收敛时
+        ``hloss_status`` 置 ``hloss_not_converged``，但**保留**该轮解，供判读时如实报告。
 
         注意 (a) 在收敛前不成立：``Σ w_i/(Σw) = 1`` 只在权重与温度场自洽时才有意义，
         非自洽权重下 ΣQ 仍等于 Q_tot（因为分母就是同一轮权重的和），所以真正的
@@ -470,7 +472,7 @@ class GasifierSystem:
             # 30 轮不收敛）。松弛只改变迭代路径，**不动点不变**：
             # 收敛时 w = w_new，与无松弛的方程组完全一致。
             # 自适应：本步的相对变化比上一步更大 → 判为振荡，收缩 0.6；否则缓慢放大。
-            raw_dw = (float(np.max(np.abs(w_new - w) / np.maximum(np.abs(w), 1e-30)))
+            raw_dw = (heat_loss_weight_relative_residual(w, w_new)
                       if prev_T is not None else float("inf"))
             if prev_T is not None:
                 if raw_dw > last_raw_dw:
@@ -482,14 +484,15 @@ class GasifierSystem:
             # ΣQ_i / Q_tot（用本轮权重）
             Q_sum = float(sum(float(d.get("hloss_W", 0.0)) for d in self.cell_diagnostics))
             sum_rel = abs(Q_sum - Q_tot) / max(abs(Q_tot), 1e-30)
-            max_dw = (float(np.max(np.abs(w_target - w) / np.maximum(np.abs(w), 1e-30)))
-                      if prev_T is not None else float("inf"))
+            step_dw = (heat_loss_weight_relative_residual(w, w_target)
+                       if prev_T is not None else float("inf"))
             hist.append({"iter": int(it), "n_solved": int(n_solved),
                          "status": "completed", "sum_Q_over_Qtot": float(sum_rel),
-                         "max_rel_dw": float(max_dw), "alpha": float(alpha)})
-            # 判据：ΣQ 残差（分子分母同权重，恒成立）+ 权重自洽 max|Δw/w| < 1e-4。
-            # 卡面两条都要求；后者是实现收敛的真正判据。
-            if it > 0 and sum_rel < 1e-6 and max_dw < _tol_dw:
+                         "max_rel_dw": float(raw_dw), "step_rel_dw": float(step_dw),
+                         "alpha": float(alpha)})
+            # 判据：ΣQ 残差（分子分母同权重，恒成立）+ 未松弛权重残差 max|w_new−w|/w < 1e-4。
+            # 卡面两条都要求；后者是实现收敛的真正判据。松弛步长只用于推进，不用于判定。
+            if it > 0 and sum_rel < 1e-6 and raw_dw < _tol_dw:
                 converged = True
                 break
             if np.array_equal(w_target, w):

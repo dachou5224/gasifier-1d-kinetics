@@ -1,7 +1,7 @@
 {
   "round": "P1.12-A / 2026-11-06",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "d97d8e6c7228804c754d47e002ea3d210c6bb859",
+  "source_commit": "552f5926e84d7d178a45316159d497d266220b65",
   "mesh_family": "uniform_full_length",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -37,7 +37,7 @@
     ],
     "total_W": "Q_tot = HL_tot/100 × m_dry × HHV_d —— **干煤**口径，与 P1.9-D 汽包吸热同一分母",
     "allocation": "w_i = dz_i · clip((T_i/1800)^4, 0.1, 5)；Q_i = Q_tot·w_i/Σw",
-    "outer_iteration": "权重用上一轮全炉温度场；第 0 轮按长度均匀；收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且 max|Δw/w|<1e-4；最多 30 轮；未收敛标 hloss_not_converged 并保留该轮解",
+    "outer_iteration": "权重用上一轮全炉温度场；第 0 轮按长度均匀；收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且未松弛残差 max|(w_new−w)/w|<1e-4；欠松弛只用于推进；最多 30 轮；未收敛标 hloss_not_converged 并保留该轮解。本轮扫描证据仍用修正前的松弛步残差；检查 4 显示容差收紧 100 倍只移动 0.039 K",
     "default_unchanged": "hhv_percent 逐位不变（检查 1）",
     "jax_guard": "JAX 路径遇 total_percent* 直接报错"
   },
@@ -86,9 +86,9 @@
     "K2": "固定 L_wsr（1 与 4 m），每 1% HL_tot 的 Δ",
     "K3": "HL_tot ≤ 1% 时是否有 L_wsr ≤ 6 m 使 |X_C 偏差| ≤ 1 pp",
     "K4": "逐窗插值所需 HL_tot*（0.5/4% 边界外标 boundary）",
-    "K5": "O2 ±3%、煤量 ±3% 的影响换算成等效 HL_tot",
-    "K6": "L_wsr=2.0 m、HL_tot=1%、f_gas=1 处 [X_C,CO2,CO,H2] 对 [L_wsr,HL_tot,ln f_gas,O2] 的雅可比；缩放 1/0.5/0.5/0.5",
-    "K7": "到达点附近两种口径的 ξ、残差、氢账本；Mt 4% 的影响",
+    "K5": "O2 ±3%、煤量 ±3% 的局部等效 HL_tot（HL=1% 线性化）；不与 K4 绝对水平相比；两个流量误差不是 ≤3% 氧煤比",
+    "K6": "L_wsr=2.0 m、HL_tot=1%、f_gas=1 处 [X_C pp,CO2,CO,H2] 对 [L_wsr,HL_tot,ln f_gas,O2] 的雅可比；观测缩放 1/0.5/0.5/0.5，参数列按 1 m / 1 pp / ln8 / 3% 缩放；结论限于该窗口与这组尺度",
+    "K7": "K3 邻域与 K4 最近扫描档上两种口径的 ξ、闭合后 CO/H2 残差、H2-only 氢账本；完整物种账本因缺列标不完整；Mt 4% 的影响",
     "K8": "total_percent 与 total_percent_uniform 在 HL_tot=1% 下的出口差"
   },
   "unit_checks_all_pass": false,

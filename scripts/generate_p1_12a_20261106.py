@@ -59,6 +59,22 @@ BASE_MT_PCT = None                      # 由输入决定
 
 # K6 观测缩放（卡面：1 pp、0.5、0.5、0.5 vol%）
 K6_SCALES = (1.0, 0.5, 0.5, 0.5)
+K6_OBS_NAMES = ("X_C_pp", "CO2_vol_pct", "CO_vol_pct", "H2_vol_pct")
+K6_PARAM_NAMES = ("L_wsr", "HL_tot", "ln_f_gas", "o2_ratio")
+# 明示的物理列尺度：一列的「一个单位」对应的物理步长。条件数与右奇异
+# 向量依赖坐标系；改任一参数单位都会改 cond(J) 和载荷。
+K6_PARAM_SCALES = {
+    "L_wsr": 1.0,               # 1 m
+    "HL_tot": 1.0,              # 1 个百分点
+    "ln_f_gas": math.log(8.0),  # f_gas ×8（本卡扫描网格）
+    "o2_ratio": 0.03,           # 3%（K5 扰动）
+}
+K6_PARAM_SCALE_NOTES = {
+    "L_wsr": "1 m",
+    "HL_tot": "1 percentage point",
+    "ln_f_gas": "ln(8) (f_gas ×8, the scan grid)",
+    "o2_ratio": "0.03 (K5 ±3%)",
+}
 # 输入敏感性幅度
 IN_FACTOR = (0.97, 1.03)
 MT_ALT_PCT = 4.0
@@ -431,39 +447,95 @@ def jacobian(window_ids, by_id, p17d, p18d) -> pd.DataFrame:
             J[:, j] += (sign * (v - base)) / (2.0 * h)
         print(f"  jac col {name} done", flush=True)
 
-    scales = np.array(K6_SCALES)
-    Js = J / scales[:, None]
-    U, S, Vt = np.linalg.svd(Js)
-    cond = float(S[0] / S[-1]) if S[-1] > 0 else float("inf")
-    # 参数相关矩阵：用 (JsᵀJs)^-1 的归一化
-    JtJ = Js.T @ Js
-    try:
-        inv = np.linalg.inv(JtJ)
-        dg = np.sqrt(np.abs(np.diag(inv)))
-        corr = inv / np.outer(dg, dg)
-    except np.linalg.LinAlgError:
-        corr = np.full((4, 4), float("nan"))
-    names = ["L_wsr", "HL_tot", "ln_f_gas", "o2_ratio"]
+    return _export_jacobian(J)
+
+
+def _export_jacobian(J: np.ndarray) -> pd.DataFrame:
+    """导出 J：观测行用观测量名，并给出两种列尺度下的 SVD。
+
+    J 的行是观测 ``[X_C 百分点, CO2, CO, H2] vol%``；列是参数的原单位
+    （m、百分点、ln 因子、氧量比例）。
+
+    两种 SVD：
+      - ``obs_only``：只除以观测尺度。列单位不变，cond(J) 与 Vt 随单位而变。
+      - ``obs_and_param``：再乘以 ``K6_PARAM_SCALES``，每列是「每一个声明的物理步」。
+        这是 K6 的主报告；结论仍限于该窗口、该工作点与这组尺度。
+    """
+    obs = list(K6_OBS_NAMES)
+    pars = list(K6_PARAM_NAMES)
+    s_obs = np.asarray(K6_SCALES, dtype=float)
+    s_par = np.asarray([K6_PARAM_SCALES[n] for n in pars], dtype=float)
+    js_obs = J / s_obs[:, None]
+    _, s_obs_sv, vt_obs = np.linalg.svd(js_obs)
+    js = js_obs * s_par[None, :]
+    _, s_sv, vt = np.linalg.svd(js)
+    cond_obs = float(s_obs_sv[0] / s_obs_sv[-1]) if s_obs_sv[-1] > 0 else float("inf")
+    cond = float(s_sv[0] / s_sv[-1]) if s_sv[-1] > 0 else float("inf")
+
+    def _corr(js_):
+        jtj = js_.T @ js_
+        try:
+            inv = np.linalg.inv(jtj)
+            dg = np.sqrt(np.abs(np.diag(inv)))
+            return inv / np.outer(dg, dg)
+        except np.linalg.LinAlgError:
+            return np.full((4, 4), float("nan"))
+
+    corr = _corr(js)
+    corr_obs = _corr(js_obs)
+    scale_note = "; ".join(f"{n} unit = {K6_PARAM_SCALE_NOTES[n]}" for n in pars)
     out = []
-    for i, n in enumerate(names):
+    for n in pars:
+        out.append({"row_kind": "param_scale", "param": n,
+                    "value": float(K6_PARAM_SCALES[n]),
+                    "note": K6_PARAM_SCALE_NOTES[n]})
+    for i in range(4):
         out.append({"row_kind": "singular_value", "param": f"SV{i+1}",
-                    "value": float(S[i]), "note": ""})
+                    "value": float(s_sv[i]),
+                    "note": f"obs+param scaled; {scale_note}"})
     out.append({"row_kind": "condition_number", "param": "cond(J)",
-                "value": cond, "note": "最大/最小奇异值"})
-    for i, n in enumerate(names):
+                "value": cond,
+                "note": f"obs+param scaled; {scale_note}"})
+    for i, n in enumerate(pars):
         out.append({"row_kind": "weakest_direction", "param": n,
-                    "value": float(Vt[-1, i]),
-                    "note": "与最小奇异值对应的参数组合（Vt 最后一行）"})
-    for i, ni in enumerate(names):
-        for j, nj in enumerate(names):
+                    "value": float(vt[-1, i]),
+                    "note": f"Vt last row after obs+param scaling; {scale_note}"})
+    for i in range(4):
+        out.append({"row_kind": "singular_value_obs_only", "param": f"SV{i+1}",
+                    "value": float(s_obs_sv[i]),
+                    "note": "rows scaled by (1 pp, 0.5, 0.5, 0.5 vol%); columns in native units "
+                            "(m, %, ln, ratio) — cond depends on those units"})
+    out.append({"row_kind": "condition_number_obs_only", "param": "cond(J)",
+                "value": cond_obs,
+                "note": "native parameter units; not invariant under rescaling a column"})
+    for i, n in enumerate(pars):
+        out.append({"row_kind": "weakest_direction_obs_only", "param": n,
+                    "value": float(vt_obs[-1, i]),
+                    "note": "native parameter units; not invariant under rescaling a column"})
+    for i, ni in enumerate(pars):
+        for j, nj in enumerate(pars):
             out.append({"row_kind": "corr", "param": f"{ni}~{nj}",
                         "value": float(corr[i, j]) if np.isfinite(corr[i, j]) else float("nan"),
-                        "note": ""})
-    for i, ni in enumerate(names):
-        for j, nj in enumerate(names):
-            out.append({"row_kind": "J", "param": f"d({names[i]})/d({nj})",
-                        "value": float(J[i, j]), "note": "未缩放"})
+                        "note": "from obs+param scaled J"})
+    for i, ni in enumerate(pars):
+        for j, nj in enumerate(pars):
+            out.append({"row_kind": "corr_obs_only", "param": f"{ni}~{nj}",
+                        "value": float(corr_obs[i, j]) if np.isfinite(corr_obs[i, j]) else float("nan"),
+                        "note": "from obs-only scaled J"})
+    for i, oi in enumerate(obs):
+        for j, nj in enumerate(pars):
+            unit = "pp" if oi == "X_C_pp" else "vol%"
+            out.append({"row_kind": "J", "param": f"d({oi})/d({nj})",
+                        "value": float(J[i, j]),
+                        "note": f"unscaled; {oi} in {unit}; {nj} native unit"})
     return pd.DataFrame(out)
+
+
+def _jacobian_matrix_from_table(jac: pd.DataFrame) -> np.ndarray | None:
+    jrows = jac[jac["row_kind"] == "J"]
+    if len(jrows) != 16:
+        return None
+    return jrows["value"].to_numpy(dtype=float).reshape(4, 4)
 
 
 # ---------------------------------------------------------------------------
@@ -498,7 +570,8 @@ def readings(scan, alloc, inputs, jac, adm_hl, by_id, p18d) -> pd.DataFrame:
         add(reading="K1", L_wsr=float("nan"), metric=metric, value=float(d.median()),
             threshold=float("nan"), pass_=None,
             note=f"HL_tot=1%，L_wsr {lo:g}→{hi:g}；9 窗中位，范围 {d.min():.4g}…{d.max():.4g}")
-    # 与 P1.11-A（HLP=1%）对比：被热损耦合解释掉的份额
+    # 与 P1.11-A（HLP=1%）对比：保留幅度，不把比值写成归因份额。
+    # 两个 1% 设定的实际 ΣQ 不同（湿/干分母；旧式让 ΣQ 随高温区变长），不能拆成「79% 来自耦合」。
     p11 = _p11a_comparable()
     if p11 is not None:
         for metric in ("dX_C_pp", "dT_out_K"):
@@ -508,10 +581,17 @@ def readings(scan, alloc, inputs, jac, adm_hl, by_id, p18d) -> pd.DataFrame:
             k1 = float(v_new[0]["value"])
             k0 = float(p11[metric])
             frac = (1.0 - abs(k1) / abs(k0)) if abs(k0) > 1e-12 else float("nan")
-            add(reading="K1_compare", L_wsr=float("nan"), metric=f"{metric}__explained_by_coupling",
+            add(reading="K1_compare", L_wsr=float("nan"), metric=f"{metric}__p11a",
+                value=float(k0), threshold=float("nan"), pass_=None,
+                note="P1.11-A hhv_percent HLP=1%；实际 ΣQ 随高温区变长，与 HL_tot=1% 不是同一总量")
+            add(reading="K1_compare", L_wsr=float("nan"), metric=f"{metric}__p12a",
+                value=float(k1), threshold=float("nan"), pass_=None,
+                note="P1.12-A total_percent HL_tot=1%（干煤口径，总量固定）")
+            add(reading="K1_compare", L_wsr=float("nan"),
+                metric=f"{metric}__unmatched_amplitude_ratio",
                 value=float(frac), threshold=float("nan"), pass_=None,
-                note=f"P1.11-A（hhv_percent, HLP=1%）同档 {k0:+.3f}；本卡（HL_tot=1%）{k1:+.3f}；"
-                     f"被热损耦合解释掉的比例 {frac*100:.1f}%")
+                note="1−|Δ_new|/|Δ_old|。只描述两个未匹配配置的幅度比，不是方差分解，"
+                     "也不是耦合归因。HLP=1% 与 HL_tot=1% 的实际 ΣQ 不同。")
 
     # ---- K2 热损杠杆：每 1% HL_tot 的 Δ ----
     for l_wsr in L_REF:
@@ -604,20 +684,55 @@ def readings(scan, alloc, inputs, jac, adm_hl, by_id, p18d) -> pd.DataFrame:
         if not d_xc:
             continue
         med = float(np.median(d_xc))
-        # 符号约定：扰动使 X_C 上升 → 等效于「少移除一点热」，故等效 HL_tot 取负号。
-        # 即 equiv = −(ΔX_C_扰动 / 单位热损 ΔX_C)，回答「该扰动相当于多少 % 的热损变化」。
+        # ΔX_C = 扰动 − 基准（百分点）。equiv = −ΔX_C / |K2 斜率|：
+        # 正值 = 该扰动与「在 HL_tot=1% 处多移除这些百分点的热」同方向（替代，不是补偿）。
+        # 这是 HL_tot=1% 处的局部增量，不能与 K4 的绝对 HL_tot* 直接相加或比较。
         equiv = -med / unit_dx if unit_dx and np.isfinite(unit_dx) else float("nan")
         add(reading="K5", L_wsr=float("nan"), metric=f"dX_C_pp::{tag}",
             value=med, threshold=float("nan"), pass_=None,
-            note=f"ΔT_out 中位 {float(np.median(d_t)):+.2f} K；"
+            note=f"perturbed−baseline 中位；ΔT_out 中位 {float(np.median(d_t)):+.2f} K；"
                  f"ΔCO2 中位 {float(np.median(d_co2)):+.3f} vol%")
         add(reading="K5", L_wsr=float("nan"), metric=f"equivalent_HL_tot_pct::{tag}",
             value=equiv, threshold=float("nan"), pass_=None,
-            note="等效热损变化 = −ΔX_C(扰动)/单位热损 ΔX_C；"
-                 "正值表示该扰动相当于**多**移除这些 % 的热损")
+            note="局部增量（HL_tot=1% 线性化）= −ΔX_C(扰动)/|K2 斜率|；"
+                 "正值 = 与多移除热同方向。不是抵消扰动所需的额外热损，也不是 K4 的绝对水平。")
+    # K5 判定：不能把两个流量误差的局部增量加起来去覆盖 K4 的绝对水平；
+    # 也不能把 O2×0.97 与煤×1.03 说成 ≤3% 的氧煤比偏差（比变为 0.97/1.03−1 = −5.83%）。
+    k5_equiv = {r["metric"].split("::")[-1]: float(r["value"])
+                for r in rows if r["reading"] == "K5"
+                and r["metric"].startswith("equivalent_HL_tot_pct::")}
+    k5_dx = {r["metric"].split("::")[-1]: float(r["value"])
+             for r in rows if r["reading"] == "K5" and r["metric"].startswith("dX_C_pp::")}
+    k4t = globals().get("_K4")
+    need = float("nan")
+    if k4t is not None and not k4t.empty:
+        inner4 = k4t[k4t["edge"].isna()]
+        if not inner4.empty:
+            need = float(inner4["HL_tot_star_pct"].median())
+    o2m = k5_equiv.get("o2_x0.97", float("nan"))
+    coalp = k5_equiv.get("coal_x1.03", float("nan"))
+    combo = (o2m + coalp) if (np.isfinite(o2m) and np.isfinite(coalp)) else float("nan")
+    ratio_change = 0.97 / 1.03 - 1.0
+    add(reading="K5_verdict", L_wsr=float("nan"), metric="K4_HL_tot_star_median_pct",
+        value=need, threshold=float("nan"), pass_=None,
+        note="K4 绝对水平（到达所需 HL_tot* 中位），不是局部增量")
+    add(reading="K5_verdict", L_wsr=float("nan"), metric="local_increment_o2_x0.97_plus_coal_x1.03_pct",
+        value=combo, threshold=float("nan"), pass_=None,
+        note="两个单扰动局部增量之和（HL_tot=1% 线性外推，未做组合实测）")
+    add(reading="K5_verdict", L_wsr=float("nan"), metric="o2_over_coal_ratio_change_if_both",
+        value=ratio_change, threshold=float("nan"), pass_=None,
+        note="O2×0.97 且煤×1.03 时氧煤比变化 = 0.97/1.03−1，超出 ≤3% 比偏差预算")
+    add(reading="K5_verdict", L_wsr=float("nan"), metric="covers_K4_absolute",
+        value=0.0, threshold=1.0, pass_=False,
+        note="不能把局部增量与 K4 绝对水平相比；也不能把两个独立 ±3% 流量误差当成 ≤3% 氧煤比。"
+             f"O2−3% 的 ΔX_C={k5_dx.get('o2_x0.97', float('nan')):+.2f} pp（扰动−基准，下降），"
+             f"煤+3% 的 ΔX_C={k5_dx.get('coal_x1.03', float('nan')):+.2f} pp。"
+             "两者与加热损同方向，使过预测缩小，但未回答卡面的 ≤3% 比偏差问题。")
 
     # ---- K6 ----
-    for kind in ("singular_value", "condition_number", "weakest_direction"):
+    for kind in ("singular_value", "condition_number", "weakest_direction",
+                 "singular_value_obs_only", "condition_number_obs_only",
+                 "weakest_direction_obs_only", "param_scale"):
         sub = jac[jac["row_kind"] == kind]
         for _, r in sub.iterrows():
             add(reading="K6", L_wsr=L_JAC, metric=f"{kind}::{r['param']}",
@@ -627,9 +742,18 @@ def readings(scan, alloc, inputs, jac, adm_hl, by_id, p18d) -> pd.DataFrame:
     if len(sv) >= 2:
         add(reading="K6_verdict", L_wsr=L_JAC, metric="min_over_max_singular_value",
             value=float(sv[-1] / sv[0]), threshold=float("nan"), pass_=None,
-            note=f"cond = {sv[0]/sv[-1]:.3g}；小于 1e-6 说明存在几乎不可辨识的方向")
+            note=f"obs+param scaled cond = {sv[0]/sv[-1]:.3g}；限于本窗口、"
+                 f"L_wsr={L_JAC} m、HL_tot=1%、以及声明的列尺度")
 
     # ---- K7 组成与氢账本 ----
+    # 卡面要求 K3/K4 到达点附近两种口径的 ξ、闭合后 CO/H2 残差、氢账本。
+    # K3 在 HL_tot≤1% 未到达，故 HL=1% 只是「可信热损邻域」而非到达点。
+    # K4 到达点取扫描网格上最接近 HL_tot* 的已解行（未在插值点重解）。
+    # 存档列没有 CH4/H2S，完整物种氢账本无法重建；这里用 P1.8-A 更正后的 H2-only 账本。
+    add(reading="K7_scope", L_wsr=float("nan"), metric="full_species_H_ledger_available",
+        value=0.0, threshold=1.0, pass_=False,
+        note="scan.csv 无 CH4/H2S 摩尔流，完整物种氢账本标为不完整；"
+             "下列 ξ / 闭合残差 / H2-only 账本由存档 F_CO2、dry_total、vol% 与装置组成重建")
     for l_wsr in L_REF:
         s = scan[np.isclose(scan["L_wsr"], l_wsr) & np.isclose(scan["HL_tot_pct"], HL_REF)
                  & np.isclose(scan["f_gas"], 1.0)]
@@ -638,19 +762,50 @@ def readings(scan, alloc, inputs, jac, adm_hl, by_id, p18d) -> pd.DataFrame:
         add(reading="K7", L_wsr=l_wsr, metric="median_X_C_dev_pp",
             value=float(np.median([float(r["X_C_implied"]) * 100.0 - plant[r["window_id"]]
                                    for _, r in s.iterrows() if r["window_id"] in plant])),
-            threshold=float("nan"), pass_=None, note="HL_tot=1%")
-        add(reading="K7", L_wsr=l_wsr, metric="median_CO_vol_pct",
-            value=float(s["CO_vol_pct"].median()), threshold=float("nan"), pass_=None, note="")
-        add(reading="K7", L_wsr=l_wsr, metric="median_H2_vol_pct",
-            value=float(s["H2_vol_pct"].median()), threshold=float("nan"), pass_=None, note="")
+            threshold=float("nan"), pass_=None,
+            note="K3 邻域 HL_tot=1%，未到达")
+        _emit_k7_composition(add, s, by_id, p18d, l_wsr, "K3_neighborhood_HL1")
+    k4t = globals().get("_K4")
+    if k4t is not None and not k4t.empty:
+        arrived = k4t[k4t["edge"].isna()]
+        near_rows = []
+        for _, kr in arrived.iterrows():
+            wid, l_wsr, star = kr["window_id"], float(kr["L_wsr"]), float(kr["HL_tot_star_pct"])
+            s = scan[(scan["window_id"] == wid) & np.isclose(scan["L_wsr"], l_wsr)
+                     & np.isclose(scan["f_gas"], 1.0)]
+            if s.empty or not np.isfinite(star):
+                continue
+            s = s.copy()
+            s["_dhl"] = (s["HL_tot_pct"] - star).abs()
+            near_rows.append(s.loc[s["_dhl"].idxmin()])
+        if near_rows:
+            near = pd.DataFrame(near_rows)
+            add(reading="K7", L_wsr=float("nan"), metric="n_K4_arrival_nearest_grid",
+                value=float(len(near)), threshold=float("nan"), pass_=None,
+                note="K4 区间内零点对应的最近扫描档（不是 HL* 插值点重解）")
+            _emit_k7_composition(add, near, by_id, p18d, float("nan"), "K4_arrival_nearest_grid")
     mt = inputs[inputs["perturb_tag"].str.startswith("Mt_")]
     if not mt.empty:
-        bs = inputs[inputs["perturb_tag"] == "baseline"]
+        bs = inputs[inputs["perturb_tag"] == "baseline"].set_index(["window_id", "L_wsr"])
+        d_h2, d_ledger = [], []
+        for _, r in mt.iterrows():
+            key = (r["window_id"], r["L_wsr"])
+            if key not in bs.index:
+                continue
+            b = bs.loc[key]
+            d_h2.append(float(r["H2_vol_pct"]) - float(b["H2_vol_pct"]))
+            c_m = _k7_one(r, by_id, p18d)
+            c_b = _k7_one(b, by_id, p18d)
+            if c_m and c_b:
+                d_ledger.append(c_m["analyzer"]["H_ledger_h2only"] - c_b["analyzer"]["H_ledger_h2only"])
         add(reading="K7", L_wsr=float("nan"), metric="Mt_alt_median_dH2_vol_pct",
-            value=float((mt["H2_vol_pct"].values - bs["H2_vol_pct"].values)[:len(mt)].mean())
-            if len(mt) == len(bs) else float("nan"),
+            value=float(np.median(d_h2)) if d_h2 else float("nan"),
             threshold=float("nan"), pass_=None,
             note="Mt 4% 相对基准的 H2 变化（水汽带入氢）")
+        add(reading="K7", L_wsr=float("nan"), metric="Mt_alt_median_dH_ledger_analyzer",
+            value=float(np.median(d_ledger)) if d_ledger else float("nan"),
+            threshold=float("nan"), pass_=None,
+            note="Mt 4% 相对基准，analyzer 口径 H2-only 氢账本之差")
 
     # ---- K8 分配形式 ----
     for l_wsr in L_WSR_GRID:
@@ -690,6 +845,85 @@ def _interp_zero(xs: np.ndarray, ys: np.ndarray):
     return None
 
 
+def _k7_one(row, by_id, p18d) -> dict | None:
+    """从存档行重建两种组成口径的 ξ、闭合残差、H2-only 氢账本。"""
+    wid = None
+    if "window_id" in getattr(row, "index", []):
+        wid = row["window_id"]
+    elif hasattr(row, "get"):
+        wid = row.get("window_id")
+    if wid is None and hasattr(row, "name") and isinstance(row.name, tuple):
+        wid = row.name[0]
+    if wid is None:
+        return None
+    wid = str(wid)
+    if wid not in by_id or wid not in p18d.index:
+        return None
+    src = by_id[wid]
+    csv18 = p18d.loc[wid]
+    dry_gas = float(row["dry_total_mol_s"])
+    f_co2 = float(row["F_CO2_mol_s"])
+    f_co = float(row["CO_vol_pct"]) / 100.0 * dry_gas
+    f_h2 = float(row["H2_vol_pct"]) / 100.0 * dry_gas
+    plant_dry = float(csv18["syngas_dry_cal_nm3_h"]) / 22.414 / 3600.0 * 1000.0
+    out = {}
+    for basis in p18a.COMP_BASES:
+        if basis == "analyzer":
+            p_co = float(src.get("co_vol_pct", float("nan")))
+            p_h2 = float(src.get("h2_vol_pct", float("nan")))
+            p_co2 = float(src.get("co2_vol_pct", float("nan")))
+        else:
+            phase = str(src.get("phase", ""))
+            if phase not in p18a.LIU_PHASE_COMP:
+                continue
+            p_co, p_h2, p_co2 = p18a.LIU_PHASE_COMP[phase]
+        if not all(np.isfinite(v) for v in (p_co, p_h2, p_co2, dry_gas, f_co2)):
+            continue
+        xi = p18a._closure_xi(f_co2, dry_gas, p_co2 / 100.0)
+        denom = dry_gas + xi
+        pred_co = (f_co - xi) / max(denom, 1e-12) * 100.0
+        pred_h2 = (f_h2 + xi) / max(denom, 1e-12) * 100.0
+        h_model = 2.0 * f_h2 + 2.0 * xi
+        h_plant = 2.0 * plant_dry * (p_h2 / 100.0)
+        out[basis] = {
+            "xi_mol_s": float(xi),
+            "dCO_closed": float(pred_co - p_co),
+            "dH2_closed": float(pred_h2 - p_h2),
+            "H_ledger_h2only": float(h_model / max(h_plant, 1e-12)),
+            "dCO_xi0": float(row["CO_vol_pct"]) - p_co,
+            "dH2_xi0": float(row["H2_vol_pct"]) - p_h2,
+        }
+    return out or None
+
+
+def _emit_k7_composition(add, frame: pd.DataFrame, by_id, p18d, l_wsr, tag: str) -> None:
+    buckets = {b: {"xi": [], "dCO": [], "dH2": [], "H": []} for b in p18a.COMP_BASES}
+    for _, r in frame.iterrows():
+        c = _k7_one(r, by_id, p18d)
+        if not c:
+            continue
+        for b, v in c.items():
+            buckets[b]["xi"].append(v["xi_mol_s"])
+            buckets[b]["dCO"].append(v["dCO_closed"])
+            buckets[b]["dH2"].append(v["dH2_closed"])
+            buckets[b]["H"].append(v["H_ledger_h2only"])
+    for b, d in buckets.items():
+        if not d["xi"]:
+            continue
+        add(reading="K7", L_wsr=l_wsr, metric=f"median_xi_mol_s::{b}::{tag}",
+            value=float(np.median(d["xi"])), threshold=float("nan"), pass_=None,
+            note=f"{tag}；n={len(d['xi'])}")
+        add(reading="K7", L_wsr=l_wsr, metric=f"median_dCO_closed_vol_pct::{b}::{tag}",
+            value=float(np.median(d["dCO"])), threshold=float("nan"), pass_=None,
+            note=f"{tag}；闭合后 CO 残差")
+        add(reading="K7", L_wsr=l_wsr, metric=f"median_dH2_closed_vol_pct::{b}::{tag}",
+            value=float(np.median(d["dH2"])), threshold=float("nan"), pass_=None,
+            note=f"{tag}；闭合后 H2 残差")
+        add(reading="K7", L_wsr=l_wsr, metric=f"median_H_ledger_h2only::{b}::{tag}",
+            value=float(np.median(d["H"])), threshold=float("nan"), pass_=None,
+            note=f"{tag}；H2-only 氢账本（模型+2ξ）/装置 H2 氢")
+
+
 def _p11a_comparable():
     """P1.11-A（hhv_percent, HLP=1%）同档 L_wsr 0.2575→6 的 ΔX_C / ΔT_out 中位。"""
     p = P11A_DIR / "leverage.csv"
@@ -720,7 +954,10 @@ def interpretation(unit_df, scan, alloc, inputs, jac, rd, iters_df) -> str:
              "热损改为**整炉总量**：`Q_tot = HL_tot/100 × m_dry × HHV_d`（**干煤**口径），"
              "逐格按 `w_i = dz_i·clip((T_i/1800)^4, 0.1, 5)` 归一化分配。"
              "逐格推进的求解器在解第 i 格时不知道下游温度，因此 T 权重来自**上一轮全炉温度场**，"
-             "外层不动点迭代至 `|ΣQ−Q_tot|/Q_tot < 1e-6` 且 `max|Δw/w| < 1e-4`，最多 30 轮。\n")
+             "外层不动点迭代至 `|ΣQ−Q_tot|/Q_tot < 1e-6` 且未松弛残差 "
+             "`max|(w_new−w)/w| < 1e-4`，最多 30 轮。欠松弛只用于推进迭代。"
+             "本轮 450 行扫描在代码修正前用的是松弛步残差；检查 4 把权重容差收紧 100 倍只移动 "
+             "0.039 K，X_C 结论在 0.1 pp 量级不受影响，故未重跑主扫描。\n")
     L.append("`total_percent_uniform` 是同总量的对照：`w_i = dz_i`，无需迭代，"
              "`ΣQ` 逐位等于 `Q_tot`（第 2 节检查 2）。\n")
 
@@ -746,12 +983,14 @@ def interpretation(unit_df, scan, alloc, inputs, jac, rd, iters_df) -> str:
 
     L.append("## 2. K1–K8 结论\n")
     for tag, title in (("K1", "K1 纯混合杠杆（HL_tot = 1%）"),
-                       ("K1_compare", "K1 与 P1.11-A 的对比：被热损耦合解释掉的份额"),
+                       ("K1_compare", "K1 与 P1.11-A 的对比（未匹配配置，不是归因）"),
                        ("K2", "K2 热损杠杆（每 1% HL_tot）"),
                        ("K3", "K3 可信热损下的到达（HL_tot ≤ 1%）"),
                        ("K4", "K4 所需热量移除 HL_tot*"),
                        ("K5", "K5 输入等效"),
+                       ("K5_verdict", "K5 判定"),
                        ("K6", "K6 可辨识性"),
+                       ("K7_scope", "K7 范围"),
                        ("K7", "K7 组成与氢账本"),
                        ("K8", "K8 分配形式")):
         sub = rd[rd["reading"] == tag]
@@ -779,8 +1018,9 @@ def interpretation(unit_df, scan, alloc, inputs, jac, rd, iters_df) -> str:
     L.append("- 只改热损模型与扫描参数，不改动力学常数、不采纳任何参数值、不改合同。")
     L.append("- K1–K8 阈值在运行前写入脚本常量，运行后未改。")
     L.append("- 整炉总量热损在 JAX 路径上未实现，遇非 `hhv_percent` 直接报错。")
-    L.append("- `total_percent` 的收敛判据以 `max|Δw/w|` 为主：非自洽权重下 ΣQ 恒等于 Q_tot"
-             "（分母就是同一轮权重和），所以 ΣQ 那一条几乎恒成立，保留它只为符合卡面文字核对。\n")
+    L.append("- `total_percent` 的收敛判据以未松弛 `max|(w_new−w)/w|` 为主："
+             "非自洽权重下 ΣQ 恒等于 Q_tot（分母就是同一轮权重和），所以 ΣQ 那一条几乎恒成立，"
+             "保留它只为符合卡面文字核对。欠松弛不进入判据。\n")
     return "\n".join(L) + "\n"
 
 
@@ -789,12 +1029,16 @@ def _verdict_section(rd, scan, jac) -> list[str]:
     L.append("## 2.5 关键读数\n")
     k1c = rd[rd["reading"] == "K1_compare"]
     if not k1c.empty:
-        dxc = k1c[k1c["metric"] == "dX_C_pp__explained_by_coupling"]
-        if not dxc.empty:
-            L.append(f"- **K1 解耦效果**：`L_wsr` 0.2575→6 m 的 ΔX_C 在旧热损式下为"
-                     f" P1.11-A 的值，在整炉总量式下为 K1 的值；"
-                     f"**{float(dxc['value'].iloc[0])*100:.1f}%** 的杠杆可由「`L_wsr` 改变高温区长度"
-                     f"→ 改变按 T⁴ 权重分配的热损」解释掉。这正是 I2 指出的构造性混杂。")
+        old = k1c[k1c["metric"] == "dX_C_pp__p11a"]
+        new = k1c[k1c["metric"] == "dX_C_pp__p12a"]
+        if not old.empty and not new.empty:
+            L.append(f"- **K1 对比（不是归因）**：`L_wsr` 0.2575→6 m 的 ΔX_C 从 P1.11-A "
+                     f"（`hhv_percent`, HLP=1%）的 **{float(old['value'].iloc[0]):+.2f} pp** "
+                     f"变为本卡（`total_percent`, HL_tot=1%）的 "
+                     f"**{float(new['value'].iloc[0]):+.2f} pp**。"
+                     f"两个 1% 设定的实际 ΣQ 不同（湿/干分母；旧式让 ΣQ 随高温区变长），"
+                     f"幅度变小与热损耦合一致，但不能把 "
+                     f"1−|Δ_new|/|Δ_old| 写成「来自耦合的份额」。")
     k3 = rd[rd["reading"] == "K3_verdict"]
     if not k3.empty:
         L.append(f"- **K3 可信热损下能否到达**："
@@ -810,52 +1054,63 @@ def _verdict_section(rd, scan, jac) -> list[str]:
             L.append(f"  - `HL_tot*` 中位 {float(inner['HL_tot_star_pct'].median()):.2f}%"
                      f"（范围 {inner['HL_tot_star_pct'].min():.2f}–{inner['HL_tot_star_pct'].max():.2f}%）")
     k5 = rd[(rd["reading"] == "K5") & (rd["metric"].str.startswith("equivalent_HL_tot_pct"))]
+    k5x = rd[(rd["reading"] == "K5") & (rd["metric"].str.startswith("dX_C_pp::"))]
     if not k5.empty:
-        L.append("- **K5 输入等效**（扰动换算成等效 `HL_tot`；正 = 相当于多移除热）：")
+        L.append("- **K5 输入等效**（`ΔX_C = 扰动 − 基准`；局部增量正值 = 与多移除热同方向；"
+                 "在 `HL_tot=1%` 处线性化，不是 K4 的绝对水平）：")
+        dx = {r["metric"].split("::")[-1]: float(r["value"]) for _, r in k5x.iterrows()}
         vals = {}
         for _, r in k5.iterrows():
             tag = r["metric"].split("::")[-1]
             vals[tag] = float(r["value"])
-            L.append(f"  - `{tag}` → {float(r['value']):+.2f}% HL_tot")
-        # 卡面的问题：K4 的过剩热量能否由 ≤3% 的 O2/煤量偏差解释
+            L.append(f"  - `{tag}`：ΔX_C {dx.get(tag, float('nan')):+.2f} pp → "
+                     f"局部等效 {float(r['value']):+.2f} 个百分点热损")
         k4t = globals().get("_K4")
         need = float("nan")
         if k4t is not None and not k4t.empty:
             inner4 = k4t[k4t["edge"].isna()]
             if not inner4.empty:
                 need = float(inner4["HL_tot_star_pct"].median())
-        # 两个 3% 扰动同向叠加（线性外推，非实测）
         combo = None
         if "o2_x0.97" in vals and "coal_x1.03" in vals:
             combo = vals["o2_x0.97"] + vals["coal_x1.03"]
         L.append("")
+        L.append("- **K5 判定**：卡面问的是 ≤3% 的 **O2/煤量比** 能否解释 K4 的过剩热量。答案是"
+                 "**未回答**，原因有三条，都不是符号写反那么简单。")
+        L.append(f"  - 符号：O2 −3% 与煤 +3% 的 ΔX_C 中位分别是 "
+                 f"{dx.get('o2_x0.97', float('nan')):+.2f}、"
+                 f"{dx.get('coal_x1.03', float('nan')):+.2f} pp（扰动 − 基准）。"
+                 "基线已经偏高，这两项使 X_C 下降，与加热损同方向；"
+                 "它们不会扩大偏差。PR 正文曾把这两项写成 +2.18、+2.11 pp，那是把下降量写成正号，"
+                 "再和正的等效热损放在一起，看起来像方向反了。")
         if math.isfinite(need) and combo is not None:
-            covered = bool(combo >= need)
-            L.append(f"- **K5 判定**：K4 需要的热损中位 **{need:.2f}%**；"
-                     f"O2 −3% 与煤量 +3% **同向叠加**的等效量约 **{combo:.2f}%**"
-                     f"（单扰动线性外推，未做组合实测）。"
-                     f"因此「K4 的过剩热量能否由 ≤3% 的 O2/煤量比偏差解释」的答案是 "
-                     f"**{'能' if covered else '不能'}**"
-                     + ("，但要求两者同时处在各自的 3% 极限且方向一致——"
-                        "这是边界条件，不是典型工况。" if covered else "。"))
-            L.append(f"  - 单看任一变量都不够：O2 −3% 约 {vals.get('o2_x0.97', float('nan')):.2f}%，"
-                     f"煤量 +3% 约 {vals.get('coal_x1.03', float('nan')):.2f}%。")
-            L.append("  - **这条只按单扰动线性外推**，本轮没有做组合扰动的实测；"
-                     "两个 3% 同时成立是边界情形，且方向必须与「少氧 / 多煤」一致。"
-                     "它的意义是：能量过剩**并非必然不可解释**，但需要 O2 与煤量"
-                     "两个独立的 3% 级偏差同向叠加——而这两个量里只有煤量做了协调，"
-                     "O2 流量计至今未核（见 P1.11-A 核查 I3 第 2 项）。"
-                     "把这条当作「已解释」是不对的，正确表述是「可被边界级输入偏差覆盖」。")
+            L.append(f"  - 局部增量 ≠ 绝对水平：两项局部等效之和约 **{combo:.2f}** 个百分点"
+                     f"（在 HL_tot=1% 处），K4 的 `HL_tot*` 中位是 **{need:.2f}%**。"
+                     f"前者是 1% 附近的斜率换算，后者是到达所需的绝对热损；"
+                     f"不能拿 {combo:.2f} 去覆盖 {need:.2f}。")
+        L.append("  - 两个流量误差 ≠ 比偏差：同时施加 O2×0.97 与煤×1.03 会使 "
+                 "O2/煤 比变化 `0.97/1.03 − 1 = −5.83%`，超出 ≤3% 的比预算。"
+                 "本轮没有做过满足该约束的扰动，比偏差问题保持未决。")
     sv = jac[jac["row_kind"] == "singular_value"]["value"].values.astype(float)
     if len(sv) >= 2:
-        L.append(f"- **K6 可辨识性**：cond(J) = {sv[0]/sv[-1]:.3g}；"
-                 f"最小奇异值 {sv[-1]:.3g}。")
+        L.append(f"- **K6 可辨识性**（观测按 1 pp / 0.5 / 0.5 / 0.5 vol% 缩放，"
+                 f"参数列按 1 m、1 个百分点、ln 8、O2 3% 缩放；"
+                 f"只描述本窗口 `L_wsr=2 m`、`HL_tot=1%`、这组尺度）："
+                 f"cond(J) = {sv[0]/sv[-1]:.3g}；最小奇异值 {sv[-1]:.3g}。")
         wd = jac[jac["row_kind"] == "weakest_direction"]
         if not wd.empty:
             top = wd.iloc[int(np.argmax(np.abs(wd["value"].values.astype(float))))]
-            L.append(f"  - 最弱方向由 **{top['param']}** 主导"
-                     f"（载荷 {float(top['value']):+.3f}），"
-                     f"即在该工作点上它最难以独立辨识。")
+            L.append(f"  - 该坐标系下最弱方向由 **{top['param']}** 主导"
+                     f"（载荷 {float(top['value']):+.3f}）。改任一列的物理尺度都会改载荷。")
+        sv0 = jac[jac["row_kind"] == "singular_value_obs_only"]["value"].values.astype(float)
+        if len(sv0) >= 2:
+            L.append(f"  - 对照（只缩放观测、列用原单位 m/%/ln/比例）："
+                     f"cond(J) = {sv0[0]/sv0[-1]:.3g}。这个数字随单位而变，不当作主结论。")
+    k7 = rd[rd["reading"] == "K7"]
+    if not k7.empty:
+        L.append("- **K7 组成与氢账本**：K3 在可信热损下未到达；下列是 HL_tot=1% 邻域"
+                 "与 K4 最近扫描档上、两种组成口径的 ξ / 闭合后残差 / H2-only 氢账本。"
+                 "完整物种（含 CH4/H2S）账本因存档缺列标为不完整。")
     L.append("")
     return L
 
@@ -909,6 +1164,10 @@ def main() -> None:
         alloc = pd.read_csv(OUT_DIR / "alloc_sensitivity.csv")
         inputs = pd.read_csv(OUT_DIR / "input_sensitivity.csv")
         jac = pd.read_csv(OUT_DIR / "jacobian.csv")
+        J = _jacobian_matrix_from_table(jac)
+        if J is not None:
+            jac = _export_jacobian(J)
+            jac.to_csv(OUT_DIR / "jacobian.csv", index=False)
         # 不能硬编码 True：检查 4 未通过时这里必须如实为 False
         gate = unit_df[unit_df["pass"].notna()]
         unit_pass = bool(gate["pass"].astype(bool).all())
@@ -993,8 +1252,9 @@ def main() -> None:
                        "与 P1.9-D 汽包吸热同一分母",
             "allocation": "w_i = dz_i · clip((T_i/1800)^4, 0.1, 5)；Q_i = Q_tot·w_i/Σw",
             "outer_iteration": "权重用上一轮全炉温度场；第 0 轮按长度均匀；"
-                               "收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且 max|Δw/w|<1e-4；最多 30 轮；"
-                               "未收敛标 hloss_not_converged 并保留该轮解",
+                               "收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且未松弛残差 max|(w_new−w)/w|<1e-4；"
+                               "欠松弛只用于推进；最多 30 轮；未收敛标 hloss_not_converged 并保留该轮解。"
+                               "本轮扫描证据仍用修正前的松弛步残差；检查 4 显示容差收紧 100 倍只移动 0.039 K",
             "default_unchanged": "hhv_percent 逐位不变（检查 1）",
             "jax_guard": "JAX 路径遇 total_percent* 直接报错",
         },
@@ -1017,10 +1277,13 @@ def main() -> None:
             "K2": "固定 L_wsr（1 与 4 m），每 1% HL_tot 的 Δ",
             "K3": "HL_tot ≤ 1% 时是否有 L_wsr ≤ 6 m 使 |X_C 偏差| ≤ 1 pp",
             "K4": "逐窗插值所需 HL_tot*（0.5/4% 边界外标 boundary）",
-            "K5": "O2 ±3%、煤量 ±3% 的影响换算成等效 HL_tot",
-            "K6": f"L_wsr={L_JAC} m、HL_tot=1%、f_gas=1 处 [X_C,CO2,CO,H2] 对 "
-                  "[L_wsr,HL_tot,ln f_gas,O2] 的雅可比；缩放 1/0.5/0.5/0.5",
-            "K7": "到达点附近两种口径的 ξ、残差、氢账本；Mt 4% 的影响",
+            "K5": "O2 ±3%、煤量 ±3% 的局部等效 HL_tot（HL=1% 线性化）；"
+                  "不与 K4 绝对水平相比；两个流量误差不是 ≤3% 氧煤比",
+            "K6": f"L_wsr={L_JAC} m、HL_tot=1%、f_gas=1 处 [X_C pp,CO2,CO,H2] 对 "
+                  "[L_wsr,HL_tot,ln f_gas,O2] 的雅可比；观测缩放 1/0.5/0.5/0.5，"
+                  "参数列按 1 m / 1 pp / ln8 / 3% 缩放；结论限于该窗口与这组尺度",
+            "K7": "K3 邻域与 K4 最近扫描档上两种口径的 ξ、闭合后 CO/H2 残差、"
+                  "H2-only 氢账本；完整物种账本因缺列标不完整；Mt 4% 的影响",
             "K8": "total_percent 与 total_percent_uniform 在 HL_tot=1% 下的出口差",
         },
         "unit_checks_all_pass": unit_pass,
