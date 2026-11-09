@@ -1,0 +1,122 @@
+{
+  "round": "P1.12-A / 2026-11-06",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "a6490f76a20e3b660c6c5e0a1ed25bb827cc5eff",
+  "mesh_family": "uniform_full_length",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.12a-20261106.md",
+  "structure": {
+    "mesh_family": "wsr_plus_pfr",
+    "dz_down_m": 0.0515,
+    "oxygen_mixing": "instant（冻结）",
+    "frozen": [
+      "全部速率式与限幅",
+      "燃烧区判据 0.05 atm",
+      "煤量主口径",
+      "实测载气",
+      "求解器容差"
+    ]
+  },
+  "heat_loss": {
+    "new_models": [
+      "total_percent",
+      "total_percent_uniform"
+    ],
+    "total_W": "Q_tot = HL_tot/100 × m_dry × HHV_d —— **干煤**口径，与 P1.9-D 汽包吸热同一分母",
+    "allocation": "w_i = dz_i · clip((T_i/1800)^4, 0.1, 5)；Q_i = Q_tot·w_i/Σw",
+    "outer_iteration": "权重用上一轮全炉温度场；第 0 轮按长度均匀；收敛 |ΣQ−Q_tot|/Q_tot<1e-6 且 max|Δw/w|<1e-4；最多 30 轮；未收敛标 hloss_not_converged 并保留该轮解",
+    "default_unchanged": "hhv_percent 逐位不变（检查 1）",
+    "jax_guard": "JAX 路径遇 total_percent* 直接报错"
+  },
+  "runs": {
+    "A_main_scan": {
+      "windows": 9,
+      "L_wsr": [
+        0.2575,
+        1.0,
+        2.0,
+        4.0,
+        6.0
+      ],
+      "HL_tot_pct": [
+        0.5,
+        1.0,
+        2.0,
+        3.0,
+        4.0
+      ],
+      "f_gas": [
+        1.0,
+        0.125
+      ],
+      "expected_rows": 450
+    },
+    "B_alloc": {
+      "expected_rows": 90
+    },
+    "C_input": {
+      "L_wsr": [
+        1.0,
+        4.0
+      ],
+      "factors": [
+        0.97,
+        1.03
+      ],
+      "Mt_alt_pct": 4.0,
+      "expected_rows": 90,
+      "actual_rows_note": "卡面写 9×2×5=90 指的是 5 组扰动；为使 K5 的 Δ 有基准，额外保留每个（窗, L_wsr）的 baseline 行，实得 90+18=108 行。多出的 18 行是基准，不是新扰动。"
+    }
+  },
+  "predeclared": {
+    "K1": "HL_tot=1%、f_gas=1 下 L_wsr 0.2575→6 的 Δ（9 窗中位与范围），并与 P1.11-A 对比",
+    "K2": "固定 L_wsr（1 与 4 m），每 1% HL_tot 的 Δ",
+    "K3": "HL_tot ≤ 1% 时是否有 L_wsr ≤ 6 m 使 |X_C 偏差| ≤ 1 pp",
+    "K4": "逐窗插值所需 HL_tot*（0.5/4% 边界外标 boundary）",
+    "K5": "O2 ±3%、煤量 ±3% 的影响换算成等效 HL_tot",
+    "K6": "L_wsr=2.0 m、HL_tot=1%、f_gas=1 处 [X_C,CO2,CO,H2] 对 [L_wsr,HL_tot,ln f_gas,O2] 的雅可比；缩放 1/0.5/0.5/0.5",
+    "K7": "到达点附近两种口径的 ξ、残差、氢账本；Mt 4% 的影响",
+    "K8": "total_percent 与 total_percent_uniform 在 HL_tot=1% 下的出口差"
+  },
+  "unit_checks_all_pass": true,
+  "source_csv": {
+    "p17d": {
+      "round": "p1.7d-20261103",
+      "file": "coal_reconciled_by_window.csv",
+      "sha256": "05b4172f9ee9d509dc6284ac94fdea56af40a9d7b638d8285c4232d962af6345"
+    },
+    "p18d": {
+      "round": "p1.8d-20261104",
+      "file": "carrier_by_window.csv",
+      "sha256": "38c7815de4affd3dd08797dcc935e73ec470d78516ea45fa59debcc33a148550"
+    },
+    "p11a": {
+      "round": "p1.11a-20261106",
+      "file": "downstream_convergence.csv"
+    }
+  },
+  "outputs": [
+    "unit_checks.csv",
+    "scan.csv",
+    "alloc_sensitivity.csv",
+    "input_sensitivity.csv",
+    "jacobian.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}

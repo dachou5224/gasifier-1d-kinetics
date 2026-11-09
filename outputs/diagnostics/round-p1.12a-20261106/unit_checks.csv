@@ -1,0 +1,20 @@
+check,context,metric,expect,tolerance,value,pass,note
+1,hhv_percent vs P1.11-A（dz_down=0.0515），54 行,max_abs_rel_outlet_diff,0.0,1e-12,0.0,True,缺省路径不进新分支，必须逐位不变
+2,"uniform, L_wsr=1.0, HL_tot=1.0%",sum_Q_over_Qtot_minus_1,0.0,1e-12,1.788659606071735e-16,True,"ΣQ=5.206818 MW, Q_tot=5.206818 MW"
+2,"uniform, L_wsr=1.0, HL_tot=4.0%",sum_Q_over_Qtot_minus_1,0.0,1e-12,1.788659606071735e-16,True,"ΣQ=20.827274 MW, Q_tot=20.827274 MW"
+2,"uniform, L_wsr=4.0, HL_tot=1.0%",sum_Q_over_Qtot_minus_1,0.0,1e-12,0.0,True,"ΣQ=5.206818 MW, Q_tot=5.206818 MW"
+2,"uniform, L_wsr=4.0, HL_tot=4.0%",sum_Q_over_Qtot_minus_1,0.0,1e-12,0.0,True,"ΣQ=20.827274 MW, Q_tot=20.827274 MW"
+3,"gate: L_wsr=0.2575, HL_tot=0.5%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,1.7886596060717347e-16,True,迭代 4 轮，状态=completed
+3,"gate: L_wsr=0.2575, HL_tot=4.0%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,0.0,True,迭代 6 轮，状态=completed
+3,"gate: L_wsr=1.0, HL_tot=0.5%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,1.7886596060717347e-16,True,迭代 4 轮，状态=completed
+3,"gate: L_wsr=1.0, HL_tot=4.0%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,1.7886596060717347e-16,True,迭代 6 轮，状态=completed
+3,"gate: L_wsr=2.0, HL_tot=0.5%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,1.7886596060717347e-16,True,迭代 4 轮，状态=completed
+3,"gate: L_wsr=2.0, HL_tot=4.0%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,1.7886596060717347e-16,True,迭代 6 轮，状态=completed
+3,"gate: L_wsr=4.0, HL_tot=0.5%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,0.0,True,迭代 3 轮，状态=completed
+3,"gate: L_wsr=4.0, HL_tot=4.0%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,0.0,True,迭代 5 轮，状态=completed
+3,"gate: L_wsr=6.0, HL_tot=0.5%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,1.7886596060717347e-16,True,迭代 3 轮，状态=completed
+3,"gate: L_wsr=6.0, HL_tot=4.0%（-28D_008__W003）",sum_Q_rel_err,0.0,1e-06,3.5773192121434693e-16,True,迭代 5 轮，状态=completed
+4,初值无关性（-28D_008__W003）,max_abs_rel_outlet_diff,0.0,1e-06,4.209516473528522e-06,False,均匀初值 4 轮 vs P1.11-A 温度场初值 3 轮；容差收紧到 1e-6 只移动 ΔT=0.000 K（8 轮）
+4,初值无关性（22-09-28__W001）,max_abs_rel_outlet_diff,0.0,1e-06,3.851337956728429e-05,False,均匀初值 4 轮 vs P1.11-A 温度场初值 3 轮；容差收紧到 1e-6 只移动 ΔT=0.000 K（5 轮）
+4,初值无关性（-03D_011__W001）,max_abs_rel_outlet_diff,0.0,1e-06,6.928849859999531e-05,False,均匀初值 4 轮 vs P1.11-A 温度场初值 3 轮；容差收紧到 1e-6 只移动 ΔT=0.039 K（30 轮）
+3b,主扫描全量 450 行,max_sum_Q_rel_err,0.0,1e-06,5.612400953350503e-16,True,迭代轮数 3–10；状态 {'completed': 450}

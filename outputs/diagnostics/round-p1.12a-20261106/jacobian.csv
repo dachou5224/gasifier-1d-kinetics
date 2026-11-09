@@ -1,0 +1,42 @@
+row_kind,param,value,note
+singular_value,SV1,62.855867314151304,
+singular_value,SV2,1.8170100712064756,
+singular_value,SV3,0.500212128884432,
+singular_value,SV4,0.0022059642648037192,
+condition_number,cond(J),28493.60178540519,最大/最小奇异值
+weakest_direction,L_wsr,0.976886104343663,与最小奇异值对应的参数组合（Vt 最后一行）
+weakest_direction,HL_tot,-0.014026216367933034,与最小奇异值对应的参数组合（Vt 最后一行）
+weakest_direction,ln_f_gas,0.21329977943332565,与最小奇异值对应的参数组合（Vt 最后一行）
+weakest_direction,o2_ratio,9.213227878159231e-05,与最小奇异值对应的参数组合（Vt 最后一行）
+corr,L_wsr~L_wsr,1.0,
+corr,L_wsr~HL_tot,-0.9904390856461911,
+corr,L_wsr~ln_f_gas,0.9998035365023137,
+corr,L_wsr~o2_ratio,0.889482423848892,
+corr,HL_tot~L_wsr,-0.9904390856462059,
+corr,HL_tot~HL_tot,1.0,
+corr,HL_tot~ln_f_gas,-0.9881981275666275,
+corr,HL_tot~o2_ratio,-0.8391268046623839,
+corr,ln_f_gas~L_wsr,0.9998035365023124,
+corr,ln_f_gas~HL_tot,-0.9881981275666114,
+corr,ln_f_gas~ln_f_gas,1.0,
+corr,ln_f_gas~o2_ratio,0.8932358632435997,
+corr,o2_ratio~L_wsr,0.8894824238488439,
+corr,o2_ratio~HL_tot,-0.8391268046623234,
+corr,o2_ratio~ln_f_gas,0.893235863243553,
+corr,o2_ratio~o2_ratio,1.0,
+J,d(L_wsr)/d(L_wsr),-0.09896221861112053,未缩放
+J,d(L_wsr)/d(HL_tot),-1.0402830643283778,未缩放
+J,d(L_wsr)/d(ln_f_gas),0.3596853905943931,未缩放
+J,d(L_wsr)/d(o2_ratio),52.840533728661754,未缩放
+J,d(HL_tot)/d(L_wsr),0.056103174755423035,未缩放
+J,d(HL_tot)/d(HL_tot),0.6224931258868738,未缩放
+J,d(HL_tot)/d(ln_f_gas),-0.21495804440072153,未缩放
+J,d(HL_tot)/d(o2_ratio),4.129629298861503,未缩放
+J,d(ln_f_gas)/d(L_wsr),-0.025091502230623064,未缩放
+J,d(ln_f_gas)/d(HL_tot),-0.6406115947142155,未缩放
+J,d(ln_f_gas)/d(ln_f_gas),0.07129421763053756,未缩放
+J,d(ln_f_gas)/d(o2_ratio),11.828998750566555,未缩放
+J,d(o2_ratio)/d(L_wsr),-0.05806343444789697,未缩放
+J,d(o2_ratio)/d(HL_tot),-0.02625379333604627,未缩放
+J,d(o2_ratio)/d(ln_f_gas),0.27123782002838936,未缩放
+J,d(o2_ratio)/d(o2_ratio),-11.50467215495663,未缩放
