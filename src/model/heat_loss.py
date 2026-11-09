@@ -77,7 +77,18 @@ FORTRAN_TW_SLOPE_K = 600.0
 # 热损模型开关
 HEAT_LOSS_MODEL_DEFAULT = "hhv_percent"
 HEAT_LOSS_MODEL_FORTRAN = "fortran_wall"
-VALID_HEAT_LOSS_MODELS = (HEAT_LOSS_MODEL_DEFAULT, HEAT_LOSS_MODEL_FORTRAN)
+# P1.12-A：整炉总量热损。Q_tot = HL_tot/100 × m_dry × HHV_d（**干煤**口径），
+# 逐格按 w_i = dz_i·clip((T_i/1800)^4, 0.1, 5) 归一化分配；T 来自上一轮全炉温度场，
+# 因此需要外层不动点迭代。
+HEAT_LOSS_MODEL_TOTAL = "total_percent"
+# 同一总量、但按 dz_i 均匀分配（无 T 权重 → 无需迭代，ΣQ 逐位等于 Q_tot）。
+HEAT_LOSS_MODEL_TOTAL_UNIFORM = "total_percent_uniform"
+VALID_HEAT_LOSS_MODELS = (
+    HEAT_LOSS_MODEL_DEFAULT,
+    HEAT_LOSS_MODEL_FORTRAN,
+    HEAT_LOSS_MODEL_TOTAL,
+    HEAT_LOSS_MODEL_TOTAL_UNIFORM,
+)
 
 
 def resolve_heat_loss_model(op_conds: Mapping[str, Any]) -> str:
@@ -90,6 +101,22 @@ def resolve_heat_loss_model(op_conds: Mapping[str, Any]) -> str:
     if model not in VALID_HEAT_LOSS_MODELS:
         raise ValueError(f"HeatLossModel must be one of {VALID_HEAT_LOSS_MODELS}, got {raw!r}")
     return model
+
+
+def temperature_weight(T_K: float, T_ref: float = 1800.0) -> float:
+    """``clip((T/1800)^4, 0.1, 5)``：与 ``hhv_percent`` 同一形状函数（P1.12-A 卡第 1 节）。"""
+    w = (float(T_K) / float(T_ref)) ** 4.0
+    return float(np.clip(w, 0.1, 5.0))
+
+
+def total_heat_loss_w(m_dry_kg_s: float, hhv_kj_kg: float, hl_tot_pct: float) -> float:
+    """整炉热损总量 [W]：``HL_tot/100 × m_dry × HHV_d``。
+
+    P1.12-A 用户决定：分母改为**干煤**（此前 ``hhv_percent`` 用湿煤 × 干基 HHV，
+    差一个 1/(1−Mt) 因子）。汽包吸热实测 0.35–0.94% 也是按干煤 HHV 计的，
+    因此这个口径才能与实测直接对照。
+    """
+    return float(hl_tot_pct) / 100.0 * float(m_dry_kg_s) * float(hhv_kj_kg) / 1000.0 * 1e6
 
 
 def combustion_zone_heat_loss_w(
@@ -302,8 +329,12 @@ __all__ = [
     "FORTRAN_TW_SLOPE_K",
     "HEAT_LOSS_MODEL_DEFAULT",
     "HEAT_LOSS_MODEL_FORTRAN",
+    "HEAT_LOSS_MODEL_TOTAL",
+    "HEAT_LOSS_MODEL_TOTAL_UNIFORM",
     "VALID_HEAT_LOSS_MODELS",
     "resolve_heat_loss_model",
+    "total_heat_loss_w",
+    "temperature_weight",
     "combustion_zone_heat_loss_w",
     "gasification_zone_heat_loss_w",
     "fortran_wall_heat_loss",
