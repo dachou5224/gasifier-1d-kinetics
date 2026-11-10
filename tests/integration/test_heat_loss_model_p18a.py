@@ -70,7 +70,10 @@ def test_default_heat_loss_model_is_bit_identical():
 def test_jax_path_rejects_fortran_wall_and_rate_factor():
     case, geo = _case()
     built = build_case_inputs(case, geometry=geo)
-    for extra in ({"HeatLossModel": "fortran_wall"}, {"GasificationRateFactor": 0.5}):
+    for extra in ({"HeatLossModel": "fortran_wall"},
+                  {"GasificationRateFactor": 0.5},
+                  {"HeatLossModel": "total_percent", "HeatLossPercentTotal": 1.0},
+                  {"HeatLossModel": "total_percent_uniform", "HeatLossPercentTotal": 1.0}):
         system = GasifierSystem(built["geometry"], built["coal_props"],
                                 paper_op_conds(built, extra=extra))
         with pytest.raises(ValueError):

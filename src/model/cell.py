@@ -14,9 +14,13 @@ from model.kinetics_service import KineticsService
 from model.constants import PhysicalConstants
 from model.heat_loss import (
     HEAT_LOSS_MODEL_FORTRAN,
+    HEAT_LOSS_MODEL_TOTAL,
+    HEAT_LOSS_MODEL_TOTAL_UNIFORM,
     fortran_wall_heat_loss,
     reaction_heat_release_w,
     resolve_heat_loss_model,
+    temperature_weight,
+    total_heat_loss_w,
 )
 from model.physics import calculate_gas_viscosity, calculate_diffusion_coefficient, R_CONST
 from model.source_terms import PyrolysisSource
@@ -616,6 +620,68 @@ class Cell:
             "hloss_dz_frac": float(self.dz / L_total),
         }
 
+    def total_percent_hloss(self, state) -> dict:
+        """``total_percent`` / ``total_percent_uniform`` 的逐格热损（只读，不改求解）。
+
+        整炉总量 ``Q_tot = HL_tot/100 × m_dry × HHV_d``（干煤口径），逐格按
+        ``w_i = dz_i · clip((T_i/1800)^4, 0.1, 5)`` 归一化分配：
+
+            Q_i = Q_tot · w_i / Σw
+
+        ``Σw`` 与各 ``T_i`` 由**外层不动点迭代**提供（见 ``GasifierSystem.solve``）：
+        逐格推进的求解器在解第 i 格时不知道下游温度，所以本轮用的权重来自上一轮全炉温度场。
+        第 0 轮取按长度均匀（``w_i = dz_i``），与 ``total_percent_uniform`` 的起点相同。
+
+        ``ΣQ_i`` 因此**不自动**等于 ``Q_tot``：只有在权重自洽（迭代收敛）后才成立。
+        实际求和由 ``GasifierSystem`` 在整炉解完后核对。
+        """
+        model = resolve_heat_loss_model(self.op_conds)
+        hl_tot = float(self.op_conds.get('HeatLossPercentTotal', float("nan")))
+        if not np.isfinite(hl_tot) or hl_tot < 0.0:
+            raise ValueError(
+                f"HeatLossModel={model!r} 需要非负的 HeatLossPercentTotal（%），得到 {hl_tot!r}"
+            )
+        # 干煤流量：P1.12-A 口径（不再用湿煤乘干基 HHV）
+        m_dry = float(self.op_conds.get('coal_dry_flow_for_heat_loss', self.coal_flow_dry))
+        hhv_kj = float(coal_hhv_kj_kg(self.coal_props))
+        Q_tot = total_heat_loss_w(m_dry, hhv_kj, hl_tot)
+
+        # 权重由**外层不动点迭代**提供（`HeatLossWeights` 数组 + `HeatLossWeightSum`）。
+        # 分子分母用**同一份**权重，因此 ΣQ_i = Q_tot 在每一轮都精确成立；
+        # 自洽性由外层判据 max|Δw/w| 保证，收敛时 w = dz·clip((T/1800)^4)。
+        # 若在这里改用「本轮温度场」算分子、上一轮算分母，ΣQ 只有在收敛后才等于 Q_tot，
+        # 而卡面要求 |ΣQ−Q_tot|/Q_tot < 1e-6 —— 那会把两条判据耦合成一条更严的要求。
+        if model == HEAT_LOSS_MODEL_TOTAL_UNIFORM:
+            w_all = self.op_conds.get('HeatLossWeights')
+            W_sum = float(self.op_conds.get('HeatLossWeightSum', float("nan")))
+            if w_all is not None:
+                w = float(np.asarray(w_all, dtype=float)[self.idx])
+            else:
+                w = float(self.dz)
+            t_weight = 1.0
+        else:
+            w_all = self.op_conds.get('HeatLossWeights')
+            W_sum = float(self.op_conds.get('HeatLossWeightSum', float("nan")))
+            if w_all is None:
+                raise ValueError(
+                    "total_percent 需要 HeatLossWeights 与 HeatLossWeightSum（由外层迭代提供）"
+                )
+            w = float(np.asarray(w_all, dtype=float)[self.idx])
+            t_weight = float(w / max(self.dz, 1e-30))
+        if not np.isfinite(W_sum) or W_sum <= 0.0:
+            raise ValueError(f"HeatLossWeightSum 必须为有限正数，得到 {W_sum!r}")
+        Q_loss_W = Q_tot * w / W_sum
+        return {
+            "hloss_W": float(Q_loss_W),
+            "hloss_zone": model,
+            "hloss_loss_pct": hl_tot,
+            "hloss_Q_total_W": float(Q_tot),
+            "hloss_t_weight": float(t_weight),
+            "hloss_w_cell": float(w),
+            "hloss_W_sum": float(W_sum),
+            "hloss_iters": int(self.op_conds.get('HeatLossIteration', 0)),
+        }
+
     def _calc_energy_balance(self, current, energy_src, phys=None, r_het=None, r_homo=None, phi=None, Ts_out=None, gas_src=None, is_combustion_zone=None):
         """
         Computes enthalpy residual for the cell.
@@ -666,6 +732,13 @@ class Cell:
             loss_pct = float("nan")
             t_weight = float("nan")
             Q_total_W = float("nan")
+        elif heat_loss_model in (HEAT_LOSS_MODEL_TOTAL, HEAT_LOSS_MODEL_TOTAL_UNIFORM):
+            # P1.12-A：整炉总量热损。权重来自外层不动点迭代（op_conds['HeatLossWeightSum']）。
+            _hl = self.total_percent_hloss(current)
+            Q_loss_W = _hl["hloss_W"]
+            loss_pct = _hl["hloss_loss_pct"]
+            t_weight = _hl["hloss_t_weight"]
+            Q_total_W = _hl["hloss_Q_total_W"]
         else:
             # L_heatloss_norm 默认为网格总长；未提供时退回几何总长 L_reactor
             # P1.9-A：算式抽到 hhv_percent_hloss，运算顺序不变（逐位相同），

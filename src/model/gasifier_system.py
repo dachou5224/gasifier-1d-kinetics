@@ -32,14 +32,21 @@ from .solver import NewtonSolver
 from .jax_residual_adapter import make_jacobian_fn
 from .heat_loss import (
     HEAT_LOSS_MODEL_FORTRAN,
+    HEAT_LOSS_MODEL_TOTAL,
+    HEAT_LOSS_MODEL_TOTAL_UNIFORM,
+    heat_loss_weight_relative_residual,
     resolve_heat_loss_model,
+    temperature_weight,
+    total_heat_loss_w,
 )
 import logging
 
 logger = logging.getLogger(__name__)
 
-_LEGACY_SOLVER_ALIASES = {
-    "newton": "newton_fd",
+# P1.12-A：整炉总量热损的外层不动点判据（权重相对变化）
+TOL_DW = 1e-4
+
+_LEGACY_SOLVER_ALIASES = {    "newton": "newton_fd",
     "jax_newton": "newton_fd",
     "jax_pure": "newton_fd",
 }
@@ -227,12 +234,30 @@ class GasifierSystem:
 
     def _initialize_inlet(self):
         W_wet = self.op_conds['coal_flow']; Mt = self.coal_props.get('Mt', 0.0); W_dry = W_wet * (1 - Mt/100.0)
+        # P1.12-A 输入敏感性：Mt 单独扰动。只改「湿煤中有多少水」，
+        # 保持干煤质量不变（W_wet 相应调整），因为干煤量由称重给煤机标定。
+        _Mt_over = self.op_conds.get("Mt_override_pct")
+        if _Mt_over is not None:
+            _mt_new = float(_Mt_over)
+            if not (0.0 <= _mt_new < 100.0):
+                raise ValueError(f"Mt_override_pct 越界：{_mt_new}")
+            W_wet = W_dry / (1.0 - _mt_new / 100.0)
+            self.op_conds['coal_flow'] = W_wet
+            Mt = _mt_new
+            self.coal_props = {**self.coal_props, "Mt": _mt_new}
         slurry = self.op_conds.get('SlurryConcentration', 100.0); W_steam = self.op_conds.get('steam_flow', 0.0)
         W_coal_moist = W_wet * Mt/100.0
         W_slurry_h2o = (W_dry / (slurry/100.0)) - W_dry if slurry < 100.0 else 0.0
         self.tmp_W_h2o_total = W_coal_moist + W_slurry_h2o + W_steam
         self.tmp_W_liq_evap = W_coal_moist + W_slurry_h2o
         F_O2 = (self.op_conds['o2_flow'] / 31.998) * 1000.0; F_CO2, F_N2 = self._carrier_gas_molar_flows(); F_st = W_steam / 18.015 * 1000.0
+        # P1.12-A 输入敏感性：O2 流量单独扰动（O/C 是温度与 X_C 的首要驱动量）。
+        _o2s = self.op_conds.get("o2_flow_scale")
+        if _o2s is not None:
+            _f = float(_o2s)
+            if not (0.0 < _f < 10.0):
+                raise ValueError(f"o2_flow_scale 越界：{_f}")
+            F_O2 = F_O2 * _f
         # P1.10-A：OxygenMixingModel != "instant" 时，入口 O2 作为**不反应的旁流**，
         # 反应流在 z = 0 不含 O2；旁流量按累计分数 F(z) 逐格并入（见 OxygenMixingSource）。
         # "instant"（缺省）不进入这一分支，gas[0] 仍为 F_O2 → 现行行为逐位不变。
@@ -356,7 +381,142 @@ class GasifierSystem:
             warmup_jax()
         if solver_method == "jax_jit":
             return self._solve_jax_v4(dz_list, inlet, A)
+        # P1.12-A：整炉总量热损需要外层不动点迭代（逐格推进时不知道下游温度）。
+        if resolve_heat_loss_model(self.op_conds) == HEAT_LOSS_MODEL_TOTAL:
+            return self._solve_total_heat_loss(dz_list, inlet, A, solver_method, jacobian_mode)
+        if resolve_heat_loss_model(self.op_conds) == HEAT_LOSS_MODEL_TOTAL_UNIFORM:
+            # 均匀分配无需迭代：w_i = dz_i，ΣQ 逐位等于 Q_tot
+            self.op_conds["HeatLossWeightSum"] = float(np.sum(np.asarray(dz_list, dtype=float)))
+            self.op_conds["HeatLossIteration"] = 0
         return self._solve_sequential(dz_list, inlet, A, solver_method, jacobian_mode)
+
+    def _solve_total_heat_loss(self, dz_list, inlet, A, solver_method, jacobian_mode):
+        """``total_percent`` 的外层不动点迭代（P1.12-A 卡第 1 节）。
+
+        逐格推进的求解器在解第 i 格时不知道下游温度，因此第 k+1 轮的权重
+        ``w_i = dz_i·clip((T_i/1800)^4, 0.1, 5)`` 用第 k 轮的全炉温度场。
+        第 0 轮按长度均匀（``w_i = dz_i``）。
+
+        收敛：(a) ``|ΣQ_i − Q_tot| / Q_tot < 1e-6`` 且
+        (b) 未松弛残差 ``max|(w_new − w)/w| < 1e-4``（``w_new = dz · temperature_weight(T)``）；
+        最多 30 轮。欠松弛只用于推进迭代，不进入收敛判据。未收敛时
+        ``hloss_status`` 置 ``hloss_not_converged``，但**保留**该轮解，供判读时如实报告。
+
+        注意 (a) 在收敛前不成立：``Σ w_i/(Σw) = 1`` 只在权重与温度场自洽时才有意义，
+        非自洽权重下 ΣQ 仍等于 Q_tot（因为分母就是同一轮权重的和），所以真正的
+        判据是 (b)——(a) 在这里几乎恒成立，保留它只为符合卡面文字的核对。
+        """
+        dz = np.asarray(dz_list, dtype=float)
+        hl_tot = float(self.op_conds.get('HeatLossPercentTotal', float("nan")))
+        # 允许本轮脚本覆盖权重容差（仅用于容差敏感性对照；缺省用模块常量）
+        _tol_dw = float(self.op_conds.get("HeatLossTolerance", TOL_DW))
+        if not np.isfinite(hl_tot) or hl_tot < 0.0:
+            raise ValueError(
+                f"HeatLossModel='total_percent' 需要非负的 HeatLossPercentTotal（%），得到 {hl_tot!r}"
+            )
+        # 干煤口径的分母（P1.12-A）：与实测汽包吸热同口径
+        m_dry = float(self.op_conds.get('coal_dry_flow_for_heat_loss', self.W_dry))
+        hhv_kj = float(coal_hhv_kj_kg(self.coal_props))
+        Q_tot = total_heat_loss_w(m_dry, hhv_kj, hl_tot)
+
+        w = dz.copy()                      # 第 0 轮：按长度均匀
+        alpha = 1.0
+        last_raw_dw = float("inf")
+        # P1.12-A 单元检查 4：允许外部指定第 0 轮温度场，用于验证迭代与初值无关
+        _T0 = self.op_conds.get("HeatLossInitTemperatures")
+        if _T0 is not None:
+            _T0 = np.asarray(_T0, dtype=float).ravel()
+            if _T0.size >= dz.size:
+                w = dz * np.array(
+                    [temperature_weight(_T0[i], self.op_conds.get('HeatLossRefTemp', 1800.0))
+                     for i in range(dz.size)], dtype=float)
+            else:
+                # 长度不匹配时按最近邻重采样（P1.11-A 用 dz_down=0.02575，本卡用 0.0515）
+                _z0 = np.linspace(0.0, 1.0, _T0.size)
+                _z1 = np.linspace(0.0, 1.0, dz.size)
+                _Tr = np.interp(_z1, _z0, _T0)
+                w = dz * np.array(
+                    [temperature_weight(_Tr[i], self.op_conds.get('HeatLossRefTemp', 1800.0))
+                     for i in range(dz.size)], dtype=float)
+        iters = 0
+        converged = False
+        hist: list[dict] = []
+        prev_T: np.ndarray | None = None
+        for it in range(30):
+            iters = it
+            self.op_conds["HeatLossWeights"] = w
+            self.op_conds["HeatLossWeightSum"] = float(np.sum(w))
+            self.op_conds["HeatLossIteration"] = int(it)
+            # 每轮重置求解状态，避免把上一轮的解当作本轮入口
+            self.results = []
+            self.cells = []
+            self.cell_diagnostics = []
+            self.execution_status = "completed"
+            self.no_root_cell_index = None
+            self.cell0_branches = []
+            self.solve_stats = {"fallback_count": 0, "poor_convergence_count": 0}
+            profile, z = self._solve_sequential(dz_list, inlet, A, solver_method, jacobian_mode)
+
+            n_solved = len(self.results)
+            if self.execution_status != "completed" or n_solved != dz.size:
+                # 求解未跑完：权重覆盖不全，本轮不可用作迭代基准，直接返回
+                hist.append({"iter": int(it), "n_solved": int(n_solved),
+                             "status": str(self.execution_status),
+                             "sum_Q_over_Qtot": float("nan"), "max_rel_dw": float("nan")})
+                break
+            T = np.array([float(s.T) for s in self.results], dtype=float)
+            w_new = dz * np.array(
+                [temperature_weight(T[i], self.op_conds.get('HeatLossRefTemp', 1800.0))
+                 for i in range(dz.size)], dtype=float)
+            # 欠松弛：直接替换在 T⁴ 权重下会振荡（实测 L_wsr=0.2575、HL_tot=4% 时
+            # 30 轮不收敛）。松弛只改变迭代路径，**不动点不变**：
+            # 收敛时 w = w_new，与无松弛的方程组完全一致。
+            # 自适应：本步的相对变化比上一步更大 → 判为振荡，收缩 0.6；否则缓慢放大。
+            raw_dw = (heat_loss_weight_relative_residual(w, w_new)
+                      if prev_T is not None else float("inf"))
+            if prev_T is not None:
+                if raw_dw > last_raw_dw:
+                    alpha = max(0.1, alpha * 0.6)
+                elif raw_dw < 0.5 * last_raw_dw:
+                    alpha = min(1.0, alpha / 0.8)
+            last_raw_dw = raw_dw
+            w_target = w + alpha * (w_new - w)
+            # ΣQ_i / Q_tot（用本轮权重）
+            Q_sum = float(sum(float(d.get("hloss_W", 0.0)) for d in self.cell_diagnostics))
+            sum_rel = abs(Q_sum - Q_tot) / max(abs(Q_tot), 1e-30)
+            step_dw = (heat_loss_weight_relative_residual(w, w_target)
+                       if prev_T is not None else float("inf"))
+            hist.append({"iter": int(it), "n_solved": int(n_solved),
+                         "status": "completed", "sum_Q_over_Qtot": float(sum_rel),
+                         "max_rel_dw": float(raw_dw), "step_rel_dw": float(step_dw),
+                         "alpha": float(alpha)})
+            # 判据：ΣQ 残差（分子分母同权重，恒成立）+ 未松弛权重残差 max|w_new−w|/w < 1e-4。
+            # 卡面两条都要求；后者是实现收敛的真正判据。松弛步长只用于推进，不用于判定。
+            if it > 0 and sum_rel < 1e-6 and raw_dw < _tol_dw:
+                converged = True
+                break
+            if np.array_equal(w_target, w):
+                # 权重已逐位不变：不动点达成
+                converged = True
+                break
+            w = w_target
+            prev_T = T
+        self.heat_loss_iterations = int(iters) + 1
+        self.heat_loss_history = hist
+        self.heat_loss_converged = bool(converged)
+        last = hist[-1] if hist else {}
+        self.heat_loss_raw_dw = float(last.get("max_rel_dw", float("nan")))
+        self.heat_loss_step_dw = float(last.get("step_rel_dw", float("nan")))
+        self.heat_loss_alpha = float(last.get("alpha", float("nan")))
+        # ΣQ / Q_tot 最终值
+        Q_sum_final = float(sum(float(d.get("hloss_W", 0.0)) for d in self.cell_diagnostics))
+        self.heat_loss_Q_sum_W = Q_sum_final
+        self.heat_loss_Q_tot_W = float(Q_tot)
+        # 卡面：未收敛的行「标 hloss_not_converged」。这里**不覆盖** execution_status——
+        # 热化学求解本身已完成，覆盖会让 run_case 不再计算出口量（X_C 变 NaN），
+        # 反而丢掉必须报告的数值。用一个独立的标记列承载该状态。
+        self.hloss_status = "converged" if converged else "hloss_not_converged"
+        return self._package_results()
 
     def _pyrolysis_source(self) -> PyrolysisSource:
         """P1.6-A（B9）：NumPy/JAX 两条路径共用的热解源（含热解热口径）。"""
@@ -374,6 +534,16 @@ class GasifierSystem:
                 "HeatLossModel='fortran_wall' is not implemented on the JAX batch path "
                 "(GasifierSystem._solve_jax_v4). Use solver_method='minimize'/'newton_fd' "
                 "(the NumPy sequential path), or set HeatLossModel='hhv_percent'."
+            )
+        # P1.12-A：整炉总量热损需要外层不动点迭代，JAX 批处理路径无此结构——必须报错。
+        if resolve_heat_loss_model(self.op_conds) in (
+            HEAT_LOSS_MODEL_TOTAL, HEAT_LOSS_MODEL_TOTAL_UNIFORM,
+        ):
+            raise ValueError(
+                "HeatLossModel in ('total_percent', 'total_percent_uniform') is not implemented "
+                "on the JAX batch path (GasifierSystem._solve_jax_v4); the outer fixed-point "
+                "iteration over the temperature field has no batch equivalent. Use "
+                "solver_method='minimize'/'newton_fd' or set HeatLossModel='hhv_percent'."
             )
         if float(self.op_conds.get("GasificationRateFactor", 1.0)) != 1.0:
             raise ValueError(
@@ -836,17 +1006,34 @@ class GasifierSystem:
                 row["heat_loss_model"] = resolve_heat_loss_model(cell.op_conds)
                 # P1.9-A：hhv_percent 下也记录逐格 Q_loss，否则「HLP 不是整炉热损
                 # 百分比」无法从产物核对（审阅意见）。与能量残差用同一算式。
+                # P1.12-A：total_percent / total_percent_uniform 必须走各自的方法——
+                # 用一个分支统一调 hhv_percent_hloss 会让审计列与方程不符
+                # （实测 ΣQ/Q_tot 因此错报 0.768 而非 1）。
                 try:
-                    hl = cell.hhv_percent_hloss(sol_state)
-                    row.update({
-                        "hloss_W": float(hl["hloss_W"]),
-                        "hloss_zone": str(hl["hloss_zone"]),
-                        "hloss_loss_pct": float(hl["hloss_loss_pct"]),
-                        "hloss_Q_total_W": float(hl["hloss_Q_total_W"]),
-                        "hloss_t_weight": float(hl["hloss_t_weight"]),
-                        "hloss_L_norm_m": float(hl["hloss_L_norm_m"]),
-                        "hloss_dz_frac": float(hl["hloss_dz_frac"]),
-                    })
+                    _model = resolve_heat_loss_model(cell.op_conds)
+                    if _model in (HEAT_LOSS_MODEL_TOTAL, HEAT_LOSS_MODEL_TOTAL_UNIFORM):
+                        hl = cell.total_percent_hloss(sol_state)
+                        row.update({
+                            "hloss_W": float(hl["hloss_W"]),
+                            "hloss_zone": str(hl["hloss_zone"]),
+                            "hloss_loss_pct": float(hl["hloss_loss_pct"]),
+                            "hloss_Q_total_W": float(hl["hloss_Q_total_W"]),
+                            "hloss_t_weight": float(hl["hloss_t_weight"]),
+                            "hloss_w_cell": float(hl["hloss_w_cell"]),
+                            "hloss_W_sum": float(hl["hloss_W_sum"]),
+                            "hloss_iters": int(hl["hloss_iters"]),
+                        })
+                    else:
+                        hl = cell.hhv_percent_hloss(sol_state)
+                        row.update({
+                            "hloss_W": float(hl["hloss_W"]),
+                            "hloss_zone": str(hl["hloss_zone"]),
+                            "hloss_loss_pct": float(hl["hloss_loss_pct"]),
+                            "hloss_Q_total_W": float(hl["hloss_Q_total_W"]),
+                            "hloss_t_weight": float(hl["hloss_t_weight"]),
+                            "hloss_L_norm_m": float(hl["hloss_L_norm_m"]),
+                            "hloss_dz_frac": float(hl["hloss_dz_frac"]),
+                        })
                 except Exception as exc:  # 诊断失败不改变求解结果
                     row["heat_loss_diagnostic_error"] = f"{type(exc).__name__}: {exc}"
         except Exception as exc:  # 诊断失败不改变求解结果
