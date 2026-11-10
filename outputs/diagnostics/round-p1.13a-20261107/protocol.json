@@ -1,7 +1,7 @@
 {
   "round": "P1.13-A / 2026-11-07",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "4d26a319fc3a00affb274954d1cdf959cc05871d",
+  "source_commit": "158e0f980b061eb241d4566562299edefe328a8e",
   "mesh_family": "wsr_plus_pfr",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -108,12 +108,16 @@
   },
   "predeclared": {
     "P1": "scaled RMS ≤ 1 → reaches predeclared fit tolerance (pilot weights, not measurement σ)",
-    "P2": "primary: cond(J @ diag(0.05,50,1))<100 and all |ρ|<0.9; native cond(J) historical only; collinearity, bound hits, global cond reported separately",
+    "P2": "HISTORICAL as run: cond(J)<100 and all |ρ|<0.9 in native parameter units (ξ mol/s); observation residuals scaled by σ. Result 0/26. Not generalized.",
     "P3": "within-phase scatter vs curvature 1σ; analyzer vs liu Δθ vs curvature 1σ; phase median/range",
     "P4": "flags only: κ in [0.92,1.03]; f_gas in [1/16,2]; T_eq proxy in [500,1300] K under quench-replaces-ξ water assumption; bound hits",
     "P5": "redo phase fits at L_wsr=4 m, HL_tot in {0.5,1.5}%; report Δθ/curvature 1σ",
     "P6": "non-unique if cost differs <1% but some parameter differs by > each curvature 1σ",
     "P7": "within-phase LOO vs uncorrected vs residual patch; report only; Liu targets identical across windows in a phase"
+  },
+  "post_hoc": {
+    "P2_local_xscale": "Review revision, not predeclared: cond(J @ diag(0.05,50,1))<100 and |ρ|<0.9 as a local curvature/collinearity screen. Passing this threshold is not global identifiability. Bound solutions listed separately.",
+    "H_ledger_schema": "xi_counted_once"
   },
   "stopped": false,
   "source_csv": {

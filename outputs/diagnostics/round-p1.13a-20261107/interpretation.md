@@ -1,6 +1,6 @@
 # P1.13-A 试点非线性反演判读
 
-结构冻结 `wsr_plus_pfr`，`L_wsr = 1 m`（名义），`dz_down = 0.0515 m`，`total_percent` `HL_tot = 1%`，`OxygenMixingModel = instant`。反演参数：κ（入口 O2 乘数，整体数据协调，不归因到仪表）、ξ（反应器后变换，不进求解器）、ln `f_gas`。观测：装置 X_C（实测载气、标定合成气、协调煤量主口径）与干基 CO/H2/CO2；σ = [1.5, 0.5, 0.5, 0.5]（预声明试点权重，不是测量不确定度）。算法：`least_squares` / `trf`，`x_scale` = [0.05, 50.0, 1.0]，有限差分相对步长 0.0001（ξ 步长外底 10.0 mol/s）。P2 主报告用 `J @ diag(x_scale)`；(JᵀJ)⁻¹ 是局部曲率诊断。本轮**不采纳**任何参数值。
+结构冻结 `wsr_plus_pfr`，`L_wsr = 1 m`（名义），`dz_down = 0.0515 m`，`total_percent` `HL_tot = 1%`，`OxygenMixingModel = instant`。反演参数：κ（入口 O2 乘数，整体数据协调，不归因到仪表）、ξ（反应器后变换，不进求解器）、ln `f_gas`。观测：装置 X_C（实测载气、标定合成气、协调煤量主口径）与干基 CO/H2/CO2；σ = [1.5, 0.5, 0.5, 0.5]（预声明试点权重，不是测量不确定度）。算法：`least_squares` / `trf`，`x_scale` = [0.05, 50.0, 1.0]，有限差分相对步长 0.0001（ξ 步长外底 10.0 mol/s）。P2 的无量纲尺度门槛是复审后的局部诊断，不是预声明读法。(JᵀJ)⁻¹ 是局部曲率诊断。本轮**不采纳**任何参数值。
 
 ## P1 拟合质量
 σ 是预声明试点权重，不是测量不确定度；RMS≤1 记为达到预设拟合容差。
@@ -21,24 +21,24 @@
 - `phase_max_rms::liu_phase` liu_phase = 2.153784647960606 **未达预设拟合容差**. 
 - `phase_n_rms_le_1::liu_phase` liu_phase = 1.0. 
 
-## P2 可辨识性
-主报告：参数列按优化器 `x_scale`=[0.05, 50.0, 1.0] 无量纲化后 cond(J@S) < 100.0 且全部 |ρ| < 0.9。原 cond(J)（ξ 以 mol/s）保留为历史读法，不推广。局部共线（|ρ|）、贴边界与全局条件数分开列。
-- 无量纲尺度下可分别辨识：14 / 26（逐窗 6/18；逐阶段 8/8）
-- 历史（原生单位）可分别辨识：0 / 26（不推广）
+## P2 局部条件数诊断（复审后修订，不是预声明读法）
+单点雅可比不能回答全局唯一性。下列「通过局部门槛」指参数列按优化器 `x_scale`=[0.05, 50.0, 1.0] 无量纲化后 cond(J@S) < 100.0 且全部 |ρ| < 0.9，只是局部曲率与共线筛查。预声明历史口径是原生单位 cond(J)（ξ 以 mol/s），结果 0/26，不推广。局部共线、贴边界与该局部门槛分开列。
+- 通过所选尺度下的局部条件数与相关门槛：14 / 26（逐窗 6/18；逐阶段 8/8）
+- 历史预声明口径（原生单位）：0 / 26（不推广）
 - 局部共线（无量纲 |ρ|≥0.9）：12 / 26
-- 贴边界：6 / 26（单独列，不并入 cond 判据）
-  - 不可辨识 analyzer phase1 `09-28D_008__W003`：J@diag(0.05,50,1); cond=424.7; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase1 `09-28D_008__W003`：J@diag(0.05,50,1); cond=59.38; max|ρ|=0.997; pair=kappa-lnfg
-  - 不可辨识 analyzer phase1 `2022-09-28__W001`：J@diag(0.05,50,1); cond=94.06; max|ρ|=0.992; pair=kappa-lnfg
-  - 不可辨识 analyzer phase2 `10-03D_011__W001`：J@diag(0.05,50,1); cond=55.45; max|ρ|=0.994; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase2 `10-03D_011__W001`：J@diag(0.05,50,1); cond=419.3; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase2 `10-03N_013__W001`：J@diag(0.05,50,1); cond=335; max|ρ|=0.999; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase3 `10-09D_014__W004`：J@diag(0.05,50,1); cond=383.4; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase3 `10-09D_015__W001`：J@diag(0.05,50,1); cond=375.1; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase4 `10-10N_006__W001`：J@diag(0.05,50,1); cond=42.87; max|ρ|=0.988; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase4 `10-11N_009__W002`：J@diag(0.05,50,1); cond=180.4; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 analyzer phase4 `2022-10-11__W001`：J@diag(0.05,50,1); cond=14.06; max|ρ|=0.929; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase4 `2022-10-11__W001`：J@diag(0.05,50,1); cond=297; max|ρ|=1.000; pair=kappa-lnfg
+- 贴边界：6 / 26（单独列；边界解不并入局部门槛，也不能当作全局可辨识）
+  - 未过局部门槛 analyzer phase1 `09-28D_008__W003`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=424.7; max|ρ|=1.000; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase1 `09-28D_008__W003`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=59.38; max|ρ|=0.997; pair=kappa-lnfg
+  - 未过局部门槛 analyzer phase1 `2022-09-28__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=94.06; max|ρ|=0.992; pair=kappa-lnfg
+  - 未过局部门槛 analyzer phase2 `10-03D_011__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=55.45; max|ρ|=0.994; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase2 `10-03D_011__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=419.3; max|ρ|=1.000; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase2 `10-03N_013__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=335; max|ρ|=0.999; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase3 `10-09D_014__W004`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=383.4; max|ρ|=1.000; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase3 `10-09D_015__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=375.1; max|ρ|=1.000; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase4 `10-10N_006__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=42.87; max|ρ|=0.988; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase4 `10-11N_009__W002`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=180.4; max|ρ|=1.000; pair=kappa-lnfg
+  - 未过局部门槛 analyzer phase4 `2022-10-11__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=14.06; max|ρ|=0.929; pair=kappa-lnfg
+  - 未过局部门槛 liu_phase phase4 `2022-10-11__W001`：post-hoc local screen J@diag(0.05,50,1); not global identifiability; cond=297; max|ρ|=1.000; pair=kappa-lnfg
 
 ## P3 一致性
 - `within_phase_std::kappa` analyzer phase1  = 0.016962399258633246 (threshold 0.5209398935010485) median curvature 1σ=0.5209; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
@@ -186,7 +186,7 @@
 - `median_test_rms::uncorrected` liu_phase 中位测试 rms = 14.488179690673238
 
 ## 必须回答
-1. 每次拟合的 θ̂±曲率 1σ、相关、条件数与缩放残差见 `fits_window.csv` / `fits_phase.csv`；全部起点见 `multistart.csv`；加权残差雅可比见 `jacobians.csv`（含 `start_name`/`selected`）。主报告条件数为 `cond_J_xscale`。
+1. 每次拟合的 θ̂±曲率 1σ、相关、条件数与缩放残差见 `fits_window.csv` / `fits_phase.csv`；全部起点见 `multistart.csv`；加权残差雅可比见 `jacobians.csv`（含 `start_name`/`selected`）。历史口径条件数为 `cond_J`；复审后局部诊断为 `cond_J_xscale`。
 2. P1–P7 见上。
 3. 求解失败、贴边界、非唯一解见 `multistart.csv` 的 `success` / `bound_hits` 与 fits 表的 `nonunique`。
 
