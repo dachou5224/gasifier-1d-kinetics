@@ -1118,7 +1118,11 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
     p2n = _sel("P2", "identifiable_native")
     n_x = int(p2x["pass"].astype(bool).sum()) if not p2x.empty else 0
     n_n = int(p2n["pass"].astype(bool).sum()) if not p2n.empty else 0
-    L.append(f"- 无量纲尺度下可分别辨识：{n_x} / {len(p2x)}")
+    wx = p2x[p2x["metric"].astype(str).str.startswith("window_")] if not p2x.empty else p2x
+    px = p2x[p2x["metric"].astype(str).str.startswith("phase_")] if not p2x.empty else p2x
+    L.append(f"- 无量纲尺度下可分别辨识：{n_x} / {len(p2x)}"
+             f"（逐窗 {int(wx['pass'].astype(bool).sum()) if not wx.empty else 0}/{len(wx)}"
+             f"；逐阶段 {int(px['pass'].astype(bool).sum()) if not px.empty else 0}/{len(px)}）")
     L.append(f"- 历史（原生单位）可分别辨识：{n_n} / {len(p2n)}（不推广）")
     p2rho = _sel("P2", "max_abs_rho_xscale")
     if not p2rho.empty:
