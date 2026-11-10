@@ -81,7 +81,7 @@ SIGMA_ADD = {
     "H2_vol_pct": 0.5,
     "CO2_vol_pct": 0.5,
     "CH4_vol_pct": 0.05,
-    "T_out_K": 20.0,  # S4 用；protocol 预声明
+    "T_out_K": 20.0,  # 理想设计假设，不是装置出口温测量不确定度
 }
 SIGMA_REL = {"dry_per_coal_mol_kg": 0.02}  # 2%
 SIGMA_LOG = {"Q_wall_conv": 0.10, "Q_wall_rad": 0.10}  # 10% 对数
@@ -95,10 +95,36 @@ SUBSETS = {
     "S0": ("X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct"),
     "S1": ("X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "CH4_vol_pct"),
     "S2": ("X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "dry_per_coal_mol_kg"),
-    "S3": ("X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "Q_wall_conv", "Q_wall_rad"),
-    "S4": OBS_NAMES,
+    "S3_conv": ("X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "Q_wall_conv"),
+    "S3_rad": ("X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "Q_wall_rad"),
+    "S4_conv": (
+        "X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "CH4_vol_pct",
+        "dry_per_coal_mol_kg", "T_out_K", "Q_wall_conv",
+    ),
+    "S4_rad": (
+        "X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "CH4_vol_pct",
+        "dry_per_coal_mol_kg", "T_out_K", "Q_wall_rad",
+    ),
+    "S4_no_wall": (
+        "X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct", "CH4_vol_pct",
+        "dry_per_coal_mol_kg", "T_out_K",
+    ),
 }
 WALL_OBS = ("Q_wall_conv", "Q_wall_rad")
+WALL_SUBSETS = frozenset({"S3_conv", "S3_rad", "S4_conv", "S4_rad"})
+EXPLORATORY_SUBSETS = frozenset({"S4_no_wall"})
+Q2_COMPARE_SUBSETS = ("S1", "S2", "S3_conv", "S3_rad")
+Q3_NOTE = (
+    "扩窗同时改变 n 与工况；总尺度下降不能归因于 O/C；"
+    "参考窗 S0 已过 Q1 局部门槛"
+)
+P34_EXPLORATORY_NOTE = "超出训练窗主分析；阶段 θ 已用同阶段观测，不是独立验证"
+S4_NO_WALL_NOTE = "探索变体，不是卡面 S4；无壁面、无 ln U"
+Q1_LOCAL_DESIGN = (
+    "逆 Fisher 是固定阶段 θ、共享 κ/ln f_gas/ξ、对角预声明权重、窗间独立假设下的曲率尺度。"
+    "装置 X_C 与 CO/CO2/CH4 及校准干气流量共享原始数据，阶段内还共享标定系数。"
+    "通过的是局部设计门槛，不是统计可辨识。"
+)
 
 # P1.14-D 第 2 问（不重算）
 P114D_Q2 = {
@@ -443,10 +469,58 @@ def lnU_column(obs_names: tuple[str, ...]) -> np.ndarray:
     return col
 
 
+def _n_wall_in(obs_names: tuple[str, ...]) -> int:
+    return sum(1 for n in obs_names if n in WALL_OBS)
+
+
+def _add_lnU(obs_names: tuple[str, ...]) -> bool:
+    """ln U 只在恰好一个壁面代理时加入，禁止 conv+rad 同堆共用一个 ln U。"""
+    return _n_wall_in(obs_names) == 1
+
+
+def _window_has_wall(wid: str) -> bool:
+    if "p114d" not in _CTX:
+        return False
+    return pd.notna(_CTX["p114d"].loc[wid, "T_sat_iapws_C"])
+
+
+def _is_exploratory(phase: str, window_set: str, subset: str) -> bool:
+    if subset in EXPLORATORY_SUBSETS:
+        return True
+    if phase in ("phase3", "phase4") and window_set == "phase_all":
+        return True
+    return False
+
+
+def _empty_fisher_out(
+    subset: str,
+    n_windows: int,
+    used: list[str] | None = None,
+    note: str = "no finite Jacobian block",
+) -> dict:
+    used = used or []
+    obs_names = SUBSETS[subset]
+    param_names = list(PARAM_NAMES) + (["ln_U"] if _add_lnU(obs_names) else [])
+    return {
+        "subset": subset, "n_windows": n_windows, "n_success": len(used),
+        "n_obs_rows": 0, "n_params": len(param_names),
+        "param_names": ",".join(param_names),
+        "used_windows": ",".join(_short(w) for w in used),
+        "sigma_kappa": float("nan"), "sigma_ln_f_gas": float("nan"),
+        "sigma_xi": float("nan"), "sigma_ln_U": float("nan"),
+        "rho_kappa_lnfg": float("nan"), "rho_kappa_xi": float("nan"),
+        "rho_lnfg_xi": float("nan"),
+        "rho_kappa_lnU": float("nan"), "rho_lnfg_lnU": float("nan"),
+        "cond_J": float("nan"), "cond_F": float("nan"),
+        "min_eig_F": float("nan"), "min_eig_params": "",
+        "q1_identifiable": False, "ok": False, "note": note,
+    }
+
+
 def fisher_from_windows(jac_map: dict, wids: list[str], subset: str) -> dict:
     obs_names = SUBSETS[subset]
-    add_lnU = subset in ("S3", "S4") and any(n in WALL_OBS for n in obs_names)
-    # S4 阶段 4 不含壁面：调用方应传入不含 Q 的子集名或过滤 obs
+    add_lnU = _add_lnU(obs_names)
+    needs_wall = _n_wall_in(obs_names) >= 1
     used = []
     blocks = []
     for wid in wids:
@@ -456,65 +530,22 @@ def fisher_from_windows(jac_map: dict, wids: list[str], subset: str) -> dict:
         J_raw, y = pack
         if not np.all(np.isfinite(J_raw)) or not np.all(np.isfinite(y)):
             continue
-        names = obs_names
-        if subset == "S4":
-            # 无汽包则去掉壁面项、不加 ln U
-            phase = _CTX["p114d"].loc[wid, "phase"] if "p114d" in _CTX else ""
-            phase_id = _phase_of_row(phase) if str(phase) else ""
-            has_wall = pd.notna(_CTX["p114d"].loc[wid, "T_sat_iapws_C"])
-            if not has_wall:
-                names = tuple(n for n in obs_names if n not in WALL_OBS)
-                add_lnU_here = False
-            else:
-                add_lnU_here = True
-        else:
-            add_lnU_here = add_lnU and all(n in OBS_NAMES for n in WALL_OBS)
-            if subset == "S3":
-                has_wall = pd.notna(_CTX["p114d"].loc[wid, "T_sat_iapws_C"])
-                if not has_wall:
-                    continue
-                names = obs_names
-                add_lnU_here = True
-        Js = scale_jac(J_raw, y, names)
-        if add_lnU_here:
-            Js = np.hstack([Js, lnU_column(names)])
-        elif add_lnU and subset != "S4":
-            Js = np.hstack([Js, lnU_column(names)])
+        if needs_wall and not _window_has_wall(wid):
+            continue
+        Js = scale_jac(J_raw, y, obs_names)
+        if add_lnU:
+            Js = np.hstack([Js, lnU_column(obs_names)])
         if not np.all(np.isfinite(Js)):
             continue
         blocks.append(Js)
         used.append(wid)
-    param_names = list(PARAM_NAMES) + (["ln_U"] if (blocks and blocks[0].shape[1] == 4) else [])
-    nan_out = {
-        "subset": subset, "n_windows": len(wids), "n_success": len(used),
-        "n_obs_rows": 0, "n_params": len(param_names),
-        "param_names": ",".join(param_names),
-        "used_windows": ",".join(_short(w) for w in used),
-        "sigma_kappa": float("nan"), "sigma_ln_f_gas": float("nan"),
-        "sigma_xi": float("nan"), "sigma_ln_U": float("nan"),
-        "rho_kappa_lnfg": float("nan"), "rho_kappa_xi": float("nan"),
-        "rho_lnfg_xi": float("nan"),
-        "cond_J": float("nan"), "cond_F": float("nan"),
-        "min_eig_F": float("nan"), "min_eig_params": "",
-        "q1_identifiable": False, "ok": False, "note": "no finite Jacobian block",
-    }
+    nan_out = _empty_fisher_out(subset, len(wids), used)
     if not blocks:
         return nan_out
-    # ln U 列必须在所有块一致；S4 混有无壁面时统一成 3 列（本函数按阶段调用，阶段内角色相同）
     ncols = {b.shape[1] for b in blocks}
     if len(ncols) != 1:
-        # 丢掉 ln U 列不一致的块
-        mode = 4 if 4 in ncols and all(pd.notna(_CTX["p114d"].loc[w, "T_sat_iapws_C"]) for w in used) else 3
-        aligned = []
-        used2 = []
-        for b, w in zip(blocks, used):
-            if b.shape[1] == mode:
-                aligned.append(b)
-                used2.append(w)
-        blocks, used = aligned, used2
-        if not blocks:
-            nan_out["note"] = "Jacobian column mismatch"
-            return nan_out
+        nan_out["note"] = "Jacobian column mismatch"
+        return nan_out
     J = np.vstack(blocks)
     npar = J.shape[1]
     param_names = list(PARAM_NAMES) + (["ln_U"] if npar == 4 else [])
@@ -589,86 +620,166 @@ def _add(rows, **kw):
         "threshold": kw.get("threshold", float("nan")),
         "pass": kw.get("pass_"),
         "note": kw.get("note", ""),
+        "exploratory": bool(kw.get("exploratory", False)),
     })
+
+
+def _n_failed_windows(baseline: pd.DataFrame) -> int:
+    """与 rec['ok'] 一致：失败 = ~ok_theta 或 ~ok_jacobian。"""
+    if baseline is None or baseline.empty:
+        return 0
+    ok_th = (
+        baseline["ok_theta"].astype(bool)
+        if "ok_theta" in baseline.columns
+        else pd.Series(False, index=baseline.index)
+    )
+    ok_j = (
+        baseline["ok_jacobian"].astype(bool)
+        if "ok_jacobian" in baseline.columns
+        else pd.Series(False, index=baseline.index)
+    )
+    return int((~ok_th | ~ok_j).sum())
+
+
+def _fisher_ready(fisher: pd.DataFrame) -> bool:
+    if fisher is None:
+        return False
+    cols = getattr(fisher, "columns", [])
+    return "phase" in cols and "window_set" in cols
 
 
 def build_readings(fisher: pd.DataFrame, baseline: pd.DataFrame, jac: pd.DataFrame) -> pd.DataFrame:
     rows: list[dict] = []
-    # Q1
-    for _, r in fisher.iterrows():
-        if r["window_set"] not in ("train", "phase_all"):
-            continue
-        if r["window_set"] == "phase_all" and r["phase"] in ("phase1", "phase2"):
-            continue  # P1/P2 主结论用 train
-        rho = float(r.get("rho_kappa_lnfg", np.nan))
-        sig = float(r.get("sigma_ln_f_gas", np.nan))
-        n_ok = int(r.get("n_success", 0) or 0)
-        q1 = bool(r.get("q1_identifiable")) if n_ok > 0 else False
-        note_n0 = "无训练窗，不作 train 集可辨识结论" if n_ok == 0 else ""
-        _add(rows, reading="Q1", metric="identifiable_f_gas",
-             phase=r["phase"], subset=r["subset"], window_set=r["window_set"],
-             value=float(q1) if n_ok > 0 else float("nan"), threshold=RHO_OK,
-             pass_=q1 if n_ok > 0 else None,
-             note=(note_n0 or
-                   (f"|ρ(κ,ln f_gas)|={abs(rho) if np.isfinite(rho) else float('nan'):.4g} "
-                    f"(thr {RHO_OK}); σ(ln f_gas)={sig:.4g} (thr ln2={LN2:.4g}); "
-                    f"n={n_ok}; {r.get('note','')}")))
-        _add(rows, reading="Q1", metric="abs_rho_kappa_lnfg",
-             phase=r["phase"], subset=r["subset"], window_set=r["window_set"],
-             value=abs(rho) if np.isfinite(rho) else float("nan"), threshold=RHO_OK,
-             pass_=bool(np.isfinite(rho) and abs(rho) < RHO_OK))
-        _add(rows, reading="Q1", metric="sigma_ln_f_gas",
-             phase=r["phase"], subset=r["subset"], window_set=r["window_set"],
-             value=sig, threshold=LN2,
-             pass_=bool(np.isfinite(sig) and sig < LN2))
-    # Q2：S1–S3 相对 S0 的 σ 缩小倍数（train；P3/P4 用 phase_all）
-    for phase in ("phase1", "phase2", "phase3", "phase4"):
-        wset = "train" if phase in ("phase1", "phase2") else "phase_all"
-        s0 = fisher[(fisher["phase"] == phase) & (fisher["subset"] == "S0")
-                    & (fisher["window_set"] == wset)]
-        if s0.empty:
-            continue
-        sig0 = float(s0.iloc[0]["sigma_ln_f_gas"])
-        best_name, best_factor = "", float("nan")
-        for sub in ("S1", "S2", "S3"):
-            ss = fisher[(fisher["phase"] == phase) & (fisher["subset"] == sub)
-                        & (fisher["window_set"] == wset)]
-            if ss.empty:
+    if _fisher_ready(fisher):
+        # Q1：主结论仅 P1/P2 train；P3/P4 phase_all 标 exploratory
+        for _, r in fisher.iterrows():
+            if r["window_set"] not in ("train", "phase_all"):
                 continue
-            sigs = float(ss.iloc[0]["sigma_ln_f_gas"])
-            factor = (sig0 / sigs) if (np.isfinite(sig0) and np.isfinite(sigs) and sigs > 0) else float("nan")
-            _add(rows, reading="Q2", metric=f"shrink_{sub}_over_S0",
-                 phase=phase, subset=sub, window_set=wset, value=factor,
-                 note=f"σ_S0={sig0:.4g}; σ_{sub}={sigs:.4g}")
-            if np.isfinite(factor) and (not np.isfinite(best_factor) or factor > best_factor):
-                best_factor, best_name = factor, sub
-        _add(rows, reading="Q2", metric="largest_contributor",
-             phase=phase, window_set=wset, value=best_factor,
-             note=best_name or "none")
-    # Q3：S0，p113a_ref → train（或 phase_all）
-    for phase in ("phase1", "phase2", "phase3", "phase4"):
-        ref = fisher[(fisher["phase"] == phase) & (fisher["subset"] == "S0")
-                     & (fisher["window_set"] == "p113a_ref")]
-        expanded_set = "train" if phase in ("phase1", "phase2") else "phase_all"
-        exp = fisher[(fisher["phase"] == phase) & (fisher["subset"] == "S0")
-                     & (fisher["window_set"] == expanded_set)]
-        if ref.empty or exp.empty:
-            _add(rows, reading="Q3", metric="sigma_ln_f_gas_ref_to_expanded",
-                 phase=phase, subset="S0", value=float("nan"),
-                 note="missing ref or expanded Fisher")
-            continue
-        sref = float(ref.iloc[0]["sigma_ln_f_gas"])
-        sexp = float(exp.iloc[0]["sigma_ln_f_gas"])
-        ratio = (sref / sexp) if (np.isfinite(sref) and np.isfinite(sexp) and sexp > 0) else float("nan")
-        _add(rows, reading="Q3", metric="sigma_ln_f_gas_p113a_ref",
-             phase=phase, subset="S0", window_set="p113a_ref", value=sref,
-             note=f"n={ref.iloc[0]['n_success']}")
-        _add(rows, reading="Q3", metric="sigma_ln_f_gas_expanded",
-             phase=phase, subset="S0", window_set=expanded_set, value=sexp,
-             note=f"n={exp.iloc[0]['n_success']}")
-        _add(rows, reading="Q3", metric="sigma_shrink_ref_to_expanded",
-             phase=phase, subset="S0", window_set=expanded_set, value=ratio,
-             note=f"σ_ref={sref:.4g} → σ_exp={sexp:.4g}; >1 means expansion helped")
+            if r["window_set"] == "phase_all" and r["phase"] in ("phase1", "phase2"):
+                continue  # P1/P2 主结论用 train
+            rho = float(r.get("rho_kappa_lnfg", np.nan))
+            sig = float(r.get("sigma_ln_f_gas", np.nan))
+            n_ok = int(r.get("n_success", 0) or 0)
+            q1 = bool(r.get("q1_identifiable")) if n_ok > 0 else False
+            exploratory = _is_exploratory(str(r["phase"]), str(r["window_set"]), str(r["subset"]))
+            if n_ok == 0:
+                note_n0 = "无训练窗，不作 train 集局部设计结论"
+            else:
+                extra = []
+                if exploratory and r["phase"] in ("phase3", "phase4"):
+                    extra.append(P34_EXPLORATORY_NOTE)
+                if str(r["subset"]) == "S4_no_wall":
+                    extra.append(S4_NO_WALL_NOTE)
+                extra.append("通过=局部设计门槛，不是统计可辨识")
+                note_n0 = (
+                    f"|ρ(κ,ln f_gas)|={abs(rho) if np.isfinite(rho) else float('nan'):.4g} "
+                    f"(thr {RHO_OK}); σ(ln f_gas)={sig:.4g} (thr ln2={LN2:.4g}); "
+                    f"n={n_ok}; " + "; ".join(extra)
+                )
+            _add(rows, reading="Q1", metric="identifiable_f_gas",
+                 phase=r["phase"], subset=r["subset"], window_set=r["window_set"],
+                 value=float(q1) if n_ok > 0 else float("nan"), threshold=RHO_OK,
+                 pass_=q1 if n_ok > 0 else None,
+                 note=note_n0, exploratory=exploratory)
+            _add(rows, reading="Q1", metric="abs_rho_kappa_lnfg",
+                 phase=r["phase"], subset=r["subset"], window_set=r["window_set"],
+                 value=abs(rho) if np.isfinite(rho) else float("nan"), threshold=RHO_OK,
+                 pass_=bool(np.isfinite(rho) and abs(rho) < RHO_OK),
+                 exploratory=exploratory)
+            _add(rows, reading="Q1", metric="sigma_ln_f_gas",
+                 phase=r["phase"], subset=r["subset"], window_set=r["window_set"],
+                 value=sig, threshold=LN2,
+                 pass_=bool(np.isfinite(sig) and sig < LN2),
+                 exploratory=exploratory)
+        # Q2：S1 / S2 / S3_conv / S3_rad 相对 S0；P3/P4 标 exploratory
+        for phase in ("phase1", "phase2", "phase3", "phase4"):
+            wset = "train" if phase in ("phase1", "phase2") else "phase_all"
+            exploratory = phase in ("phase3", "phase4")
+            s0 = fisher[(fisher["phase"] == phase) & (fisher["subset"] == "S0")
+                        & (fisher["window_set"] == wset)]
+            if s0.empty:
+                continue
+            sig0 = float(s0.iloc[0]["sigma_ln_f_gas"])
+            best_name, best_factor = "", float("nan")
+            q2_note_x = P34_EXPLORATORY_NOTE if exploratory else ""
+            for sub in Q2_COMPARE_SUBSETS:
+                ss = fisher[(fisher["phase"] == phase) & (fisher["subset"] == sub)
+                            & (fisher["window_set"] == wset)]
+                if ss.empty:
+                    continue
+                sigs = float(ss.iloc[0]["sigma_ln_f_gas"])
+                factor = (sig0 / sigs) if (np.isfinite(sig0) and np.isfinite(sigs) and sigs > 0) else float("nan")
+                note = f"σ_S0={sig0:.4g}; σ_{sub}={sigs:.4g}"
+                if q2_note_x:
+                    note = f"{note}; {q2_note_x}"
+                _add(rows, reading="Q2", metric=f"shrink_{sub}_over_S0",
+                     phase=phase, subset=sub, window_set=wset, value=factor,
+                     note=note, exploratory=exploratory)
+                if np.isfinite(factor) and (not np.isfinite(best_factor) or factor > best_factor):
+                    best_factor, best_name = factor, sub
+            _add(rows, reading="Q2", metric="largest_contributor",
+                 phase=phase, window_set=wset, value=best_factor,
+                 note=(best_name or "none") + (f"; {q2_note_x}" if q2_note_x else ""),
+                 exploratory=exploratory)
+        # Q3：stacked 总信息、每窗 σ√n、ρ 变化；不归因于 O/C
+        for phase in ("phase1", "phase2", "phase3", "phase4"):
+            ref = fisher[(fisher["phase"] == phase) & (fisher["subset"] == "S0")
+                         & (fisher["window_set"] == "p113a_ref")]
+            expanded_set = "train" if phase in ("phase1", "phase2") else "phase_all"
+            exploratory = phase in ("phase3", "phase4")
+            exp = fisher[(fisher["phase"] == phase) & (fisher["subset"] == "S0")
+                         & (fisher["window_set"] == expanded_set)]
+            if ref.empty or exp.empty:
+                _add(rows, reading="Q3", metric="sigma_ln_f_gas_ref_to_expanded",
+                     phase=phase, subset="S0", value=float("nan"),
+                     note="missing ref or expanded Fisher", exploratory=exploratory)
+                continue
+            sref = float(ref.iloc[0]["sigma_ln_f_gas"])
+            sexp = float(exp.iloc[0]["sigma_ln_f_gas"])
+            n_ref = int(ref.iloc[0]["n_success"] or 0)
+            n_exp = int(exp.iloc[0]["n_success"] or 0)
+            rho_ref = float(ref.iloc[0]["rho_kappa_lnfg"])
+            rho_exp = float(exp.iloc[0]["rho_kappa_lnfg"])
+            ratio = (sref / sexp) if (np.isfinite(sref) and np.isfinite(sexp) and sexp > 0) else float("nan")
+            sref_pw = (sref * math.sqrt(n_ref)) if (np.isfinite(sref) and n_ref > 0) else float("nan")
+            sexp_pw = (sexp * math.sqrt(n_exp)) if (np.isfinite(sexp) and n_exp > 0) else float("nan")
+            ratio_pw = (
+                (sref_pw / sexp_pw)
+                if (np.isfinite(sref_pw) and np.isfinite(sexp_pw) and sexp_pw > 0)
+                else float("nan")
+            )
+            q3_note = Q3_NOTE + (f"；{P34_EXPLORATORY_NOTE}" if exploratory else "")
+            _add(rows, reading="Q3", metric="stacked_sigma_ref",
+                 phase=phase, subset="S0", window_set="p113a_ref", value=sref,
+                 note=f"堆叠总信息; n={n_ref}; {q3_note}", exploratory=exploratory)
+            _add(rows, reading="Q3", metric="stacked_sigma_exp",
+                 phase=phase, subset="S0", window_set=expanded_set, value=sexp,
+                 note=f"堆叠总信息; n={n_exp}; {q3_note}", exploratory=exploratory)
+            _add(rows, reading="Q3", metric="stacked_ratio_ref_over_exp",
+                 phase=phase, subset="S0", window_set=expanded_set, value=ratio,
+                 note=f"σ_ref/σ_exp 堆叠总信息; σ_ref={sref:.4g} → σ_exp={sexp:.4g}; {q3_note}",
+                 exploratory=exploratory)
+            _add(rows, reading="Q3", metric="per_window_sigma_sqrt_n_ref",
+                 phase=phase, subset="S0", window_set="p113a_ref", value=sref_pw,
+                 note=f"σ√n; n={n_ref}; {q3_note}", exploratory=exploratory)
+            _add(rows, reading="Q3", metric="per_window_sigma_sqrt_n_exp",
+                 phase=phase, subset="S0", window_set=expanded_set, value=sexp_pw,
+                 note=f"σ√n; n={n_exp}; {q3_note}", exploratory=exploratory)
+            _add(rows, reading="Q3", metric="per_window_ratio_ref_over_exp",
+                 phase=phase, subset="S0", window_set=expanded_set, value=ratio_pw,
+                 note=(f"σ√n_ref/σ√n_exp; {sref_pw:.4g} → {sexp_pw:.4g}; {q3_note}"),
+                 exploratory=exploratory)
+            _add(rows, reading="Q3", metric="rho_kappa_lnfg_ref",
+                 phase=phase, subset="S0", window_set="p113a_ref", value=rho_ref,
+                 note=f"n={n_ref}; {q3_note}", exploratory=exploratory)
+            _add(rows, reading="Q3", metric="rho_kappa_lnfg_exp",
+                 phase=phase, subset="S0", window_set=expanded_set, value=rho_exp,
+                 note=f"n={n_exp}; {q3_note}", exploratory=exploratory)
+            _add(rows, reading="Q3", metric="rho_kappa_lnfg_delta_exp_minus_ref",
+                 phase=phase, subset="S0", window_set=expanded_set,
+                 value=(rho_exp - rho_ref) if (np.isfinite(rho_ref) and np.isfinite(rho_exp)) else float("nan"),
+                 note=f"ρ_exp−ρ_ref; ρ_ref={rho_ref:.4g} → ρ_exp={rho_exp:.4g}; {q3_note}",
+                 exploratory=exploratory)
     # Q4 符号
     okb = baseline[baseline["ok_jacobian"] == True] if "ok_jacobian" in baseline.columns else baseline  # noqa: E712
     if not okb.empty and "dT_out_same_sign" in okb.columns:
@@ -715,15 +826,15 @@ def build_readings(fisher: pd.DataFrame, baseline: pd.DataFrame, jac: pd.DataFra
                    if drowned else
                    "卡面条件未触发（需双 |ρ|<0.3 或 CV间<CV内）"))
     # 覆盖
-    if not baseline.empty:
+    if baseline is not None and not baseline.empty:
         n_ok = int(baseline["ok_theta"].astype(bool).sum()) if "ok_theta" in baseline.columns else 0
-        n_fail = int((~baseline["ok_theta"].astype(bool)).sum()) if "ok_theta" in baseline.columns else 0
+        n_fail = _n_failed_windows(baseline)
         _add(rows, reading="coverage", metric="n_success_theta",
              value=float(n_ok), note=f"/{len(baseline)}")
         _add(rows, reading="coverage", metric="n_failed",
              value=float(n_fail), threshold=float(FAIL_WINDOW_STOP),
              pass_=bool(n_fail <= FAIL_WINDOW_STOP),
-             note=">10 窗失败则停止")
+             note="失败谓词与 rec['ok'] 一致：~ok_theta | ~ok_jacobian；>10 窗失败则停止")
     return pd.DataFrame(rows)
 
 
@@ -734,13 +845,17 @@ def interpretation(baseline, jac, fisher, rd, stopped: bool, n_fail: int) -> str
         "`total_percent` `HL_tot = 1%`，`OxygenMixingModel = instant`。"
         "阶段 θ 取自 P1.13-A 分析仪口径（`L_wsr=1 m`，`HL_tot=1%`）；"
         "θ0 = (κ=1, ξ=0, f_gas=1)。ξ 只作用于出口组成，不进求解器。"
-        "水冷壁诊断量 `Q_wall_conv` / `Q_wall_rad` 不进求解；Fisher 中用逐阶段冗余参数 ln U，"
+        "水冷壁诊断量 `Q_wall_conv` / `Q_wall_rad` 不进求解；"
+        "对流与辐射分列（`S3_conv`/`S3_rad`、`S4_conv`/`S4_rad`），"
+        "各自带 ln U，禁止把两种壁面代理堆进同一个 Fisher。"
         "对数残差对 ln U 的未缩放列为 1，缩放后为 1/0.10。"
         "本轮**不采纳**任何参数值，不做反演。"
     )
     L.append("")
     L.append("观测缩放（预声明，跑完未改）：X_C 1.5 pp；CO/H2/CO2 0.5 vol%；CH4 0.05 vol%；"
-             "干气/干煤 2%（相对）；Q_wall 10%（对数）；T_out 20 K（仅 S4）。")
+             "干气/干煤 2%（相对）；Q_wall 10%（对数）；"
+             "T_out 20 K 为**理想设计假设**，不是装置出口温测量不确定度"
+             "（用于 `S4_conv` / `S4_rad` / `S4_no_wall`）。")
     L.append("")
     if stopped:
         L.append(f"**停止条件触发**：{n_fail} 窗求解失败（>{FAIL_WINDOW_STOP}）。未完成的窗见 `baseline_142.csv`。")
@@ -764,31 +879,41 @@ def interpretation(baseline, jac, fisher, rd, stopped: bool, n_fail: int) -> str
                 L.append(f"- {lab}：中位 {s.median():.3g}，范围 {s.min():.3g} … {s.max():.3g}（n={s.notna().sum()}）")
     L.append("")
     L.append("冻结切分：P1 全部 train（37），P2 全部 train（44），P3 全部 validation（44），"
-             "P4 全部 test（17）。主 Fisher（Q1–Q3）P1/P2 用 train；P3/P4 无 train 窗，"
-             "用 `phase_all` 并在表中标明 split_role，不是 train 集宣称。")
+             "P4 全部 test（17）。主分析 `window_set=train` **仅 P1/P2**。"
+             "P3/P4 的 `phase_all` 标 exploratory：超出训练窗主分析；阶段 θ 已用同阶段观测，"
+             "不是独立验证。`S4_no_wall` 为探索变体，不是卡面 S4。")
     L.append("")
 
     def _sel(reading):
         return rd[rd["reading"] == reading] if rd is not None and not rd.empty else pd.DataFrame()
 
-    L.append("## Q1 可辨识 f_gas")
-    L.append("判据：|ρ(κ, ln f_gas)| < 0.9 **且** σ(ln f_gas) < ln 2。")
+    L.append("## Q1 局部设计门槛（不是统计可辨识）")
+    L.append(Q1_LOCAL_DESIGN)
+    L.append("判据：|ρ(κ, ln f_gas)| < 0.9 **且** σ(ln f_gas) < ln 2。主结论只用 P1/P2 train。")
     for _, r in _sel("Q1").iterrows():
         if r["metric"] != "identifiable_f_gas":
             continue
+        expl = bool(r.get("exploratory", False))
         if r["pass"] is None or (isinstance(r["pass"], float) and not np.isfinite(r["pass"])):
             flag = "无训练窗"
         else:
-            flag = "可辨识" if bool(r["pass"]) else "不可辨识"
+            flag = "通过局部设计门槛" if bool(r["pass"]) else "未过局部设计门槛"
+        if expl:
+            flag = f"探索 / {flag}"
         L.append(f"- {r.get('phase')} {r.get('subset')} [{r.get('window_set')}]：**{flag}**。{r.get('note','')}")
     L.append("")
-    L.append("## Q2 信息来源（相对 S0 的 σ(ln f_gas) 缩小倍数）")
+    L.append("## Q2 信息来源（相对 S0 的 σ(ln f_gas) 缩小；S3_conv / S3_rad 分开）")
     for _, r in _sel("Q2").iterrows():
-        L.append(f"- {r.get('phase')} `{r['metric']}` = {r['value']}。{r.get('note','')}")
+        prefix = "探索 / " if bool(r.get("exploratory", False)) else ""
+        L.append(f"- {prefix}{r.get('phase')} `{r['metric']}` = {r['value']}。{r.get('note','')}")
     L.append("")
-    L.append("## Q3 工况多样性（S0：P1.13-A 参考窗 → 该阶段展开窗）")
+    L.append("## Q3 扩窗（S0）：堆叠总信息、每窗归一 σ√n、ρ 变化")
+    L.append("扩窗同时改变样本数 n 与工况。堆叠总尺度下降不能归因于 O/C 多样性；"
+             "相同阶段 θ 下参考窗 S0 已通过 Q1 局部门槛。下列分列 stacked / per-window / ρ，"
+             "不跑等 n 对照反应器。")
     for _, r in _sel("Q3").iterrows():
-        L.append(f"- {r.get('phase')} `{r['metric']}` [{r.get('window_set')}] = {r['value']}。{r.get('note','')}")
+        prefix = "探索 / " if bool(r.get("exploratory", False)) else ""
+        L.append(f"- {prefix}{r.get('phase')} `{r['metric']}` [{r.get('window_set')}] = {r['value']}。{r.get('note','')}")
     L.append("")
     L.append("## Q4 符号核对 ∂T_out/∂κ 与 ∂T_out/∂ln f_gas")
     q4f = _sel("Q4")
@@ -870,7 +995,10 @@ def _protocol(src_commit, stopped: bool, n_fail: int) -> dict:
             "sigma_relative": SIGMA_REL,
             "sigma_log": SIGMA_LOG,
             "T_out_K_sigma": SIGMA_ADD["T_out_K"],
-            "T_out_K_sigma_note": "predeclared 20 K for S4; not a measured plant outlet temperature",
+            "T_out_K_sigma_note": (
+                "理想设计假设 20 K，不是装置出口温测量不确定度；"
+                "仅用于含 T_out 的子集（S4_conv / S4_rad / S4_no_wall）"
+            ),
             "Q_wall": (
                 "diagnostic index, not in the solve: "
                 "Q_conv = Σ A_i (T_i-T_w), Q_rad = Σ A_i (T_i^4-T_w^4), A_i = π D dz_i"
@@ -887,16 +1015,39 @@ def _protocol(src_commit, stopped: bool, n_fail: int) -> dict:
             "param_order": list(PARAM_NAMES),
         },
         "fisher": {
-            "train_only": "P1 and P2 are entirely train; P3 is entirely validation; P4 is entirely test",
+            "train_only": (
+                "主分析 window_set=train 仅 P1/P2。"
+                "P3 全为 validation、P4 全为 test；其 phase_all 标 exploratory，"
+                "不是独立验证（阶段 θ 已用同阶段观测）。"
+            ),
             "subsets": {k: list(v) for k, v in SUBSETS.items()},
-            "S3_S4_wall": "S3 only phases 1-3; S4 includes wall+ln U only when T_sat is present",
-            "ln_U_column": "unscaled log residual d/d ln U = 1; scaled = 1/0.10",
-            "q1": "|ρ(κ,ln f_gas)|<0.9 and σ(ln f_gas)<ln 2",
+            "S3_S4_wall": (
+                "S3_conv / S3_rad / S4_conv / S4_rad 仅 phase1–3，"
+                "各含恰好一个壁面代理并各自带 ln U；禁止 conv+rad 同堆。"
+                "S4_no_wall 为探索变体，不是卡面 S4。"
+            ),
+            "ln_U_column": (
+                "仅当子集含恰好一个壁面代理时加入；"
+                "unscaled log residual d/d ln U = 1; scaled = 1/0.10"
+            ),
+            "q1": "|ρ(κ,ln f_gas)|<0.9 且 σ(ln f_gas)<ln 2；通过=局部设计门槛，不是统计可辨识",
+            "q1_assumptions": Q1_LOCAL_DESIGN,
+            "q3": (
+                "分别报告 stacked 总信息、σ√n 每窗归一、ρ 变化；"
+                "扩窗同时改变 n 与工况，总尺度下降不能归因于 O/C。"
+            ),
         },
         "predeclared": {
-            "Q1": "|ρ(κ, ln f_gas)| < 0.9 and σ(ln f_gas) < ln 2 → subset/phase identifies f_gas",
-            "Q2": "shrinkage of σ(ln f_gas) for S1–S3 vs S0; who contributes most",
-            "Q3": "S0 only: P1.13-A reference windows vs all train (P1/P2) or phase_all (P3/P4)",
+            "Q1": (
+                "固定阶段 θ、共享 κ/ln f_gas/ξ、对角预声明权重、窗间独立。"
+                "|ρ|<0.9 且 σ(ln f_gas)<ln 2 → 通过局部设计门槛，不是统计可辨识。"
+                "主结论仅 P1/P2 train。"
+            ),
+            "Q2": "P1/P2 train：S1、S2、S3_conv、S3_rad 相对 S0 的 σ 缩小；分开谁贡献最大。P3/P4 若报则标 exploratory。",
+            "Q3": (
+                "S0：stacked（σ_ref、σ_exp、σ_ref/σ_exp）、per-window（σ√n 及其比）、ρ 变化。"
+                "不归因于 O/C；不跑等 n 对照反应器。"
+            ),
             "Q4": "sign of dT_out/dκ vs dT_out/d ln f_gas; same-sign fraction >20% listed separately",
             "Q5": "P1.14-D Q2 numbers used as given; drown flag if both |ρ|<0.3 or CV_between<CV_within",
         },
@@ -928,6 +1079,8 @@ def _rewrite_manifest(out_dir: Path) -> None:
 
 def _jac_map_from_df(jac: pd.DataFrame) -> dict:
     out = {}
+    if jac is None or jac.empty or "window_id" not in getattr(jac, "columns", []):
+        return out
     for wid, g in jac.groupby("window_id"):
         g = g.sort_values("obs_index")
         if len(g) < len(OBS_NAMES):
@@ -938,7 +1091,30 @@ def _jac_map_from_df(jac: pd.DataFrame) -> dict:
     return out
 
 
+def _subsets_for_phase(phase: str) -> list[str]:
+    if phase == "phase4":
+        return [s for s in SUBSETS if s not in WALL_SUBSETS]
+    return list(SUBSETS)
+
+
+def _annotate_fisher_row(rec: dict, phase: str, wset: str, subset: str,
+                         split_role: str = "") -> dict:
+    rec = dict(rec)
+    rec["phase"] = phase
+    rec["window_set"] = wset
+    rec["split_role_of_phase"] = split_role
+    rec["exploratory"] = _is_exploratory(phase, wset, subset)
+    notes = [str(rec.get("note") or "").strip()]
+    if subset == "S4_no_wall":
+        notes.append(S4_NO_WALL_NOTE)
+    if phase in ("phase3", "phase4") and wset == "phase_all":
+        notes.append(P34_EXPLORATORY_NOTE)
+    rec["note"] = "; ".join(n for n in notes if n)
+    return rec
+
+
 def compute_fisher_table(jac: pd.DataFrame, p114d: pd.DataFrame, ref_ids: list[str]) -> pd.DataFrame:
+    """jac 为空也写出带列的 fisher 行（n_success=0）。"""
     jmap = _jac_map_from_df(jac)
     rows = []
     p114d = p114d.copy()
@@ -949,25 +1125,13 @@ def compute_fisher_table(jac: pd.DataFrame, p114d: pd.DataFrame, ref_ids: list[s
         ref_phase = [w for w in ref_ids if w in set(p114d.index) and _phase_of_row(p114d.loc[w, "phase"]) == phase]
         sets = [("train", train_ids), ("phase_all", all_ids), ("p113a_ref", ref_phase)]
         for wset, wids in sets:
-            if not wids:
-                for sub in SUBSETS:
-                    if sub == "S3" and phase == "phase4":
-                        continue
-                    rows.append({
-                        "phase": phase, "subset": sub, "window_set": wset,
-                        "n_windows": 0, "n_success": 0, "ok": False,
-                        "q1_identifiable": False, "note": "no windows in this set",
-                        "sigma_ln_f_gas": float("nan"), "rho_kappa_lnfg": float("nan"),
-                    })
-                continue
-            for sub in SUBSETS:
-                if sub == "S3" and phase == "phase4":
-                    continue
-                rec = fisher_from_windows(jmap, wids, sub)
-                rec["phase"] = phase
-                rec["window_set"] = wset
-                rec["split_role_of_phase"] = str(p114d.loc[wids[0], "split_role"])
-                rows.append(rec)
+            split_role = str(p114d.loc[wids[0], "split_role"]) if wids else ""
+            for sub in _subsets_for_phase(phase):
+                if not wids:
+                    rec = _empty_fisher_out(sub, 0, note="no windows in this set")
+                else:
+                    rec = fisher_from_windows(jmap, wids, sub)
+                rows.append(_annotate_fisher_row(rec, phase, wset, sub, split_role))
     return pd.DataFrame(rows)
 
 
@@ -993,12 +1157,20 @@ def main() -> None:
         jac = pd.read_csv(OUT_DIR / "jacobians_142.csv")
         fisher = compute_fisher_table(jac, p114d_idx, ref_ids)
         rd = build_readings(fisher, base, jac)
+        proto_path = OUT_DIR / "protocol.json"
         stopped = False
-        n_fail = int((~base["ok_theta"].astype(bool)).sum()) if "ok_theta" in base.columns else 0
+        src_commit = args.source_commit
+        if proto_path.exists():
+            old_proto = json.loads(proto_path.read_text(encoding="utf-8"))
+            if "stopped" in old_proto:
+                stopped = bool(old_proto["stopped"])
+            if src_commit is None:
+                src_commit = old_proto.get("source_commit")
+        n_fail = _n_failed_windows(base)
         text = interpretation(base, jac, fisher, rd, stopped, n_fail)
-        protocol = _protocol(args.source_commit, stopped, n_fail)
+        protocol = _protocol(src_commit, stopped, n_fail)
+        # 不重写 baseline/jacobians，只更新 fisher / readings / protocol / interpretation
         write_round_outputs(OUT_DIR, tables={
-            "baseline_142.csv": base, "jacobians_142.csv": jac,
             "fisher_subsets.csv": fisher, "readings.csv": rd,
         }, protocol=protocol, interpretation=text)
         _rewrite_manifest(OUT_DIR)
@@ -1062,7 +1234,7 @@ def main() -> None:
     jac = pd.DataFrame(jac_rows)
     base.to_csv(OUT_DIR / "baseline_142.csv", index=False)
     jac.to_csv(OUT_DIR / "jacobians_142.csv", index=False)
-    fisher = compute_fisher_table(jac, p114d_idx, ref_ids) if not jac.empty else pd.DataFrame()
+    fisher = compute_fisher_table(jac, p114d_idx, ref_ids)
     rd = build_readings(fisher, base, jac)
     text = interpretation(base, jac, fisher, rd, stopped, n_fail)
     protocol = _protocol(args.source_commit, stopped, n_fail)

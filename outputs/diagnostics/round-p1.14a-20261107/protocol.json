@@ -95,7 +95,7 @@
       "Q_wall_rad": 0.1
     },
     "T_out_K_sigma": 20.0,
-    "T_out_K_sigma_note": "predeclared 20 K for S4; not a measured plant outlet temperature",
+    "T_out_K_sigma_note": "理想设计假设 20 K，不是装置出口温测量不确定度；仅用于含 T_out 的子集（S4_conv / S4_rad / S4_no_wall）",
     "Q_wall": "diagnostic index, not in the solve: Q_conv = Σ A_i (T_i-T_w), Q_rad = Σ A_i (T_i^4-T_w^4), A_i = π D dz_i",
     "T_w": "T_sat_iapws_C + 273.15 K; default 537 K if missing (phase 4)",
     "dry_per_coal": "shifted dry mol/s per coal_dry_recon_phase_kg_s (mol/kg)"
@@ -116,7 +116,7 @@
     ]
   },
   "fisher": {
-    "train_only": "P1 and P2 are entirely train; P3 is entirely validation; P4 is entirely test",
+    "train_only": "主分析 window_set=train 仅 P1/P2。P3 全为 validation、P4 全为 test；其 phase_all 标 exploratory，不是独立验证（阶段 θ 已用同阶段观测）。",
     "subsets": {
       "S0": [
         "X_C_pp",
@@ -138,15 +138,21 @@
         "CO2_vol_pct",
         "dry_per_coal_mol_kg"
       ],
-      "S3": [
+      "S3_conv": [
         "X_C_pp",
         "CO_vol_pct",
         "H2_vol_pct",
         "CO2_vol_pct",
-        "Q_wall_conv",
+        "Q_wall_conv"
+      ],
+      "S3_rad": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
         "Q_wall_rad"
       ],
-      "S4": [
+      "S4_conv": [
         "X_C_pp",
         "CO_vol_pct",
         "H2_vol_pct",
@@ -154,18 +160,38 @@
         "CH4_vol_pct",
         "dry_per_coal_mol_kg",
         "T_out_K",
-        "Q_wall_conv",
+        "Q_wall_conv"
+      ],
+      "S4_rad": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct",
+        "dry_per_coal_mol_kg",
+        "T_out_K",
         "Q_wall_rad"
+      ],
+      "S4_no_wall": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct",
+        "dry_per_coal_mol_kg",
+        "T_out_K"
       ]
     },
-    "S3_S4_wall": "S3 only phases 1-3; S4 includes wall+ln U only when T_sat is present",
-    "ln_U_column": "unscaled log residual d/d ln U = 1; scaled = 1/0.10",
-    "q1": "|ρ(κ,ln f_gas)|<0.9 and σ(ln f_gas)<ln 2"
+    "S3_S4_wall": "S3_conv / S3_rad / S4_conv / S4_rad 仅 phase1–3，各含恰好一个壁面代理并各自带 ln U；禁止 conv+rad 同堆。S4_no_wall 为探索变体，不是卡面 S4。",
+    "ln_U_column": "仅当子集含恰好一个壁面代理时加入；unscaled log residual d/d ln U = 1; scaled = 1/0.10",
+    "q1": "|ρ(κ,ln f_gas)|<0.9 且 σ(ln f_gas)<ln 2；通过=局部设计门槛，不是统计可辨识",
+    "q1_assumptions": "逆 Fisher 是固定阶段 θ、共享 κ/ln f_gas/ξ、对角预声明权重、窗间独立假设下的曲率尺度。装置 X_C 与 CO/CO2/CH4 及校准干气流量共享原始数据，阶段内还共享标定系数。通过的是局部设计门槛，不是统计可辨识。",
+    "q3": "分别报告 stacked 总信息、σ√n 每窗归一、ρ 变化；扩窗同时改变 n 与工况，总尺度下降不能归因于 O/C。"
   },
   "predeclared": {
-    "Q1": "|ρ(κ, ln f_gas)| < 0.9 and σ(ln f_gas) < ln 2 → subset/phase identifies f_gas",
-    "Q2": "shrinkage of σ(ln f_gas) for S1–S3 vs S0; who contributes most",
-    "Q3": "S0 only: P1.13-A reference windows vs all train (P1/P2) or phase_all (P3/P4)",
+    "Q1": "固定阶段 θ、共享 κ/ln f_gas/ξ、对角预声明权重、窗间独立。|ρ|<0.9 且 σ(ln f_gas)<ln 2 → 通过局部设计门槛，不是统计可辨识。主结论仅 P1/P2 train。",
+    "Q2": "P1/P2 train：S1、S2、S3_conv、S3_rad 相对 S0 的 σ 缩小；分开谁贡献最大。P3/P4 若报则标 exploratory。",
+    "Q3": "S0：stacked（σ_ref、σ_exp、σ_ref/σ_exp）、per-window（σ√n 及其比）、ρ 变化。不归因于 O/C；不跑等 n 对照反应器。",
     "Q4": "sign of dT_out/dκ vs dT_out/d ln f_gas; same-sign fraction >20% listed separately",
     "Q5": "P1.14-D Q2 numbers used as given; drown flag if both |ρ|<0.3 or CV_between<CV_within"
   },
