@@ -66,6 +66,8 @@ PARAM_NAMES = ("kappa", "xi_mol_s", "ln_f_gas")
 
 DIFF_REL = 1e-4
 STEP_FLOOR = np.array([1.0, 10.0, 1.0])  # κ, ξ mol/s, ln f_gas
+# least_squares x_scale；P2 主报告用 J @ diag(X_SCALE)。原 cond(J) 保留为历史读法。
+X_SCALE = np.array([0.05, 50.0, 1.0])
 MAX_NFEV = 240
 N_WORKERS_DEFAULT = 15
 COST_REL_UNIQUE = 0.01
@@ -293,14 +295,18 @@ def _bound_hits(theta: np.ndarray) -> str:
     return ",".join(hits)
 
 
-def _cov_from_jac(J: np.ndarray):
+def _jac_stats(J: np.ndarray, col_scale=None):
+    """加权残差雅可比的曲率诊断。col_scale 为参数列尺度时算 J @ diag(s)。"""
     nan3 = np.full(3, np.nan)
     nan33 = np.full((3, 3), np.nan)
-    if J.size == 0 or not np.all(np.isfinite(J)):
-        return nan3, nan33, nan33, float("nan")
-    jtj = J.T @ J
+    M = np.asarray(J, dtype=float)
+    if M.size == 0 or not np.all(np.isfinite(M)):
+        return nan3, nan33, float("nan")
+    if col_scale is not None:
+        M = M * np.asarray(col_scale, dtype=float).reshape(1, -1)
+    jtj = M.T @ M
     try:
-        cond = float(np.linalg.cond(J))
+        cond = float(np.linalg.cond(M))
     except np.linalg.LinAlgError:
         cond = float("inf")
     try:
@@ -313,7 +319,13 @@ def _cov_from_jac(J: np.ndarray):
         for k in range(3):
             d = sig[i] * sig[k]
             corr[i, k] = cov[i, k] / d if d > 0 else float("nan")
-    return sig, cov, corr, cond
+    return sig, corr, cond
+
+
+def _cov_from_jac(J: np.ndarray):
+    sig, corr, cond = _jac_stats(J, None)
+    sigs, corrs, conds = _jac_stats(J, X_SCALE)
+    return sig, corr, cond, sigs, corrs, conds
 
 
 def _theta_from_start(start) -> np.ndarray:
@@ -336,7 +348,7 @@ def _fit_once(wids, basis, start, l_wsr, hl, seed: int) -> dict:
         res = least_squares(
             fun, x0, jac=jac, bounds=(BOUNDS_LO, BOUNDS_HI), method="trf",
             xtol=1e-8, ftol=1e-8, gtol=1e-8, max_nfev=MAX_NFEV,
-            x_scale=[0.05, 50.0, 1.0],
+            x_scale=X_SCALE.tolist(),
         )
         ok = bool(res.success)
         theta = np.array(res.x, dtype=float)
@@ -352,7 +364,7 @@ def _fit_once(wids, basis, start, l_wsr, hl, seed: int) -> dict:
             "f_gas": float("nan"), "cost": float("nan"), "rms_scaled": float("nan"),
             "nfev": 0, "status": -99, "message": str(exc),
         }
-    sig, cov, corr, cond = _cov_from_jac(J)
+    sig, corr, cond, sigs, corrs, conds = _cov_from_jac(J)
     rms = float(np.sqrt(np.mean(r ** 2))) if r.size else float("nan")
     return {
         "success": ok, "error": "" if ok else msg,
@@ -364,6 +376,12 @@ def _fit_once(wids, basis, start, l_wsr, hl, seed: int) -> dict:
         "cond_J": cond,
         "rho_kappa_xi": float(corr[0, 1]), "rho_kappa_lnfg": float(corr[0, 2]),
         "rho_xi_lnfg": float(corr[1, 2]),
+        "sigma_kappa_xscale": float(sigs[0]), "sigma_xi_xscale": float(sigs[1]),
+        "sigma_ln_f_gas_xscale": float(sigs[2]),
+        "cond_J_xscale": conds,
+        "rho_kappa_xi_xscale": float(corrs[0, 1]),
+        "rho_kappa_lnfg_xscale": float(corrs[0, 2]),
+        "rho_xi_lnfg_xscale": float(corrs[1, 2]),
         "bound_hits": _bound_hits(theta),
         "J": J, "r": r, "theta": theta, "sig": sig, "corr": corr,
     }
@@ -411,12 +429,22 @@ def _enrich_point(wid, basis, fit: dict, l_wsr, hl) -> dict:
         "solve_wall_time_s": snap.get("solve_wall_time_s"),
     })
     plant_h2 = 2.0 * _plant_dry_mol(wid) * (y[2] / 100.0)
+    # 变换后 F_H2 已含 +ξ，2ξ 只计一次。H2-only：分子分母都是 2·H2。
     h_h2only = 2.0 * sh.get("F_H2", float("nan"))
-    h_full = (2.0 * sh.get("F_H2", 0.0) + 4.0 * snap.get("F_CH4", 0.0)
-              + 2.0 * snap.get("F_H2S", 0.0) + 2.0 * fit["xi_mol_s"])
-    # 变换后 H2 已含 +ξ，H2-only 分子 = 2(F_H2_model+ξ) = 2*F_H2_shifted
+    h_full_num = (2.0 * sh.get("F_H2", 0.0) + 4.0 * snap.get("F_CH4", 0.0)
+                  + 2.0 * snap.get("F_H2S", 0.0))
     out["H_ledger_h2only"] = float(h_h2only / plant_h2) if plant_h2 > 0 else float("nan")
-    out["H_ledger_full_over_plant_h2"] = float(h_full / plant_h2) if plant_h2 > 0 else float("nan")
+    out["H_ledger_full_over_plant_h2"] = (
+        float(h_full_num / plant_h2) if plant_h2 > 0 else float("nan"))
+    out["H_ledger_num"] = (
+        "2·F_H2_shifted = 2·(F_H2_reactor+ξ); 2ξ counted once "
+        "[+ 4 CH4 + 2 H2S in full column]"
+    )
+    out["H_ledger_den"] = "2 · plant_dry · y_H2（装置 H2-only；无 CH4/H2S 分母）"
+    out["T_eq_assumption"] = (
+        "Q uses shifted CO/H2/CO2 with reactor-outlet H2O; quench water is assumed "
+        "to replace exactly the ξ moles consumed (proxy, not a measured inventory)"
+    )
     out["carrier_CO2_in_mol_s"] = _carrier_mol(wid)
     out["CO2_net_after_xi_mol_s"] = float(sh.get("F_CO2", float("nan")) - _carrier_mol(wid))
     k_ok = KAPPA_PHYS[0] <= fit["kappa"] <= KAPPA_PHYS[1]
@@ -443,6 +471,8 @@ def _jac_rows(tag: dict, J: np.ndarray, wids: list[str]) -> list[dict]:
                 "scope": tag.get("scope"), "window_id": wid,
                 "phase": tag.get("phase"), "composition_basis": tag.get("basis"),
                 "L_wsr": tag.get("L_wsr"), "HL_tot_pct": tag.get("HL_tot"),
+                "start_name": tag.get("start_name", ""),
+                "selected": tag.get("selected", False),
                 "obs": obs, "row_index": ri,
             }
             for j, p in enumerate(PARAM_NAMES):
@@ -510,7 +540,7 @@ def fit_group(wids, basis, l_wsr, hl, scope: str, label: str) -> dict:
         if raw.get("success") and raw.get("J") is not None:
             jac_rows.extend(_jac_rows(
                 {"scope": scope, "phase": row["phase"], "basis": basis,
-                 "L_wsr": l_wsr, "HL_tot": hl},
+                 "L_wsr": l_wsr, "HL_tot": hl, "start_name": name},
                 raw["J"], wids,
             ))
         print(f"  {scope} {label} {basis} {name} success={row.get('success')} "
@@ -519,6 +549,9 @@ def fit_group(wids, basis, l_wsr, hl, scope: str, label: str) -> dict:
     uniq = _uniqueness(start_rows)
     ok = [s for s in start_rows if s.get("success")]
     best = min(ok, key=lambda s: s["cost"]) if ok else None
+    if best is not None:
+        for jr in jac_rows:
+            jr["selected"] = jr.get("start_name") == best.get("start_name")
     best_full = None
     extra_points = []
     if best is not None:
@@ -695,6 +728,144 @@ def loo_from_window_fits(window_fits: pd.DataFrame, window_ids: list[str]) -> pd
     return pd.DataFrame(rows)
 
 
+def _jac_blocks(jac: pd.DataFrame, n_obs: int) -> list[tuple[pd.Index, np.ndarray]]:
+    """按文件顺序把同一拟合的观测行切成 n_obs 行一块，保留原索引。"""
+    rows = list(jac.index)
+    out = []
+    for i in range(0, len(rows), n_obs):
+        idx = rows[i:i + n_obs]
+        if len(idx) < n_obs:
+            continue
+        chunk = jac.loc[idx].sort_values("row_index")
+        J = chunk[["d_kappa", "d_xi_mol_s", "d_ln_f_gas"]].to_numpy(dtype=float)
+        out.append((chunk.index, J))
+    return out
+
+
+def _n_obs_for(row) -> int:
+    n_win = row.get("n_windows")
+    try:
+        n_win = int(n_win)
+    except (TypeError, ValueError):
+        n_win = 3 if str(row.get("phase")) == "phase4" else 2
+    return 4 * max(n_win, 1)
+
+
+def _fit_jac_mask(jac: pd.DataFrame, row, scope: str) -> pd.Series:
+    if scope == "window":
+        return (
+            (jac["scope"] == "window")
+            & (jac["window_id"] == row["window_id"])
+            & (jac["composition_basis"] == row["composition_basis"])
+            & np.isclose(jac["L_wsr"].astype(float), float(row["L_wsr"]))
+            & np.isclose(jac["HL_tot_pct"].astype(float), float(row["HL_tot_pct"]))
+        )
+    return (
+        (jac["scope"] == scope)
+        & (jac["phase"] == row["phase"])
+        & (jac["composition_basis"] == row["composition_basis"])
+        & np.isclose(jac["L_wsr"].astype(float), float(row["L_wsr"]))
+        & np.isclose(jac["HL_tot_pct"].astype(float), float(row["HL_tot_pct"]))
+    )
+
+
+def _fix_h_ledger_row(r) -> float:
+    """去掉全干气分子里多加的 2ξ。分母仍是装置 H2-only。"""
+    raw = float(r.get("H_ledger_full_over_plant_h2", np.nan))
+    xi = float(r.get("xi_mol_s", np.nan))
+    wid = str(r.get("window_id", "")).split(",")[0]
+    y_h2 = float(r.get("plant_H2_vol_pct", np.nan))
+    if wid not in _CTX["p18d"].index or not np.isfinite(raw) or not np.isfinite(xi) or not np.isfinite(y_h2):
+        return raw
+    den = 2.0 * _plant_dry_mol(wid) * (y_h2 / 100.0)
+    if den <= 0:
+        return raw
+    return raw - 2.0 * xi / den
+
+
+def attach_xscale_and_ledgers(win, phase, robust, jac, starts) -> tuple:
+    """从已存雅可比给获选解补 x_scale 条件数，并去掉氢账本重复的 2ξ。不重跑反应器。"""
+    if "by_id" not in _CTX:
+        _init_worker()
+    jac = jac.copy()
+    if "start_name" not in jac.columns:
+        jac["start_name"] = ""
+    if "selected" not in jac.columns:
+        jac["selected"] = False
+
+    def _fill(df, scope: str):
+        if df is None or df.empty:
+            return df
+        df = df.copy()
+        for col in ("cond_J_xscale", "rho_kappa_xi_xscale", "rho_kappa_lnfg_xscale",
+                    "rho_xi_lnfg_xscale", "sigma_kappa_xscale", "sigma_xi_xscale",
+                    "sigma_ln_f_gas_xscale"):
+            if col not in df.columns:
+                df[col] = np.nan
+        for idx, r in df.iterrows():
+            n = 4 if scope == "window" else _n_obs_for(r)
+            sub = jac.loc[_fit_jac_mask(jac, r, scope)]
+            if sub.empty:
+                continue
+            native = float(r.get("cond_J", np.nan))
+            best_J, best_idx, best_d = None, None, 1e99
+            for idx_chunk, J in _jac_blocks(sub, n):
+                cond = _jac_stats(J, None)[2]
+                d = abs(cond - native) if np.isfinite(native) else 1e99
+                if d < best_d:
+                    best_d, best_J, best_idx = d, J, idx_chunk
+            if best_J is None:
+                continue
+            _sig, _corr, _c = _jac_stats(best_J, None)
+            sigs, corrs, conds = _jac_stats(best_J, X_SCALE)
+            df.at[idx, "cond_J_xscale"] = conds
+            df.at[idx, "rho_kappa_xi_xscale"] = float(corrs[0, 1])
+            df.at[idx, "rho_kappa_lnfg_xscale"] = float(corrs[0, 2])
+            df.at[idx, "rho_xi_lnfg_xscale"] = float(corrs[1, 2])
+            df.at[idx, "sigma_kappa_xscale"] = float(sigs[0])
+            df.at[idx, "sigma_xi_xscale"] = float(sigs[1])
+            df.at[idx, "sigma_ln_f_gas_xscale"] = float(sigs[2])
+            if best_idx is not None and r.get("start_name"):
+                jac.loc[best_idx, "start_name"] = r.get("start_name")
+                jac.loc[best_idx, "selected"] = True
+        if "H_ledger_full_over_plant_h2" in df.columns and "H_ledger_full_over_plant_h2_raw" not in df.columns:
+            df["H_ledger_full_over_plant_h2_raw"] = df["H_ledger_full_over_plant_h2"]
+            df["H_ledger_full_over_plant_h2"] = [_fix_h_ledger_row(r) for _, r in df.iterrows()]
+            df["H_ledger_xi_counted_once"] = True
+            df["H_ledger_num"] = (
+                "2·F_H2_shifted = 2·(F_H2_reactor+ξ); 2ξ counted once "
+                "[+ 4 CH4 + 2 H2S in full column]"
+            )
+            df["H_ledger_den"] = "2 · plant_dry · y_H2（装置 H2-only；全干气列分子含 CH4/H2S，分母不含）"
+            df["T_eq_assumption"] = (
+                "shifted CO/H2/CO2 with reactor-outlet H2O; quench replaces ξ moles of water"
+            )
+        return df
+
+    if starts is not None and not starts.empty and "success" in starts.columns:
+        ok_starts = starts[starts["success"] == True]  # noqa: E712
+        for _, st in ok_starts.iterrows():
+            scope = str(st.get("scope", "window"))
+            n = 4 if scope == "window" else _n_obs_for(st)
+            sub = jac.loc[_fit_jac_mask(jac, st, scope)]
+            native = float(st.get("cond_J", np.nan))
+            if sub.empty or not np.isfinite(native):
+                continue
+            for idx_chunk, J in _jac_blocks(sub, n):
+                named = jac.loc[idx_chunk, "start_name"].astype(str).replace({"nan": ""}).fillna("")
+                if (named != "").any():
+                    continue
+                cond = _jac_stats(J, None)[2]
+                if abs(cond - native) <= max(1e-4, 1e-8 * abs(native)):
+                    jac.loc[idx_chunk, "start_name"] = st.get("start_name", "")
+                    break
+
+    win = _fill(win, "window")
+    phase = _fill(phase, "phase")
+    robust = _fill(robust, "robust")
+    return win, phase, robust, jac
+
+
 # ---------------------------------------------------------------------------
 # 预声明读法
 # ---------------------------------------------------------------------------
@@ -730,7 +901,7 @@ def readings(win, phase, robust, loo, starts) -> pd.DataFrame:
             _add(rows, reading="P1", metric=f"{scope}_median_rms::{basis}",
                  basis=basis, value=float(rms.median()), threshold=RMS_OK,
                  pass_=bool((rms <= RMS_OK).all()) if scope == "window" else bool(rms.median() <= RMS_OK),
-                 note="缩放残差均方根；≤1 记为在测量不确定度内")
+                 note="缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）")
             _add(rows, reading="P1", metric=f"{scope}_max_rms::{basis}",
                  basis=basis, value=float(rms.max()), threshold=RMS_OK,
                  pass_=bool(rms.max() <= RMS_OK))
@@ -743,33 +914,54 @@ def readings(win, phase, robust, loo, starts) -> pd.DataFrame:
             continue
         ok = df[df["success"] == True]  # noqa: E712
         for _, r in ok.iterrows():
-            cond = float(r.get("cond_J", np.nan))
-            rhos = [float(r.get(c, np.nan)) for c in
-                    ("rho_kappa_xi", "rho_kappa_lnfg", "rho_xi_lnfg")]
-            max_abs_rho = max((abs(x) for x in rhos if np.isfinite(x)), default=float("nan"))
-            identifiable = bool(np.isfinite(cond) and cond < COND_OK
-                                and np.isfinite(max_abs_rho) and max_abs_rho < CORR_OK)
-            pair = ""
-            if not identifiable:
-                names = ("kappa-xi", "kappa-lnfg", "xi-lnfg")
-                if any(np.isfinite(x) and abs(x) >= CORR_OK for x in rhos):
-                    pair = names[int(np.nanargmax([abs(x) if np.isfinite(x) else -1 for x in rhos]))]
-                elif np.isfinite(cond) and cond >= COND_OK:
-                    pair = f"cond={cond:.3g}"
-            _add(rows, reading="P2", metric=f"{scope}_identifiable",
+            cond_n = float(r.get("cond_J", np.nan))
+            cond_x = float(r.get("cond_J_xscale", np.nan))
+            rhos_n = [float(r.get(c, np.nan)) for c in
+                      ("rho_kappa_xi", "rho_kappa_lnfg", "rho_xi_lnfg")]
+            rhos_x = [float(r.get(c, np.nan)) for c in
+                      ("rho_kappa_xi_xscale", "rho_kappa_lnfg_xscale", "rho_xi_lnfg_xscale")]
+            max_n = max((abs(x) for x in rhos_n if np.isfinite(x)), default=float("nan"))
+            max_x = max((abs(x) for x in rhos_x if np.isfinite(x)), default=float("nan"))
+            id_n = bool(np.isfinite(cond_n) and cond_n < COND_OK
+                        and np.isfinite(max_n) and max_n < CORR_OK)
+            id_x = bool(np.isfinite(cond_x) and cond_x < COND_OK
+                        and np.isfinite(max_x) and max_x < CORR_OK)
+            names = ("kappa-xi", "kappa-lnfg", "xi-lnfg")
+            pair_x = ""
+            if not id_x:
+                if any(np.isfinite(x) and abs(x) >= CORR_OK for x in rhos_x):
+                    pair_x = names[int(np.nanargmax([abs(x) if np.isfinite(x) else -1 for x in rhos_x]))]
+                elif np.isfinite(cond_x) and cond_x >= COND_OK:
+                    pair_x = f"cond_xscale={cond_x:.3g}"
+            _add(rows, reading="P2", metric=f"{scope}_identifiable_xscale",
                  basis=r.get("composition_basis"), phase=r.get("phase"),
-                 window_id=r.get("window_id"), value=float(identifiable),
-                 pass_=identifiable,
-                 note=f"cond={cond:.4g}; max|ρ|={max_abs_rho:.3f}; pair={pair}")
-            _add(rows, reading="P2", metric=f"{scope}_cond_J",
+                 window_id=r.get("window_id"), value=float(id_x),
+                 pass_=id_x,
+                 note=f"J@diag(0.05,50,1); cond={cond_x:.4g}; max|ρ|={max_x:.3f}; pair={pair_x}")
+            _add(rows, reading="P2", metric=f"{scope}_identifiable_native",
                  basis=r.get("composition_basis"), phase=r.get("phase"),
-                 window_id=r.get("window_id"), value=cond, threshold=COND_OK,
-                 pass_=bool(np.isfinite(cond) and cond < COND_OK))
-            _add(rows, reading="P2", metric=f"{scope}_max_abs_rho",
+                 window_id=r.get("window_id"), value=float(id_n),
+                 pass_=id_n,
+                 note=f"historical native units; cond={cond_n:.4g}; max|ρ|={max_n:.3f}")
+            _add(rows, reading="P2", metric=f"{scope}_cond_J_xscale",
                  basis=r.get("composition_basis"), phase=r.get("phase"),
-                 window_id=r.get("window_id"), value=max_abs_rho, threshold=CORR_OK,
-                 pass_=bool(np.isfinite(max_abs_rho) and max_abs_rho < CORR_OK),
-                 note=pair)
+                 window_id=r.get("window_id"), value=cond_x, threshold=COND_OK,
+                 pass_=bool(np.isfinite(cond_x) and cond_x < COND_OK))
+            _add(rows, reading="P2", metric=f"{scope}_cond_J_native",
+                 basis=r.get("composition_basis"), phase=r.get("phase"),
+                 window_id=r.get("window_id"), value=cond_n, threshold=COND_OK,
+                 pass_=bool(np.isfinite(cond_n) and cond_n < COND_OK),
+                 note="historical; ξ in mol/s")
+            _add(rows, reading="P2", metric=f"{scope}_max_abs_rho_xscale",
+                 basis=r.get("composition_basis"), phase=r.get("phase"),
+                 window_id=r.get("window_id"), value=max_x, threshold=CORR_OK,
+                 pass_=bool(np.isfinite(max_x) and max_x < CORR_OK),
+                 note=pair_x or "local collinearity")
+            bound = str(r.get("bound_hits") or "").replace("nan", "").strip()
+            _add(rows, reading="P2", metric=f"{scope}_bound_hit",
+                 basis=r.get("composition_basis"), phase=r.get("phase"),
+                 window_id=r.get("window_id"),
+                 value=float(bool(bound)), pass_=None, note=bound)
     # P3
     if win is not None and not win.empty:
         okw = win[win["success"] == True]  # noqa: E712
@@ -787,7 +979,7 @@ def readings(win, phase, robust, loo, starts) -> pd.DataFrame:
                          basis=basis, phase=phase_name, value=scatter,
                          threshold=sig,
                          pass_=bool(np.isfinite(sig) and scatter <= sig) if s else None,
-                         note=f"median 1σ={sig:.4g}; n={len(g)}")
+                         note=f"median curvature 1σ={sig:.4g}; n={len(g)}; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ")
         for wid, g in okw.groupby("window_id"):
             if set(g["composition_basis"]) < {"analyzer", "liu_phase"}:
                 continue
@@ -815,10 +1007,19 @@ def readings(win, phase, robust, loo, starts) -> pd.DataFrame:
     # P4
     if win is not None and not win.empty:
         okw = win[win["success"] == True]  # noqa: E712
-        n_bound = int(okw["bound_hits"].fillna("").astype(str).str.len().gt(0).sum()) if "bound_hits" in okw.columns else 0
+        bh = okw["bound_hits"].fillna("").astype(str).replace({"nan": "", "None": ""}) if "bound_hits" in okw.columns else pd.Series(dtype=str)
+        n_bound = int(bh.str.len().gt(0).sum()) if len(bh) else 0
         _add(rows, reading="P4", metric="n_bound_hit_windows",
              value=float(n_bound), threshold=float(BOUND_WINDOW_FLAG),
              pass_=None, note=">6 窗贴边界则判读单列；不停止")
+        if "needs_quench_water" in okw.columns:
+            nq = int(okw["needs_quench_water"].astype(bool).sum())
+            _add(rows, reading="P4", metric="n_needs_quench_water",
+                 value=float(nq),
+                 note=f"/{len(okw)}；T_eq 用反应器出口 H2O，假定激冷水恰好补 ξ mol")
+        _add(rows, reading="P4", metric="T_eq_is_proxy",
+             value=1.0, pass_=None,
+             note="表观平衡温度是该水量假设下的代理量，不是测得的激冷后平衡温度")
         for col, metric in (("phys_kappa_ok", "n_kappa_in_phys"),
                             ("phys_fgas_ok", "n_fgas_in_phys"),
                             ("phys_Teq_ok", "n_Teq_in_phys")):
@@ -863,7 +1064,8 @@ def readings(win, phase, robust, loo, starts) -> pd.DataFrame:
                 rms = g["rms_scaled"].astype(float)
                 _add(rows, reading="P7", metric=f"median_test_rms::{method}",
                      basis=basis, value=float(rms.median()) if len(rms) else float("nan"),
-                     note=f"n={len(g)}; 只报告，不设闸门")
+                     note=("n={0}; 只报告。同阶段跨窗转移；"
+                           "刘文口径阶段内组成目标相同，不是独立组成预测验证".format(len(g))))
                 _add(rows, reading="P7", metric=f"max_test_rms::{method}",
                      basis=basis, value=float(rms.max()) if len(rms) else float("nan"))
     # 失败
@@ -883,8 +1085,11 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
              "反演参数：κ（入口 O2 乘数，整体数据协调，不归因到仪表）、"
              "ξ（反应器后变换，不进求解器）、ln `f_gas`。"
              "观测：装置 X_C（实测载气、标定合成气、协调煤量主口径）与干基 CO/H2/CO2；"
-             f"σ = {SIGMAS.tolist()}。算法：`least_squares` / `trf`，有限差分相对步长 "
-             f"{DIFF_REL}（ξ 步长外底 {STEP_FLOOR[1]} mol/s）。本轮**不采纳**任何参数值。")
+             f"σ = {SIGMAS.tolist()}（预声明试点权重，不是测量不确定度）。"
+             f"算法：`least_squares` / `trf`，`x_scale` = {X_SCALE.tolist()}，"
+             f"有限差分相对步长 {DIFF_REL}（ξ 步长外底 {STEP_FLOOR[1]} mol/s）。"
+             "P2 主报告用 `J @ diag(x_scale)`；(JᵀJ)⁻¹ 是局部曲率诊断。"
+             "本轮**不采纳**任何参数值。")
     L.append("")
     if stopped:
         L.append("**停止条件触发**：逐窗失败数超过 3，未跑阶段拟合与稳健性。")
@@ -897,19 +1102,33 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
         return sub
 
     L.append("## P1 拟合质量")
+    L.append("σ 是预声明试点权重，不是测量不确定度；RMS≤1 记为达到预设拟合容差。")
     for _, r in _sel("P1").iterrows():
         flag = "" if r["pass"] is None or (isinstance(r["pass"], float) and not np.isfinite(r["pass"])) else (
-            " **在不确定度内**" if bool(r["pass"]) else " **超出**")
+            " **达到预设拟合容差**" if bool(r["pass"]) else " **未达预设拟合容差**")
         L.append(f"- `{r['metric']}` {r.get('composition_basis','')} = {r['value']}"
                  f"{flag}. {r.get('note','')}")
     L.append("")
     L.append("## P2 可辨识性")
-    L.append(f"判据：缩放雅可比 cond(J) < {COND_OK} 且全部 |ρ| < {CORR_OK}。"
-             "否则列出相关最强的参数对。")
-    p2 = _sel("P2", "identifiable")
-    n_id = int(p2["pass"].astype(bool).sum()) if not p2.empty else 0
-    L.append(f"- 可分别辨识的拟合：{n_id} / {len(p2)}")
-    for _, r in p2.iterrows():
+    L.append(f"主报告：参数列按优化器 `x_scale`={X_SCALE.tolist()} 无量纲化后 "
+             f"cond(J@S) < {COND_OK} 且全部 |ρ| < {CORR_OK}。"
+             "原 cond(J)（ξ 以 mol/s）保留为历史读法，不推广。"
+             "局部共线（|ρ|）、贴边界与全局条件数分开列。")
+    p2x = _sel("P2", "identifiable_xscale")
+    p2n = _sel("P2", "identifiable_native")
+    n_x = int(p2x["pass"].astype(bool).sum()) if not p2x.empty else 0
+    n_n = int(p2n["pass"].astype(bool).sum()) if not p2n.empty else 0
+    L.append(f"- 无量纲尺度下可分别辨识：{n_x} / {len(p2x)}")
+    L.append(f"- 历史（原生单位）可分别辨识：{n_n} / {len(p2n)}（不推广）")
+    p2rho = _sel("P2", "max_abs_rho_xscale")
+    if not p2rho.empty:
+        n_col = int(p2rho["pass"].eq(False).sum())
+        L.append(f"- 局部共线（无量纲 |ρ|≥{CORR_OK}）：{n_col} / {len(p2rho)}")
+    p2b = _sel("P2", "bound_hit")
+    if not p2b.empty:
+        n_b = int(pd.to_numeric(p2b["value"], errors="coerce").fillna(0).sum())
+        L.append(f"- 贴边界：{n_b} / {len(p2b)}（单独列，不并入 cond 判据）")
+    for _, r in p2x.iterrows():
         if not bool(r["pass"]):
             L.append(f"  - 不可辨识 {r.get('composition_basis')} {r.get('phase')} "
                      f"`{_short(str(r.get('window_id','')))}`：{r.get('note')}")
@@ -948,13 +1167,15 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
         L.append(f"- `{r['metric']}` = {r['value']}. {r.get('note','')}")
     L.append("")
     L.append("## P7 留一窗预测（只报告）")
-    L.append("对照：(a) 不修正 θ=(1,0,1)；(b) 训练窗常数残差补丁。")
+    L.append("对照：(a) 不修正 θ=(1,0,1)；(b) 训练窗常数残差补丁。"
+             "同阶段跨窗转移；刘文口径在阶段内组成目标相同，不作独立组成预测验证。")
     for _, r in _sel("P7", "median_test_rms").iterrows():
         L.append(f"- `{r['metric']}` {r.get('composition_basis')} 中位测试 rms = {r['value']}")
     L.append("")
     L.append("## 必须回答")
-    L.append("1. 每次拟合的 θ̂±1σ、相关、条件数与缩放残差见 `fits_window.csv` / `fits_phase.csv`；"
-             "全部起点见 `multistart.csv`；缩放雅可比见 `jacobians.csv`。")
+    L.append("1. 每次拟合的 θ̂±曲率 1σ、相关、条件数与缩放残差见 `fits_window.csv` / `fits_phase.csv`；"
+             "全部起点见 `multistart.csv`；加权残差雅可比见 `jacobians.csv`（含 `start_name`/`selected`）。"
+             "主报告条件数为 `cond_J_xscale`。")
     L.append("2. P1–P7 见上。")
     L.append("3. 求解失败、贴边界、非唯一解见 `multistart.csv` 的 `success` / `bound_hits` "
              "与 fits 表的 `nonunique`。")
@@ -1015,6 +1236,7 @@ def main() -> None:
         loo = pd.read_csv(OUT_DIR / "loo_prediction.csv") if (OUT_DIR / "loo_prediction.csv").exists() else pd.DataFrame()
         starts = pd.read_csv(OUT_DIR / "multistart.csv")
         jac = pd.read_csv(OUT_DIR / "jacobians.csv") if (OUT_DIR / "jacobians.csv").exists() else pd.DataFrame()
+        win, phase, robust, jac = attach_xscale_and_ledgers(win, phase, robust, jac, starts)
         stopped = False
         rd = readings(win, phase, robust, loo, starts)
         rd.to_csv(OUT_DIR / "readings.csv", index=False)
@@ -1151,8 +1373,11 @@ def _protocol(src_commit, stopped: bool) -> dict:
         "observations": {
             "y": list(OBS_NAMES),
             "sigma": SIGMAS.tolist(),
+            "sigma_note": "predeclared pilot weights, not measurement uncertainty",
             "X_C": "xc_measured_pct from P1.8-D (measured carrier, calibrated syngas, recon coal)",
             "composition": "analyzer = P1.7-A baseline plant vol%; liu_phase = Liu 2023 table 3",
+            "H_ledger": "num = 2 F_H2_shifted [+ 4 CH4 + 2 H2S]; den = 2 plant_dry y_H2; 2ξ counted once",
+            "T_eq": "proxy: Q from shifted CO/H2/CO2 and reactor-outlet H2O; quench replaces ξ mol H2O",
         },
         "optimizer": {
             "algorithm": "scipy.optimize.least_squares",
@@ -1161,18 +1386,19 @@ def _protocol(src_commit, stopped: bool) -> dict:
             "diff_rel": DIFF_REL,
             "step_floor": {"kappa": float(STEP_FLOOR[0]), "xi_mol_s": float(STEP_FLOOR[1]),
                            "ln_f_gas": float(STEP_FLOOR[2])},
+            "x_scale": X_SCALE.tolist(),
             "starts": [list(s) for s in STARTS],
             "max_nfev": MAX_NFEV,
-            "covariance": "(J_scaled^T J_scaled)^{-1}",
+            "covariance": "(J^T J)^{-1} in native units (local curvature); also J @ diag(x_scale)",
         },
         "predeclared": {
-            "P1": "scaled RMS ≤ 1 → within measurement uncertainty",
-            "P2": "cond(J_scaled)<100 and all |ρ|<0.9 → separately identifiable",
-            "P3": "within-phase scatter vs 1σ; analyzer vs liu Δθ vs 1σ; phase median/range",
-            "P4": "flags only: κ in [0.92,1.03]; f_gas in [1/16,2]; T_eq in [500,1300] K; bound hits",
-            "P5": "redo phase fits at L_wsr=4 m, HL_tot in {0.5,1.5}%; report Δθ/1σ",
-            "P6": "non-unique if cost differs <1% but some parameter differs by > each 1σ",
-            "P7": "LOO vs uncorrected vs residual patch; report only",
+            "P1": "scaled RMS ≤ 1 → reaches predeclared fit tolerance (pilot weights, not measurement σ)",
+            "P2": "primary: cond(J @ diag(0.05,50,1))<100 and all |ρ|<0.9; native cond(J) historical only; collinearity, bound hits, global cond reported separately",
+            "P3": "within-phase scatter vs curvature 1σ; analyzer vs liu Δθ vs curvature 1σ; phase median/range",
+            "P4": "flags only: κ in [0.92,1.03]; f_gas in [1/16,2]; T_eq proxy in [500,1300] K under quench-replaces-ξ water assumption; bound hits",
+            "P5": "redo phase fits at L_wsr=4 m, HL_tot in {0.5,1.5}%; report Δθ/curvature 1σ",
+            "P6": "non-unique if cost differs <1% but some parameter differs by > each curvature 1σ",
+            "P7": "within-phase LOO vs uncorrected vs residual patch; report only; Liu targets identical across windows in a phase",
         },
         "stopped": stopped,
         "source_csv": {
