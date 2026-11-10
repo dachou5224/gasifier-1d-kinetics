@@ -1,7 +1,7 @@
 {
   "round": "P1.13-A / 2026-11-07",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "158e0f980b061eb241d4566562299edefe328a8e",
+  "source_commit": "2907338aeaa901dc6cfdd61343275a21f6632d0c",
   "mesh_family": "wsr_plus_pfr",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
