@@ -873,8 +873,8 @@ def _maybe_migrate_h_ledger(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _finite_equal(a, b, msg: str) -> None:
-    av = pd.to_numeric(a, errors="coerce").to_numpy(dtype=float)
-    bv = pd.to_numeric(b, errors="coerce").to_numpy(dtype=float)
+    av = np.asarray(a, dtype=float).ravel()
+    bv = np.asarray(b, dtype=float).ravel()
     ma, mb = np.isfinite(av), np.isfinite(bv)
     if ma.shape != mb.shape or not np.array_equal(ma, mb):
         raise RuntimeError(f"{msg}: finite-mask changed (kept failed rows?)")
