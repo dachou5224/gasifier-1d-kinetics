@@ -1,0 +1,193 @@
+{
+  "round": "P1.14-A / 2026-11-07",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "20e2b6d41110392f4cf2194c7f1401a7b934ae2d",
+  "mesh_family": "wsr_plus_pfr",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.14a-20261107.md",
+  "structure": {
+    "mesh_family": "wsr_plus_pfr",
+    "L_wsr_m": 1.0,
+    "dz_down_m": 0.0515,
+    "HL_tot_pct": 1.0,
+    "oxygen_mixing": "instant",
+    "D_wall_m": 3.8,
+    "frozen": [
+      "全部 Arrhenius（除 f_gas 作用的 C+H2O/C+CO2 指前因子）",
+      "限幅",
+      "燃烧区判据",
+      "煤量主口径 windows_142.coal_dry_recon_phase_kg_s",
+      "实测载气 windows_142.co2_carrier_measured_nm3_h",
+      "求解器容差"
+    ]
+  },
+  "parameters": {
+    "kappa": "inlet O2 multiplier; held at P1.13-A analyzer phase value; not inverted",
+    "xi_mol_s": "post-reactor WGS extent; does not enter the reactor solve",
+    "ln_f_gas": "log multiplier on shared C+H2O / C+CO2 prefactor; held at phase value",
+    "ln_U": "phase-level redundant scale for log Q_wall; column of unscaled log residual is 1",
+    "theta_phase_analyzer_Lwsr1_HLtot1pct": {
+      "phase1": {
+        "kappa": 0.9636054551111352,
+        "xi": 104.81669676840302,
+        "f_gas": 0.6531139633486652
+      },
+      "phase2": {
+        "kappa": 0.8998492036049609,
+        "xi": 86.5403359100365,
+        "f_gas": 0.3965369477333102
+      },
+      "phase3": {
+        "kappa": 0.9238312741474483,
+        "xi": 82.14896736151056,
+        "f_gas": 0.10788183495180284
+      },
+      "phase4": {
+        "kappa": 0.949661873527387,
+        "xi": 56.13939397745541,
+        "f_gas": 0.1776065048633667
+      }
+    },
+    "theta0": {
+      "kappa": 1.0,
+      "xi": 0.0,
+      "f_gas": 1.0
+    }
+  },
+  "observations": {
+    "y": [
+      "X_C_pp",
+      "CO_vol_pct",
+      "H2_vol_pct",
+      "CO2_vol_pct",
+      "CH4_vol_pct",
+      "dry_per_coal_mol_kg",
+      "T_out_K",
+      "Q_wall_conv",
+      "Q_wall_rad"
+    ],
+    "sigma_additive": {
+      "X_C_pp": 1.5,
+      "CO_vol_pct": 0.5,
+      "H2_vol_pct": 0.5,
+      "CO2_vol_pct": 0.5,
+      "CH4_vol_pct": 0.05,
+      "T_out_K": 20.0
+    },
+    "sigma_relative": {
+      "dry_per_coal_mol_kg": 0.02
+    },
+    "sigma_log": {
+      "Q_wall_conv": 0.1,
+      "Q_wall_rad": 0.1
+    },
+    "T_out_K_sigma": 20.0,
+    "T_out_K_sigma_note": "predeclared 20 K for S4; not a measured plant outlet temperature",
+    "Q_wall": "diagnostic index, not in the solve: Q_conv = Σ A_i (T_i-T_w), Q_rad = Σ A_i (T_i^4-T_w^4), A_i = π D dz_i",
+    "T_w": "T_sat_iapws_C + 273.15 K; default 537 K if missing (phase 4)",
+    "dry_per_coal": "shifted dry mol/s per coal_dry_recon_phase_kg_s (mol/kg)"
+  },
+  "jacobian": {
+    "scheme": "forward finite difference at phase θ",
+    "diff_rel": 0.0001,
+    "step_floor": {
+      "kappa": 1.0,
+      "ln_f_gas": 1.0,
+      "xi_mol_s": 10.0
+    },
+    "step_rule": "h = diff_rel * max(|θ_j|, floor_j); ξ does not re-solve the reactor",
+    "param_order": [
+      "kappa",
+      "ln_f_gas",
+      "xi_mol_s"
+    ]
+  },
+  "fisher": {
+    "train_only": "P1 and P2 are entirely train; P3 is entirely validation; P4 is entirely test",
+    "subsets": {
+      "S0": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct"
+      ],
+      "S1": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct"
+      ],
+      "S2": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "dry_per_coal_mol_kg"
+      ],
+      "S3": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "Q_wall_conv",
+        "Q_wall_rad"
+      ],
+      "S4": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct",
+        "dry_per_coal_mol_kg",
+        "T_out_K",
+        "Q_wall_conv",
+        "Q_wall_rad"
+      ]
+    },
+    "S3_S4_wall": "S3 only phases 1-3; S4 includes wall+ln U only when T_sat is present",
+    "ln_U_column": "unscaled log residual d/d ln U = 1; scaled = 1/0.10",
+    "q1": "|ρ(κ,ln f_gas)|<0.9 and σ(ln f_gas)<ln 2"
+  },
+  "predeclared": {
+    "Q1": "|ρ(κ, ln f_gas)| < 0.9 and σ(ln f_gas) < ln 2 → subset/phase identifies f_gas",
+    "Q2": "shrinkage of σ(ln f_gas) for S1–S3 vs S0; who contributes most",
+    "Q3": "S0 only: P1.13-A reference windows vs all train (P1/P2) or phase_all (P3/P4)",
+    "Q4": "sign of dT_out/dκ vs dT_out/d ln f_gas; same-sign fraction >20% listed separately",
+    "Q5": "P1.14-D Q2 numbers used as given; drown flag if both |ρ|<0.3 or CV_between<CV_within"
+  },
+  "stopped": false,
+  "n_failed_windows": 0,
+  "fail_stop_threshold": 10,
+  "source_csv": {
+    "p1.14d": {
+      "round": "p1.14d-20261107",
+      "file": "windows_142.csv",
+      "relative_path": "outputs/diagnostics/p1.14d-20261107/windows_142.csv",
+      "sha256": "25f3a7b4d403adc83ab888c893bc23e555af2121b1d4fa04cb53c93d57e0f991",
+      "n_rows": 142
+    }
+  },
+  "outputs": [
+    "baseline_142.csv",
+    "jacobians_142.csv",
+    "fisher_subsets.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}

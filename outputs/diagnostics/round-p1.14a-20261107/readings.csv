@@ -1,0 +1,164 @@
+reading,metric,phase,subset,window_set,window_id,value,threshold,pass,note
+Q1,identifiable_f_gas,phase1,S0,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.2314 (thr 0.9); σ(ln f_gas)=0.01837 (thr ln2=0.6931); n=37; "
+Q1,abs_rho_kappa_lnfg,phase1,S0,train,,0.23142362754880427,0.9,True,
+Q1,sigma_ln_f_gas,phase1,S0,train,,0.01837226012985676,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase1,S1,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.3749 (thr 0.9); σ(ln f_gas)=0.01591 (thr ln2=0.6931); n=37; "
+Q1,abs_rho_kappa_lnfg,phase1,S1,train,,0.37486063102110484,0.9,True,
+Q1,sigma_ln_f_gas,phase1,S1,train,,0.015913501928829732,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase1,S2,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.2496 (thr 0.9); σ(ln f_gas)=0.01721 (thr ln2=0.6931); n=37; "
+Q1,abs_rho_kappa_lnfg,phase1,S2,train,,0.24956476421688037,0.9,True,
+Q1,sigma_ln_f_gas,phase1,S2,train,,0.017210346268277735,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase1,S3,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.2269 (thr 0.9); σ(ln f_gas)=0.01819 (thr ln2=0.6931); n=37; "
+Q1,abs_rho_kappa_lnfg,phase1,S3,train,,0.2269450100097758,0.9,True,
+Q1,sigma_ln_f_gas,phase1,S3,train,,0.018194975338257577,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase1,S4,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.3033 (thr 0.9); σ(ln f_gas)=0.01391 (thr ln2=0.6931); n=37; "
+Q1,abs_rho_kappa_lnfg,phase1,S4,train,,0.30332298848397393,0.9,True,
+Q1,sigma_ln_f_gas,phase1,S4,train,,0.013908370226966796,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase2,S0,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.07213 (thr 0.9); σ(ln f_gas)=0.01171 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase2,S0,train,,0.07213332814311449,0.9,True,
+Q1,sigma_ln_f_gas,phase2,S0,train,,0.011711766735151995,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase2,S1,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.08754 (thr 0.9); σ(ln f_gas)=0.01082 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase2,S1,train,,0.08754373991041728,0.9,True,
+Q1,sigma_ln_f_gas,phase2,S1,train,,0.010817255164052398,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase2,S2,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.1046 (thr 0.9); σ(ln f_gas)=0.01093 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase2,S2,train,,0.10463066043479545,0.9,True,
+Q1,sigma_ln_f_gas,phase2,S2,train,,0.010930302313427277,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase2,S3,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.07171 (thr 0.9); σ(ln f_gas)=0.01166 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase2,S3,train,,0.07170823620817243,0.9,True,
+Q1,sigma_ln_f_gas,phase2,S3,train,,0.011657713647016664,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase2,S4,train,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.002291 (thr 0.9); σ(ln f_gas)=0.009737 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase2,S4,train,,0.0022913833692633752,0.9,True,
+Q1,sigma_ln_f_gas,phase2,S4,train,,0.009736960686400824,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase3,S0,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase3,S0,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase3,S0,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase3,S1,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase3,S1,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase3,S1,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase3,S2,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase3,S2,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase3,S2,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase3,S3,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase3,S3,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase3,S3,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase3,S4,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase3,S4,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase3,S4,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase3,S0,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.1803 (thr 0.9); σ(ln f_gas)=0.05435 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase3,S0,phase_all,,0.18031735717962374,0.9,True,
+Q1,sigma_ln_f_gas,phase3,S0,phase_all,,0.054346981602779086,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase3,S1,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.7557 (thr 0.9); σ(ln f_gas)=0.02176 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase3,S1,phase_all,,0.7557095270963484,0.9,True,
+Q1,sigma_ln_f_gas,phase3,S1,phase_all,,0.02176008095336483,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase3,S2,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.2998 (thr 0.9); σ(ln f_gas)=0.05184 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase3,S2,phase_all,,0.2997821013018883,0.9,True,
+Q1,sigma_ln_f_gas,phase3,S2,phase_all,,0.05183661080551175,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase3,S3,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.17 (thr 0.9); σ(ln f_gas)=0.05387 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase3,S3,phase_all,,0.1700459843679653,0.9,True,
+Q1,sigma_ln_f_gas,phase3,S3,phase_all,,0.05386587244156983,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase3,S4,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.6076 (thr 0.9); σ(ln f_gas)=0.01756 (thr ln2=0.6931); n=44; "
+Q1,abs_rho_kappa_lnfg,phase3,S4,phase_all,,0.6075842754945471,0.9,True,
+Q1,sigma_ln_f_gas,phase3,S4,phase_all,,0.017564765535456172,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase4,S0,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase4,S0,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase4,S0,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase4,S1,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase4,S1,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase4,S1,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase4,S2,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase4,S2,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase4,S2,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase4,S4,train,,,0.9,,无训练窗，不作 train 集可辨识结论
+Q1,abs_rho_kappa_lnfg,phase4,S4,train,,,0.9,False,
+Q1,sigma_ln_f_gas,phase4,S4,train,,,0.6931471805599453,False,
+Q1,identifiable_f_gas,phase4,S0,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.05785 (thr 0.9); σ(ln f_gas)=0.05691 (thr ln2=0.6931); n=17; "
+Q1,abs_rho_kappa_lnfg,phase4,S0,phase_all,,0.05785248543603289,0.9,True,
+Q1,sigma_ln_f_gas,phase4,S0,phase_all,,0.056906660709411624,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase4,S1,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.4637 (thr 0.9); σ(ln f_gas)=0.03322 (thr ln2=0.6931); n=17; "
+Q1,abs_rho_kappa_lnfg,phase4,S1,phase_all,,0.4637226078249845,0.9,True,
+Q1,sigma_ln_f_gas,phase4,S1,phase_all,,0.033223142254905955,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase4,S2,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.09743 (thr 0.9); σ(ln f_gas)=0.05355 (thr ln2=0.6931); n=17; "
+Q1,abs_rho_kappa_lnfg,phase4,S2,phase_all,,0.09742625203087539,0.9,True,
+Q1,sigma_ln_f_gas,phase4,S2,phase_all,,0.05354820209190144,0.6931471805599453,True,
+Q1,identifiable_f_gas,phase4,S4,phase_all,,1.0,0.9,True,"|ρ(κ,ln f_gas)|=0.3099 (thr 0.9); σ(ln f_gas)=0.02935 (thr ln2=0.6931); n=17; "
+Q1,abs_rho_kappa_lnfg,phase4,S4,phase_all,,0.3099189630701488,0.9,True,
+Q1,sigma_ln_f_gas,phase4,S4,phase_all,,0.0293539960446207,0.6931471805599453,True,
+Q2,shrink_S1_over_S0,phase1,S1,train,,1.1545076760617103,,,σ_S0=0.01837; σ_S1=0.01591
+Q2,shrink_S2_over_S0,phase1,S2,train,,1.0675125208677918,,,σ_S0=0.01837; σ_S2=0.01721
+Q2,shrink_S3_over_S0,phase1,S3,train,,1.0097436126349901,,,σ_S0=0.01837; σ_S3=0.01819
+Q2,largest_contributor,phase1,,train,,1.1545076760617103,,,S1
+Q2,shrink_S1_over_S0,phase2,S1,train,,1.0826930267922508,,,σ_S0=0.01171; σ_S1=0.01082
+Q2,shrink_S2_over_S0,phase2,S2,train,,1.0714952248635183,,,σ_S0=0.01171; σ_S2=0.01093
+Q2,shrink_S3_over_S0,phase2,S3,train,,1.0046366800362405,,,σ_S0=0.01171; σ_S3=0.01166
+Q2,largest_contributor,phase2,,train,,1.0826930267922508,,,S1
+Q2,shrink_S1_over_S0,phase3,S1,phase_all,,2.4975542011655634,,,σ_S0=0.05435; σ_S1=0.02176
+Q2,shrink_S2_over_S0,phase3,S2,phase_all,,1.048428528760997,,,σ_S0=0.05435; σ_S2=0.05184
+Q2,shrink_S3_over_S0,phase3,S3,phase_all,,1.0089316136433348,,,σ_S0=0.05435; σ_S3=0.05387
+Q2,largest_contributor,phase3,,phase_all,,2.4975542011655634,,,S1
+Q2,shrink_S1_over_S0,phase4,S1,phase_all,,1.7128620848922982,,,σ_S0=0.05691; σ_S1=0.03322
+Q2,shrink_S2_over_S0,phase4,S2,phase_all,,1.0627184197845947,,,σ_S0=0.05691; σ_S2=0.05355
+Q2,largest_contributor,phase4,,phase_all,,1.7128620848922982,,,S1
+Q3,sigma_ln_f_gas_p113a_ref,phase1,S0,p113a_ref,,0.061210706700953424,,,n=2
+Q3,sigma_ln_f_gas_expanded,phase1,S0,train,,0.01837226012985676,,,n=37
+Q3,sigma_shrink_ref_to_expanded,phase1,S0,train,,3.331691706317608,,,σ_ref=0.06121 → σ_exp=0.01837; >1 means expansion helped
+Q3,sigma_ln_f_gas_p113a_ref,phase2,S0,p113a_ref,,0.048202041038247476,,,n=2
+Q3,sigma_ln_f_gas_expanded,phase2,S0,train,,0.011711766735151995,,,n=44
+Q3,sigma_shrink_ref_to_expanded,phase2,S0,train,,4.115693398637513,,,σ_ref=0.0482 → σ_exp=0.01171; >1 means expansion helped
+Q3,sigma_ln_f_gas_p113a_ref,phase3,S0,p113a_ref,,0.34552070187275696,,,n=2
+Q3,sigma_ln_f_gas_expanded,phase3,S0,phase_all,,0.054346981602779086,,,n=44
+Q3,sigma_shrink_ref_to_expanded,phase3,S0,phase_all,,6.357679703321158,,,σ_ref=0.3455 → σ_exp=0.05435; >1 means expansion helped
+Q3,sigma_ln_f_gas_p113a_ref,phase4,S0,p113a_ref,,0.17092553511544747,,,n=3
+Q3,sigma_ln_f_gas_expanded,phase4,S0,phase_all,,0.056906660709411624,,,n=17
+Q3,sigma_shrink_ref_to_expanded,phase4,S0,phase_all,,3.003612107697941,,,σ_ref=0.1709 → σ_exp=0.05691; >1 means expansion helped
+Q4,n_same_sign_dT,,,,,32.0,0.2,False,32/142 = 0.225; >20% 则物理差别不普遍，单列
+Q4,frac_same_sign_dT,,,,,0.22535211267605634,0.2,False,
+Q4,n_same_sign_dT,phase1,,,,19.0,,,19/37
+Q4,n_same_sign_dT,phase2,,,,9.0,,,9/44
+Q4,n_same_sign_dT,phase3,,,,4.0,,,4/44
+Q4,n_same_sign_dT,phase4,,,,0.0,,,0/17
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28N_009__W004,1.0,,,∂T/∂κ=651.7; ∂T/∂ln f_gas=6.982
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28N_009__W005,1.0,,,∂T/∂κ=662.8; ∂T/∂ln f_gas=56.02
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28N_009__W003,1.0,,,∂T/∂κ=658.4; ∂T/∂ln f_gas=3.389
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28N_009__W007,1.0,,,∂T/∂κ=752.8; ∂T/∂ln f_gas=131.2
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28N_009__W001,1.0,,,∂T/∂κ=831.5; ∂T/∂ln f_gas=67.08
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28N_009__W002,1.0,,,∂T/∂κ=591.9; ∂T/∂ln f_gas=109.4
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-29N_013__W002,1.0,,,∂T/∂κ=811; ∂T/∂ln f_gas=10.89
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-29N_014__W001,1.0,,,∂T/∂κ=760.7; ∂T/∂ln f_gas=1.369
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-29N_013__W001,1.0,,,∂T/∂κ=1340; ∂T/∂ln f_gas=5.471
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-30D_015__W002,1.0,,,∂T/∂κ=727.5; ∂T/∂ln f_gas=28.01
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-29N_012__W002,1.0,,,∂T/∂κ=975.5; ∂T/∂ln f_gas=61.11
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_evening_handover_2022-09-29__W001,1.0,,,∂T/∂κ=736.6; ∂T/∂ln f_gas=35.6
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-30D_017__W002,1.0,,,∂T/∂κ=580.4; ∂T/∂ln f_gas=113.3
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-29D_010__W001,1.0,,,∂T/∂κ=1960; ∂T/∂ln f_gas=5.646
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_evening_handover_2022-09-30__W001,1.0,,,∂T/∂κ=603.3; ∂T/∂ln f_gas=15.41
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-30N_018__W001,1.0,,,∂T/∂κ=720.3; ∂T/∂ln f_gas=24.7
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-30N_018__W003,1.0,,,∂T/∂κ=1797; ∂T/∂ln f_gas=88.98
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-30N_018__W006,1.0,,,∂T/∂κ=1816; ∂T/∂ln f_gas=35.99
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-02D_007__W001,1.0,,,∂T/∂κ=626; ∂T/∂ln f_gas=0.0737
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-02D_007__W002,1.0,,,∂T/∂κ=657.3; ∂T/∂ln f_gas=30.33
+Q4,same_sign_window,phase1,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-30N_018__W002,1.0,,,∂T/∂κ=1591; ∂T/∂ln f_gas=44.07
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__shift_evening_handover_2022-10-02__W001,1.0,,,∂T/∂κ=717.9; ∂T/∂ln f_gas=24.99
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-02N_009__W005,1.0,,,∂T/∂κ=601.9; ∂T/∂ln f_gas=4.588
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__shift_evening_handover_2022-10-03__W001,1.0,,,∂T/∂κ=638.8; ∂T/∂ln f_gas=19.47
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W004,1.0,,,∂T/∂κ=584.6; ∂T/∂ln f_gas=12.65
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W006,1.0,,,∂T/∂κ=597.3; ∂T/∂ln f_gas=205
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-04D_014__W002,1.0,,,∂T/∂κ=579.2; ∂T/∂ln f_gas=74.2
+Q4,same_sign_window,phase2,,,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-04D_014__W005,1.0,,,∂T/∂κ=546.6; ∂T/∂ln f_gas=31.06
+Q4,same_sign_window,phase3,,,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__shift_morning_handover_2022-10-06__W001,1.0,,,∂T/∂κ=988.4; ∂T/∂ln f_gas=16.36
+Q4,same_sign_window,phase3,,,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_008__W002,1.0,,,∂T/∂κ=852.4; ∂T/∂ln f_gas=1.981
+Q4,same_sign_window,phase3,,,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09N_017__W001,1.0,,,∂T/∂κ=791.7; ∂T/∂ln f_gas=1.364
+Q4,same_sign_window,phase3,,,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09N_017__W002,1.0,,,∂T/∂κ=826; ∂T/∂ln f_gas=31.65
+Q5,steam_rho_oc,phase1,,,,0.254,0.3,,P1.14-D Q2; not recomputed
+Q5,steam_rho_coal,phase1,,,,-0.29,0.3,,P1.14-D Q2; not recomputed
+Q5,steam_cv_between_over_within,phase1,,,,1.425,1.0,,P1.14-D Q2; >1 窗间不小于窗内
+Q5,s3_may_be_drowned,phase1,,,,1.0,,True,S3 的信息在理论上存在，但数据中可能被慢变量淹没
+Q5,steam_rho_oc,phase2,,,,0.586,0.3,,P1.14-D Q2; not recomputed
+Q5,steam_rho_coal,phase2,,,,-0.527,0.3,,P1.14-D Q2; not recomputed
+Q5,steam_cv_between_over_within,phase2,,,,1.677,1.0,,P1.14-D Q2; >1 窗间不小于窗内
+Q5,s3_may_be_drowned,phase2,,,,0.0,,False,卡面条件未触发（需双 |ρ|<0.3 或 CV间<CV内）
+Q5,steam_rho_oc,phase3,,,,0.478,0.3,,P1.14-D Q2; not recomputed
+Q5,steam_rho_coal,phase3,,,,-0.229,0.3,,P1.14-D Q2; not recomputed
+Q5,steam_cv_between_over_within,phase3,,,,1.271,1.0,,P1.14-D Q2; >1 窗间不小于窗内
+Q5,s3_may_be_drowned,phase3,,,,0.0,,False,卡面条件未触发（需双 |ρ|<0.3 或 CV间<CV内）
+coverage,n_success_theta,,,,,142.0,,,/142
+coverage,n_failed,,,,,0.0,10.0,True,>10 窗失败则停止
