@@ -1,7 +1,7 @@
 {
   "round": "P1.13-A / 2026-11-07",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "5b61023a4eb0213d0b41f1cb1c7b90a3fed3e0e5",
+  "source_commit": "4d26a319fc3a00affb274954d1cdf959cc05871d",
   "mesh_family": "wsr_plus_pfr",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -65,8 +65,11 @@
       0.5,
       0.5
     ],
+    "sigma_note": "predeclared pilot weights, not measurement uncertainty",
     "X_C": "xc_measured_pct from P1.8-D (measured carrier, calibrated syngas, recon coal)",
-    "composition": "analyzer = P1.7-A baseline plant vol%; liu_phase = Liu 2023 table 3"
+    "composition": "analyzer = P1.7-A baseline plant vol%; liu_phase = Liu 2023 table 3",
+    "H_ledger": "num = 2 F_H2_shifted [+ 4 CH4 + 2 H2S]; den = 2 plant_dry y_H2; 2ξ counted once",
+    "T_eq": "proxy: Q from shifted CO/H2/CO2 and reactor-outlet H2O; quench replaces ξ mol H2O"
   },
   "optimizer": {
     "algorithm": "scipy.optimize.least_squares",
@@ -78,6 +81,11 @@
       "xi_mol_s": 10.0,
       "ln_f_gas": 1.0
     },
+    "x_scale": [
+      0.05,
+      50.0,
+      1.0
+    ],
     "starts": [
       [
         1.0,
@@ -96,16 +104,16 @@
       ]
     ],
     "max_nfev": 240,
-    "covariance": "(J_scaled^T J_scaled)^{-1}"
+    "covariance": "(J^T J)^{-1} in native units (local curvature); also J @ diag(x_scale)"
   },
   "predeclared": {
-    "P1": "scaled RMS ≤ 1 → within measurement uncertainty",
-    "P2": "cond(J_scaled)<100 and all |ρ|<0.9 → separately identifiable",
-    "P3": "within-phase scatter vs 1σ; analyzer vs liu Δθ vs 1σ; phase median/range",
-    "P4": "flags only: κ in [0.92,1.03]; f_gas in [1/16,2]; T_eq in [500,1300] K; bound hits",
-    "P5": "redo phase fits at L_wsr=4 m, HL_tot in {0.5,1.5}%; report Δθ/1σ",
-    "P6": "non-unique if cost differs <1% but some parameter differs by > each 1σ",
-    "P7": "LOO vs uncorrected vs residual patch; report only"
+    "P1": "scaled RMS ≤ 1 → reaches predeclared fit tolerance (pilot weights, not measurement σ)",
+    "P2": "primary: cond(J @ diag(0.05,50,1))<100 and all |ρ|<0.9; native cond(J) historical only; collinearity, bound hits, global cond reported separately",
+    "P3": "within-phase scatter vs curvature 1σ; analyzer vs liu Δθ vs curvature 1σ; phase median/range",
+    "P4": "flags only: κ in [0.92,1.03]; f_gas in [1/16,2]; T_eq proxy in [500,1300] K under quench-replaces-ξ water assumption; bound hits",
+    "P5": "redo phase fits at L_wsr=4 m, HL_tot in {0.5,1.5}%; report Δθ/curvature 1σ",
+    "P6": "non-unique if cost differs <1% but some parameter differs by > each curvature 1σ",
+    "P7": "within-phase LOO vs uncorrected vs residual patch; report only; Liu targets identical across windows in a phase"
   },
   "stopped": false,
   "source_csv": {

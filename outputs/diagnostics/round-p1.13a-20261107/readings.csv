@@ -1,130 +1,208 @@
 reading,metric,composition_basis,phase,window_id,value,threshold,pass,note
 P1,window_n_success::analyzer,analyzer,,,9.0,,,/9
-P1,window_median_rms::analyzer,analyzer,,,0.3728251980471264,1.0,True,缩放残差均方根；≤1 记为在测量不确定度内
+P1,window_median_rms::analyzer,analyzer,,,0.3728251980471264,1.0,True,缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
 P1,window_max_rms::analyzer,analyzer,,,0.598576410520924,1.0,True,
 P1,window_n_rms_le_1::analyzer,analyzer,,,9.0,,,
 P1,window_n_success::liu_phase,liu_phase,,,9.0,,,/9
-P1,window_median_rms::liu_phase,liu_phase,,,1.6474236102456001,1.0,False,缩放残差均方根；≤1 记为在测量不确定度内
+P1,window_median_rms::liu_phase,liu_phase,,,1.6474236102456001,1.0,False,缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
 P1,window_max_rms::liu_phase,liu_phase,,,2.1714780253637413,1.0,False,
 P1,window_n_rms_le_1::liu_phase,liu_phase,,,2.0,,,
 P1,phase_n_success::analyzer,analyzer,,,4.0,,,/4
-P1,phase_median_rms::analyzer,analyzer,,,0.5054809638546925,1.0,True,缩放残差均方根；≤1 记为在测量不确定度内
+P1,phase_median_rms::analyzer,analyzer,,,0.5054809638546925,1.0,True,缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
 P1,phase_max_rms::analyzer,analyzer,,,1.086246880450095,1.0,False,
 P1,phase_n_rms_le_1::analyzer,analyzer,,,3.0,,,
 P1,phase_n_success::liu_phase,liu_phase,,,4.0,,,/4
-P1,phase_median_rms::liu_phase,liu_phase,,,1.6755639394686306,1.0,False,缩放残差均方根；≤1 记为在测量不确定度内
+P1,phase_median_rms::liu_phase,liu_phase,,,1.6755639394686306,1.0,False,缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
 P1,phase_max_rms::liu_phase,liu_phase,,,2.153784647960606,1.0,False,
 P1,phase_n_rms_le_1::liu_phase,liu_phase,,,1.0,,,
-P2,window_identifiable,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0,,False,cond=721.4; max|ρ|=1.000; pair=kappa-lnfg
-P2,window_cond_J,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,721.3782521229164,100.0,False,
-P2,window_max_abs_rho,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.9998992635792019,0.9,False,kappa-lnfg
-P2,window_identifiable,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0,,False,cond=876.3; max|ρ|=0.997; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,876.304195863002,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.9966150446789817,0.9,False,kappa-lnfg
-P2,window_identifiable,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.0,,False,cond=1001; max|ρ|=0.992; pair=kappa-lnfg
-P2,window_cond_J,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1000.9612815339475,100.0,False,
-P2,window_max_abs_rho,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.9923372667814231,0.9,False,kappa-lnfg
-P2,window_identifiable,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.0,,False,cond=808.2; max|ρ|=0.746; pair=cond=808
-P2,window_cond_J,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,808.2295382026053,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.7458460794185997,0.9,True,cond=808
-P2,window_identifiable,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,False,cond=698.3; max|ρ|=0.994; pair=kappa-lnfg
-P2,window_cond_J,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,698.3031018211854,100.0,False,
-P2,window_max_abs_rho,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.9939015955478513,0.9,False,kappa-lnfg
-P2,window_identifiable,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,False,cond=1161; max|ρ|=1.000; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1161.2753301420842,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.9999293820184841,0.9,False,kappa-lnfg
-P2,window_identifiable,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.0,,False,cond=766.8; max|ρ|=0.793; pair=cond=767
-P2,window_cond_J,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,766.7910396584994,100.0,False,
-P2,window_max_abs_rho,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.7929925691849871,0.9,True,cond=767
-P2,window_identifiable,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.0,,False,cond=3403; max|ρ|=0.999; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,3403.043267009574,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.9992421169368781,0.9,False,kappa-lnfg
-P2,window_identifiable,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.0,,False,cond=649; max|ρ|=0.755; pair=cond=649
-P2,window_cond_J,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,649.0403549544511,100.0,False,
-P2,window_max_abs_rho,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.7545122162507402,0.9,True,cond=649
-P2,window_identifiable,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.0,,False,cond=1092; max|ρ|=1.000; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1091.626337123075,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.9999177838783821,0.9,False,kappa-lnfg
-P2,window_identifiable,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.0,,False,cond=676.3; max|ρ|=0.630; pair=cond=676
-P2,window_cond_J,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,676.3348389064739,100.0,False,
-P2,window_max_abs_rho,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.6304643084157363,0.9,True,cond=676
-P2,window_identifiable,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.0,,False,cond=1318; max|ρ|=1.000; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1318.0594630481903,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.9999208241000007,0.9,False,kappa-lnfg
-P2,window_identifiable,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.0,,False,cond=838.6; max|ρ|=0.683; pair=cond=839
-P2,window_cond_J,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,838.6133115107082,100.0,False,
-P2,window_max_abs_rho,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.6831614073198751,0.9,True,cond=839
-P2,window_identifiable,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.0,,False,cond=1078; max|ρ|=0.988; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1077.9706981553854,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.9883919780812084,0.9,False,kappa-lnfg
-P2,window_identifiable,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.0,,False,cond=731.8; max|ρ|=0.593; pair=cond=732
-P2,window_cond_J,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,731.8212318598737,100.0,False,
-P2,window_max_abs_rho,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.5933407935149783,0.9,True,cond=732
-P2,window_identifiable,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.0,,False,cond=1450; max|ρ|=1.000; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1450.2295787977082,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.9995550206157017,0.9,False,kappa-lnfg
-P2,window_identifiable,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,False,cond=646.6; max|ρ|=0.929; pair=kappa-lnfg
-P2,window_cond_J,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,646.6085879639074,100.0,False,
-P2,window_max_abs_rho,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.9286679373240591,0.9,False,kappa-lnfg
-P2,window_identifiable,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,False,cond=909.4; max|ρ|=1.000; pair=kappa-lnfg
-P2,window_cond_J,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,909.429858075312,100.0,False,
-P2,window_max_abs_rho,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.9998252159853899,0.9,False,kappa-lnfg
-P2,phase_identifiable,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.0,,False,cond=611.1; max|ρ|=0.639; pair=cond=611
-P2,phase_cond_J,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",611.1047658204616,100.0,False,
-P2,phase_max_abs_rho,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.6393539323271628,0.9,True,cond=611
-P2,phase_identifiable,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.0,,False,cond=809.2; max|ρ|=0.714; pair=cond=809
-P2,phase_cond_J,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",809.2177939053951,100.0,False,
-P2,phase_max_abs_rho,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.7143330785926054,0.9,True,cond=809
-P2,phase_identifiable,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.0,,False,cond=686.4; max|ρ|=0.673; pair=cond=686
-P2,phase_cond_J,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",686.4374423332314,100.0,False,
-P2,phase_max_abs_rho,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.6729852530713396,0.9,True,cond=686
-P2,phase_identifiable,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.0,,False,cond=820.5; max|ρ|=0.765; pair=cond=821
-P2,phase_cond_J,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",820.5047546866643,100.0,False,
-P2,phase_max_abs_rho,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.7650387706893713,0.9,True,cond=821
-P2,phase_identifiable,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.0,,False,cond=666; max|ρ|=0.672; pair=cond=666
-P2,phase_cond_J,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",665.9951035985019,100.0,False,
-P2,phase_max_abs_rho,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.6723351437528178,0.9,True,cond=666
-P2,phase_identifiable,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.0,,False,cond=778.1; max|ρ|=0.664; pair=cond=778
-P2,phase_cond_J,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",778.1194687333262,100.0,False,
-P2,phase_max_abs_rho,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.6637583654923886,0.9,True,cond=778
-P2,phase_identifiable,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.0,,False,cond=745.9; max|ρ|=0.722; pair=cond=746
-P2,phase_cond_J,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",745.8509452027129,100.0,False,
-P2,phase_max_abs_rho,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.722208112442892,0.9,True,cond=746
-P2,phase_identifiable,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.0,,False,cond=886.9; max|ρ|=0.653; pair=cond=887
-P2,phase_cond_J,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",886.8797824859704,100.0,False,
-P2,phase_max_abs_rho,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.6525227848301548,0.9,True,cond=887
-P3,within_phase_std::kappa,analyzer,phase1,,0.016962399258633246,0.5209398935010485,True,median 1σ=0.5209; n=2
-P3,within_phase_std::xi_mol_s,analyzer,phase1,,3.025656736954309,6.664199219435869,True,median 1σ=6.664; n=2
-P3,within_phase_std::ln_f_gas,analyzer,phase1,,0.022839510765431833,6.511452989129679,True,median 1σ=6.511; n=2
-P3,within_phase_std::f_gas,analyzer,phase1,,0.06689273949736416,,,median 1σ=nan; n=2
-P3,within_phase_std::kappa,analyzer,phase2,,0.00889753527340254,0.07890172461797128,True,median 1σ=0.0789; n=2
-P3,within_phase_std::xi_mol_s,analyzer,phase2,,0.880077023891573,6.686953461658912,True,median 1σ=6.687; n=2
-P3,within_phase_std::ln_f_gas,analyzer,phase2,,0.29907009134299184,0.9838979510216569,True,median 1σ=0.9839; n=2
-P3,within_phase_std::f_gas,analyzer,phase2,,0.13303260660980679,,,median 1σ=nan; n=2
-P3,within_phase_std::kappa,analyzer,phase3,,0.003030511264186387,0.017166044104842505,True,median 1σ=0.01717; n=2
-P3,within_phase_std::xi_mol_s,analyzer,phase3,,0.4374275562697235,6.545228617046176,True,median 1σ=6.545; n=2
-P3,within_phase_std::ln_f_gas,analyzer,phase3,,0.03966496912269881,0.4942665081108941,True,median 1σ=0.4943; n=2
-P3,within_phase_std::f_gas,analyzer,phase3,,0.00424816660021419,,,median 1σ=nan; n=2
-P3,within_phase_std::kappa,analyzer,phase4,,0.0061787749168499785,0.017551351678550705,True,median 1σ=0.01755; n=3
-P3,within_phase_std::xi_mol_s,analyzer,phase4,,1.796743252794793,6.594220769874649,True,median 1σ=6.594; n=3
-P3,within_phase_std::ln_f_gas,analyzer,phase4,,0.13426121746567654,0.5974052271152,True,median 1σ=0.5974; n=3
-P3,within_phase_std::f_gas,analyzer,phase4,,0.02517719850935509,,,median 1σ=nan; n=3
-P3,within_phase_std::kappa,liu_phase,phase1,,0.01576819075895833,0.07921880684816981,True,median 1σ=0.07922; n=2
-P3,within_phase_std::xi_mol_s,liu_phase,phase1,,2.9847268391461554,6.764148882779036,True,median 1σ=6.764; n=2
-P3,within_phase_std::ln_f_gas,liu_phase,phase1,,1.0426652414591676e-08,4.038899136187545,True,median 1σ=4.039; n=2
-P3,within_phase_std::f_gas,liu_phase,phase1,,4.170660871631123e-08,,,median 1σ=nan; n=2
-P3,within_phase_std::kappa,liu_phase,phase2,,0.0019434211200064515,0.6780832009720256,True,median 1σ=0.6781; n=2
-P3,within_phase_std::xi_mol_s,liu_phase,phase2,,0.19697645946479098,8.686424367175889,True,median 1σ=8.686; n=2
-P3,within_phase_std::ln_f_gas,liu_phase,phase2,,0.2523980560197983,17.589879204177695,True,median 1σ=17.59; n=2
-P3,within_phase_std::f_gas,liu_phase,phase2,,0.81408418538413,,,median 1σ=nan; n=2
-P3,within_phase_std::kappa,liu_phase,phase3,,0.0019541640647281365,0.9872516809968397,True,median 1σ=0.9873; n=2
-P3,within_phase_std::xi_mol_s,liu_phase,phase3,,2.0939505573302037,7.279895251493432,True,median 1σ=7.28; n=2
-P3,within_phase_std::ln_f_gas,liu_phase,phase3,,0.4614549732169421,9.212176168319639,True,median 1σ=9.212; n=2
-P3,within_phase_std::f_gas,liu_phase,phase3,,1.3186841459128187,,,median 1σ=nan; n=2
-P3,within_phase_std::kappa,liu_phase,phase4,,0.005505259881892691,0.42839986256715185,True,median 1σ=0.4284; n=3
-P3,within_phase_std::xi_mol_s,liu_phase,phase4,,4.091494434144619,7.285116267402258,True,median 1σ=7.285; n=3
-P3,within_phase_std::ln_f_gas,liu_phase,phase4,,0.18830836146193783,5.156167588818063,True,median 1σ=5.156; n=3
-P3,within_phase_std::f_gas,liu_phase,phase4,,0.6377406371605786,,,median 1σ=nan; n=3
+P2,window_identifiable_xscale,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0,,False,"J@diag(0.05,50,1); cond=424.7; max|ρ|=1.000; pair=kappa-lnfg"
+P2,window_identifiable_native,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0,,False,historical native units; cond=721.4; max|ρ|=1.000
+P2,window_cond_J_xscale,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,424.7317556001496,100.0,False,
+P2,window_cond_J_native,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,721.3782521229164,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.9998992635792018,0.9,False,kappa-lnfg
+P2,window_bound_hit,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0,,False,"J@diag(0.05,50,1); cond=59.38; max|ρ|=0.997; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0,,False,historical native units; cond=876.3; max|ρ|=0.997
+P2,window_cond_J_xscale,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,59.37624619779587,100.0,True,
+P2,window_cond_J_native,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,876.304195863002,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.9966150446789818,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,1.0,,,ln_f_gas:hi
+P2,window_identifiable_xscale,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.0,,False,"J@diag(0.05,50,1); cond=94.06; max|ρ|=0.992; pair=kappa-lnfg"
+P2,window_identifiable_native,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.0,,False,historical native units; cond=1001; max|ρ|=0.992
+P2,window_cond_J_xscale,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,94.06062383124454,100.0,True,
+P2,window_cond_J_native,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1000.9612815339475,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.9923372667814232,0.9,False,kappa-lnfg
+P2,window_bound_hit,analyzer,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,,True,"J@diag(0.05,50,1); cond=56.72; max|ρ|=0.746; pair="
+P2,window_identifiable_native,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.0,,False,historical native units; cond=808.2; max|ρ|=0.746
+P2,window_cond_J_xscale,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,56.723985702763905,100.0,True,
+P2,window_cond_J_native,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,808.2295382026053,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,0.7458460794185999,0.9,True,local collinearity
+P2,window_bound_hit,liu_phase,phase1,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001,1.0,,,ln_f_gas:hi
+P2,window_identifiable_xscale,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,False,"J@diag(0.05,50,1); cond=55.45; max|ρ|=0.994; pair=kappa-lnfg"
+P2,window_identifiable_native,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,False,historical native units; cond=698.3; max|ρ|=0.994
+P2,window_cond_J_xscale,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,55.44541441507578,100.0,True,
+P2,window_cond_J_native,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,698.3031018211854,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.9939015955478512,0.9,False,kappa-lnfg
+P2,window_bound_hit,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,False,"J@diag(0.05,50,1); cond=419.3; max|ρ|=1.000; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,False,historical native units; cond=1161; max|ρ|=1.000
+P2,window_cond_J_xscale,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,419.3055859276088,100.0,False,
+P2,window_cond_J_native,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,1161.2753301420842,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.9999293820184854,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,0.0,,,
+P2,window_identifiable_xscale,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,,True,"J@diag(0.05,50,1); cond=14.24; max|ρ|=0.793; pair="
+P2,window_identifiable_native,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.0,,False,historical native units; cond=766.8; max|ρ|=0.793
+P2,window_cond_J_xscale,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,14.240208523261746,100.0,True,
+P2,window_cond_J_native,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,766.7910396584994,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.7929925691849871,0.9,True,local collinearity
+P2,window_bound_hit,analyzer,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.0,,False,"J@diag(0.05,50,1); cond=335; max|ρ|=0.999; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.0,,False,historical native units; cond=3403; max|ρ|=0.999
+P2,window_cond_J_xscale,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,335.02520342751467,100.0,False,
+P2,window_cond_J_native,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,3403.043267009574,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,0.9992421169368774,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase2,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001,1.0,,,ln_f_gas:hi
+P2,window_identifiable_xscale,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,,True,"J@diag(0.05,50,1); cond=6.199; max|ρ|=0.755; pair="
+P2,window_identifiable_native,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.0,,False,historical native units; cond=649; max|ρ|=0.755
+P2,window_cond_J_xscale,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,6.198667108656194,100.0,True,
+P2,window_cond_J_native,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,649.0403549544511,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.7545122162507404,0.9,True,local collinearity
+P2,window_bound_hit,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.0,,False,"J@diag(0.05,50,1); cond=383.4; max|ρ|=1.000; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.0,,False,historical native units; cond=1092; max|ρ|=1.000
+P2,window_cond_J_xscale,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,383.44037447244125,100.0,False,
+P2,window_cond_J_native,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1091.626337123075,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,0.9999177838783824,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,1.0,,,ln_f_gas:hi
+P2,window_identifiable_xscale,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1.0,,True,"J@diag(0.05,50,1); cond=7.121; max|ρ|=0.630; pair="
+P2,window_identifiable_native,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.0,,False,historical native units; cond=676.3; max|ρ|=0.630
+P2,window_cond_J_xscale,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,7.121297599309805,100.0,True,
+P2,window_cond_J_native,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,676.3348389064739,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.6304643084157366,0.9,True,local collinearity
+P2,window_bound_hit,analyzer,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.0,,False,"J@diag(0.05,50,1); cond=375.1; max|ρ|=1.000; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.0,,False,historical native units; cond=1318; max|ρ|=1.000
+P2,window_cond_J_xscale,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,375.14774441442216,100.0,False,
+P2,window_cond_J_native,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,1318.0594630481903,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.9999208241000005,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001,0.0,,,
+P2,window_identifiable_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,,True,"J@diag(0.05,50,1); cond=7.948; max|ρ|=0.683; pair="
+P2,window_identifiable_native,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.0,,False,historical native units; cond=838.6; max|ρ|=0.683
+P2,window_cond_J_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,7.947541831306859,100.0,True,
+P2,window_cond_J_native,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,838.6133115107082,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.6831614073198748,0.9,True,local collinearity
+P2,window_bound_hit,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.0,,False,"J@diag(0.05,50,1); cond=42.87; max|ρ|=0.988; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.0,,False,historical native units; cond=1078; max|ρ|=0.988
+P2,window_cond_J_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,42.87082269420632,100.0,True,
+P2,window_cond_J_native,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1077.9706981553854,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,0.9883919780812082,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,1.0,,,ln_f_gas:hi
+P2,window_identifiable_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,,True,"J@diag(0.05,50,1); cond=7.914; max|ρ|=0.593; pair="
+P2,window_identifiable_native,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.0,,False,historical native units; cond=731.8; max|ρ|=0.593
+P2,window_cond_J_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,7.913542983882345,100.0,True,
+P2,window_cond_J_native,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,731.8212318598737,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.5933407935149779,0.9,True,local collinearity
+P2,window_bound_hit,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.0,,False,"J@diag(0.05,50,1); cond=180.4; max|ρ|=1.000; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.0,,False,historical native units; cond=1450; max|ρ|=1.000
+P2,window_cond_J_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,180.40398589323647,100.0,False,
+P2,window_cond_J_native,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1450.2295787977082,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,0.9995550206157021,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,1.0,,,ln_f_gas:hi
+P2,window_identifiable_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,False,"J@diag(0.05,50,1); cond=14.06; max|ρ|=0.929; pair=kappa-lnfg"
+P2,window_identifiable_native,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,False,historical native units; cond=646.6; max|ρ|=0.929
+P2,window_cond_J_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,14.063434342502338,100.0,True,
+P2,window_cond_J_native,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,646.6085879639074,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.9286679373240587,0.9,False,kappa-lnfg
+P2,window_bound_hit,analyzer,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,,
+P2,window_identifiable_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,False,"J@diag(0.05,50,1); cond=297; max|ρ|=1.000; pair=kappa-lnfg"
+P2,window_identifiable_native,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,False,historical native units; cond=909.4; max|ρ|=1.000
+P2,window_cond_J_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,297.0412331161317,100.0,False,
+P2,window_cond_J_native,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,909.429858075312,100.0,False,historical; ξ in mol/s
+P2,window_max_abs_rho_xscale,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.9998252159853896,0.9,False,kappa-lnfg
+P2,window_bound_hit,liu_phase,phase4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001,0.0,,,
+P2,phase_identifiable_xscale,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",1.0,,True,"J@diag(0.05,50,1); cond=5.849; max|ρ|=0.639; pair="
+P2,phase_identifiable_native,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.0,,False,historical native units; cond=611.1; max|ρ|=0.639
+P2,phase_cond_J_xscale,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",5.849005195293949,100.0,True,
+P2,phase_cond_J_native,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",611.1047658204616,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.6393539323271626,0.9,True,local collinearity
+P2,phase_bound_hit,analyzer,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.0,,,
+P2,phase_identifiable_xscale,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",1.0,,True,"J@diag(0.05,50,1); cond=5.741; max|ρ|=0.714; pair="
+P2,phase_identifiable_native,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.0,,False,historical native units; cond=809.2; max|ρ|=0.714
+P2,phase_cond_J_xscale,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",5.741085445234213,100.0,True,
+P2,phase_cond_J_native,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",809.2177939053951,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.7143330785926053,0.9,True,local collinearity
+P2,phase_bound_hit,liu_phase,phase1,"R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001",0.0,,,
+P2,phase_identifiable_xscale,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",1.0,,True,"J@diag(0.05,50,1); cond=6.421; max|ρ|=0.673; pair="
+P2,phase_identifiable_native,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.0,,False,historical native units; cond=686.4; max|ρ|=0.673
+P2,phase_cond_J_xscale,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",6.4210464882452625,100.0,True,
+P2,phase_cond_J_native,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",686.4374423332314,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.6729852530713394,0.9,True,local collinearity
+P2,phase_bound_hit,analyzer,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.0,,,
+P2,phase_identifiable_xscale,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",1.0,,True,"J@diag(0.05,50,1); cond=9.171; max|ρ|=0.765; pair="
+P2,phase_identifiable_native,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.0,,False,historical native units; cond=820.5; max|ρ|=0.765
+P2,phase_cond_J_xscale,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",9.17056777318573,100.0,True,
+P2,phase_cond_J_native,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",820.5047546866643,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.7650387706893713,0.9,True,local collinearity
+P2,phase_bound_hit,liu_phase,phase2,"R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001,R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001",0.0,,,
+P2,phase_identifiable_xscale,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",1.0,,True,"J@diag(0.05,50,1); cond=7.053; max|ρ|=0.672; pair="
+P2,phase_identifiable_native,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.0,,False,historical native units; cond=666; max|ρ|=0.672
+P2,phase_cond_J_xscale,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",7.053338136884798,100.0,True,
+P2,phase_cond_J_native,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",665.9951035985019,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.672335143752818,0.9,True,local collinearity
+P2,phase_bound_hit,analyzer,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.0,,,
+P2,phase_identifiable_xscale,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",1.0,,True,"J@diag(0.05,50,1); cond=4.904; max|ρ|=0.664; pair="
+P2,phase_identifiable_native,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.0,,False,historical native units; cond=778.1; max|ρ|=0.664
+P2,phase_cond_J_xscale,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",4.9037339240329905,100.0,True,
+P2,phase_cond_J_native,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",778.1194687333262,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.6637583654923883,0.9,True,local collinearity
+P2,phase_bound_hit,liu_phase,phase3,"R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001",0.0,,,
+P2,phase_identifiable_xscale,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",1.0,,True,"J@diag(0.05,50,1); cond=4.107; max|ρ|=0.722; pair="
+P2,phase_identifiable_native,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.0,,False,historical native units; cond=745.9; max|ρ|=0.722
+P2,phase_cond_J_xscale,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",4.107126883797703,100.0,True,
+P2,phase_cond_J_native,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",745.8509452027129,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.7222081124428921,0.9,True,local collinearity
+P2,phase_bound_hit,analyzer,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.0,,,
+P2,phase_identifiable_xscale,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",1.0,,True,"J@diag(0.05,50,1); cond=5.352; max|ρ|=0.653; pair="
+P2,phase_identifiable_native,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.0,,False,historical native units; cond=886.9; max|ρ|=0.653
+P2,phase_cond_J_xscale,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",5.352229115163084,100.0,True,
+P2,phase_cond_J_native,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",886.8797824859704,100.0,False,historical; ξ in mol/s
+P2,phase_max_abs_rho_xscale,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.6525227848301542,0.9,True,local collinearity
+P2,phase_bound_hit,liu_phase,phase4,"R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001",0.0,,,
+P3,within_phase_std::kappa,analyzer,phase1,,0.016962399258633246,0.5209398935010485,True,median curvature 1σ=0.5209; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,analyzer,phase1,,3.025656736954309,6.664199219435869,True,median curvature 1σ=6.664; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,analyzer,phase1,,0.022839510765431833,6.511452989129679,True,median curvature 1σ=6.511; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,analyzer,phase1,,0.06689273949736416,,,median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::kappa,analyzer,phase2,,0.00889753527340254,0.07890172461797128,True,median curvature 1σ=0.0789; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,analyzer,phase2,,0.880077023891573,6.686953461658912,True,median curvature 1σ=6.687; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,analyzer,phase2,,0.29907009134299184,0.9838979510216569,True,median curvature 1σ=0.9839; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,analyzer,phase2,,0.13303260660980679,,,median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::kappa,analyzer,phase3,,0.003030511264186387,0.017166044104842505,True,median curvature 1σ=0.01717; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,analyzer,phase3,,0.4374275562697235,6.545228617046176,True,median curvature 1σ=6.545; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,analyzer,phase3,,0.03966496912269881,0.4942665081108941,True,median curvature 1σ=0.4943; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,analyzer,phase3,,0.00424816660021419,,,median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::kappa,analyzer,phase4,,0.0061787749168499785,0.017551351678550705,True,median curvature 1σ=0.01755; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,analyzer,phase4,,1.796743252794793,6.594220769874649,True,median curvature 1σ=6.594; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,analyzer,phase4,,0.13426121746567654,0.5974052271152,True,median curvature 1σ=0.5974; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,analyzer,phase4,,0.02517719850935509,,,median curvature 1σ=nan; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::kappa,liu_phase,phase1,,0.01576819075895833,0.07921880684816981,True,median curvature 1σ=0.07922; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,liu_phase,phase1,,2.9847268391461554,6.764148882779036,True,median curvature 1σ=6.764; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,liu_phase,phase1,,1.0426652414591676e-08,4.038899136187545,True,median curvature 1σ=4.039; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,liu_phase,phase1,,4.170660871631123e-08,,,median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::kappa,liu_phase,phase2,,0.0019434211200064515,0.6780832009720256,True,median curvature 1σ=0.6781; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,liu_phase,phase2,,0.19697645946479098,8.686424367175889,True,median curvature 1σ=8.686; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,liu_phase,phase2,,0.2523980560197983,17.589879204177695,True,median curvature 1σ=17.59; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,liu_phase,phase2,,0.81408418538413,,,median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::kappa,liu_phase,phase3,,0.0019541640647281365,0.9872516809968397,True,median curvature 1σ=0.9873; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,liu_phase,phase3,,2.0939505573302037,7.279895251493432,True,median curvature 1σ=7.28; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,liu_phase,phase3,,0.4614549732169421,9.212176168319639,True,median curvature 1σ=9.212; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,liu_phase,phase3,,1.3186841459128187,,,median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::kappa,liu_phase,phase4,,0.005505259881892691,0.42839986256715185,True,median curvature 1σ=0.4284; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::xi_mol_s,liu_phase,phase4,,4.091494434144619,7.285116267402258,True,median curvature 1σ=7.285; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::ln_f_gas,liu_phase,phase4,,0.18830836146193783,5.156167588818063,True,median curvature 1σ=5.156; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+P3,within_phase_std::f_gas,liu_phase,phase4,,0.6377406371605786,,,median curvature 1σ=nan; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
 P3,basis_diff::kappa,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.0030503291463409576,0.9415788902541158,True,σ_an=0.9416; σ_liu=0.1384
 P3,basis_diff::xi_mol_s,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,16.825948747698845,6.542745841161109,False,σ_an=6.299; σ_liu=6.543
 P3,basis_diff::ln_f_gas,,,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003,0.29558937737502755,5.692166271840502,True,σ_an=5.692; σ_liu=3.347
@@ -159,6 +237,8 @@ P3,phase_median::kappa,liu_phase,,,0.9365372418833774,,,range 0.9045 … 0.9685;
 P3,phase_median::xi_mol_s,liu_phase,,,107.26613086084586,,,range 99.52 … 121.6; n=4
 P3,phase_median::f_gas,liu_phase,,,2.187908250207499,,,range 1.286 … 3.23; n=4
 P4,n_bound_hit_windows,,,,6.0,6.0,,>6 窗贴边界则判读单列；不停止
+P4,n_needs_quench_water,,,,15.0,,,/18；T_eq 用反应器出口 H2O，假定激冷水恰好补 ξ mol
+P4,T_eq_is_proxy,,,,1.0,,,表观平衡温度是该水量假设下的代理量，不是测得的激冷后平衡温度
 P4,n_kappa_in_phys,,,,14.0,,,/18 收敛窗（两口径合计）
 P4,n_fgas_in_phys,,,,7.0,,,/18 收敛窗（两口径合计）
 P4,n_Teq_in_phys,,,,18.0,,,/18 收敛窗（两口径合计）
@@ -212,16 +292,16 @@ P5,d_over_sigma::xi_mol_s,liu_phase,phase4,,0.6899445549626615,,,L_wsr=4.0 HL=1.
 P5,d_over_sigma::ln_f_gas,liu_phase,phase4,,3.5711531908629395,,,L_wsr=4.0 HL=1.5; Δ=0.2138; σ_nom=0.05988
 P6,n_nonunique_window_fits,,,,0.0,,,代价差<1% 且至少一参数相差超过各自 1σ
 P6,n_converged_starts,,,,126.0,,,/126 起点
-P7,median_test_rms::inversion,analyzer,,,0.5936648823576116,,,n=12; 只报告，不设闸门
+P7,median_test_rms::inversion,analyzer,,,0.5936648823576116,,,n=12; 只报告。同阶段跨窗转移；刘文口径阶段内组成目标相同，不是独立组成预测验证
 P7,max_test_rms::inversion,analyzer,,,1.8046455660837266,,,
-P7,median_test_rms::residual_patch,analyzer,,,0.39105365749592247,,,n=12; 只报告，不设闸门
+P7,median_test_rms::residual_patch,analyzer,,,0.39105365749592247,,,n=12; 只报告。同阶段跨窗转移；刘文口径阶段内组成目标相同，不是独立组成预测验证
 P7,max_test_rms::residual_patch,analyzer,,,0.5021009296373702,,,
-P7,median_test_rms::uncorrected,analyzer,,,10.612650302147651,,,n=12; 只报告，不设闸门
+P7,median_test_rms::uncorrected,analyzer,,,10.612650302147651,,,n=12; 只报告。同阶段跨窗转移；刘文口径阶段内组成目标相同，不是独立组成预测验证
 P7,max_test_rms::uncorrected,analyzer,,,13.922840070158546,,,
-P7,median_test_rms::inversion,liu_phase,,,2.161288975595957,,,n=12; 只报告，不设闸门
+P7,median_test_rms::inversion,liu_phase,,,2.161288975595957,,,n=12; 只报告。同阶段跨窗转移；刘文口径阶段内组成目标相同，不是独立组成预测验证
 P7,max_test_rms::inversion,liu_phase,,,2.3861308876836698,,,
-P7,median_test_rms::residual_patch,liu_phase,,,0.3954570566114537,,,n=12; 只报告，不设闸门
+P7,median_test_rms::residual_patch,liu_phase,,,0.3954570566114537,,,n=12; 只报告。同阶段跨窗转移；刘文口径阶段内组成目标相同，不是独立组成预测验证
 P7,max_test_rms::residual_patch,liu_phase,,,0.6222235890418207,,,
-P7,median_test_rms::uncorrected,liu_phase,,,14.488179690673238,,,n=12; 只报告，不设闸门
+P7,median_test_rms::uncorrected,liu_phase,,,14.488179690673238,,,n=12; 只报告。同阶段跨窗转移；刘文口径阶段内组成目标相同，不是独立组成预测验证
 P7,max_test_rms::uncorrected,liu_phase,,,15.729413669830665,,,
 stop,n_failed_window_fits,,,,0.0,3.0,True,>3 窗失败则停止后续阶段/稳健性

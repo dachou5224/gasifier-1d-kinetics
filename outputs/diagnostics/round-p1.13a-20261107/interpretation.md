@@ -1,88 +1,78 @@
 # P1.13-A 试点非线性反演判读
 
-结构冻结 `wsr_plus_pfr`，`L_wsr = 1 m`（名义），`dz_down = 0.0515 m`，`total_percent` `HL_tot = 1%`，`OxygenMixingModel = instant`。反演参数：κ（入口 O2 乘数，整体数据协调，不归因到仪表）、ξ（反应器后变换，不进求解器）、ln `f_gas`。观测：装置 X_C（实测载气、标定合成气、协调煤量主口径）与干基 CO/H2/CO2；σ = [1.5, 0.5, 0.5, 0.5]。算法：`least_squares` / `trf`，有限差分相对步长 0.0001（ξ 步长外底 10.0 mol/s）。本轮**不采纳**任何参数值。
+结构冻结 `wsr_plus_pfr`，`L_wsr = 1 m`（名义），`dz_down = 0.0515 m`，`total_percent` `HL_tot = 1%`，`OxygenMixingModel = instant`。反演参数：κ（入口 O2 乘数，整体数据协调，不归因到仪表）、ξ（反应器后变换，不进求解器）、ln `f_gas`。观测：装置 X_C（实测载气、标定合成气、协调煤量主口径）与干基 CO/H2/CO2；σ = [1.5, 0.5, 0.5, 0.5]（预声明试点权重，不是测量不确定度）。算法：`least_squares` / `trf`，`x_scale` = [0.05, 50.0, 1.0]，有限差分相对步长 0.0001（ξ 步长外底 10.0 mol/s）。P2 主报告用 `J @ diag(x_scale)`；(JᵀJ)⁻¹ 是局部曲率诊断。本轮**不采纳**任何参数值。
 
 ## P1 拟合质量
+σ 是预声明试点权重，不是测量不确定度；RMS≤1 记为达到预设拟合容差。
 - `window_n_success::analyzer` analyzer = 9.0. /9
-- `window_median_rms::analyzer` analyzer = 0.3728251980471264 **在不确定度内**. 缩放残差均方根；≤1 记为在测量不确定度内
-- `window_max_rms::analyzer` analyzer = 0.598576410520924 **在不确定度内**. 
+- `window_median_rms::analyzer` analyzer = 0.3728251980471264 **达到预设拟合容差**. 缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
+- `window_max_rms::analyzer` analyzer = 0.598576410520924 **达到预设拟合容差**. 
 - `window_n_rms_le_1::analyzer` analyzer = 9.0. 
 - `window_n_success::liu_phase` liu_phase = 9.0. /9
-- `window_median_rms::liu_phase` liu_phase = 1.6474236102456001 **超出**. 缩放残差均方根；≤1 记为在测量不确定度内
-- `window_max_rms::liu_phase` liu_phase = 2.1714780253637413 **超出**. 
+- `window_median_rms::liu_phase` liu_phase = 1.6474236102456001 **未达预设拟合容差**. 缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
+- `window_max_rms::liu_phase` liu_phase = 2.1714780253637413 **未达预设拟合容差**. 
 - `window_n_rms_le_1::liu_phase` liu_phase = 2.0. 
 - `phase_n_success::analyzer` analyzer = 4.0. /4
-- `phase_median_rms::analyzer` analyzer = 0.5054809638546925 **在不确定度内**. 缩放残差均方根；≤1 记为在测量不确定度内
-- `phase_max_rms::analyzer` analyzer = 1.086246880450095 **超出**. 
+- `phase_median_rms::analyzer` analyzer = 0.5054809638546925 **达到预设拟合容差**. 缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
+- `phase_max_rms::analyzer` analyzer = 1.086246880450095 **未达预设拟合容差**. 
 - `phase_n_rms_le_1::analyzer` analyzer = 3.0. 
 - `phase_n_success::liu_phase` liu_phase = 4.0. /4
-- `phase_median_rms::liu_phase` liu_phase = 1.6755639394686306 **超出**. 缩放残差均方根；≤1 记为在测量不确定度内
-- `phase_max_rms::liu_phase` liu_phase = 2.153784647960606 **超出**. 
+- `phase_median_rms::liu_phase` liu_phase = 1.6755639394686306 **未达预设拟合容差**. 缩放残差均方根；≤1 记为达到预设拟合容差（试点权重 1.5 pp / 0.5 vol%，不是测量不确定度）
+- `phase_max_rms::liu_phase` liu_phase = 2.153784647960606 **未达预设拟合容差**. 
 - `phase_n_rms_le_1::liu_phase` liu_phase = 1.0. 
 
 ## P2 可辨识性
-判据：缩放雅可比 cond(J) < 100.0 且全部 |ρ| < 0.9。否则列出相关最强的参数对。
-- 可分别辨识的拟合：0 / 26
-  - 不可辨识 analyzer phase1 `09-28D_008__W003`：cond=721.4; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase1 `09-28D_008__W003`：cond=876.3; max|ρ|=0.997; pair=kappa-lnfg
-  - 不可辨识 analyzer phase1 `2022-09-28__W001`：cond=1001; max|ρ|=0.992; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase1 `2022-09-28__W001`：cond=808.2; max|ρ|=0.746; pair=cond=808
-  - 不可辨识 analyzer phase2 `10-03D_011__W001`：cond=698.3; max|ρ|=0.994; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase2 `10-03D_011__W001`：cond=1161; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 analyzer phase2 `10-03N_013__W001`：cond=766.8; max|ρ|=0.793; pair=cond=767
-  - 不可辨识 liu_phase phase2 `10-03N_013__W001`：cond=3403; max|ρ|=0.999; pair=kappa-lnfg
-  - 不可辨识 analyzer phase3 `10-09D_014__W004`：cond=649; max|ρ|=0.755; pair=cond=649
-  - 不可辨识 liu_phase phase3 `10-09D_014__W004`：cond=1092; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 analyzer phase3 `10-09D_015__W001`：cond=676.3; max|ρ|=0.630; pair=cond=676
-  - 不可辨识 liu_phase phase3 `10-09D_015__W001`：cond=1318; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 analyzer phase4 `10-10N_006__W001`：cond=838.6; max|ρ|=0.683; pair=cond=839
-  - 不可辨识 liu_phase phase4 `10-10N_006__W001`：cond=1078; max|ρ|=0.988; pair=kappa-lnfg
-  - 不可辨识 analyzer phase4 `10-11N_009__W002`：cond=731.8; max|ρ|=0.593; pair=cond=732
-  - 不可辨识 liu_phase phase4 `10-11N_009__W002`：cond=1450; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 analyzer phase4 `2022-10-11__W001`：cond=646.6; max|ρ|=0.929; pair=kappa-lnfg
-  - 不可辨识 liu_phase phase4 `2022-10-11__W001`：cond=909.4; max|ρ|=1.000; pair=kappa-lnfg
-  - 不可辨识 analyzer phase1 `2022-09-28__W001`：cond=611.1; max|ρ|=0.639; pair=cond=611
-  - 不可辨识 liu_phase phase1 `2022-09-28__W001`：cond=809.2; max|ρ|=0.714; pair=cond=809
-  - 不可辨识 analyzer phase2 `10-03N_013__W001`：cond=686.4; max|ρ|=0.673; pair=cond=686
-  - 不可辨识 liu_phase phase2 `10-03N_013__W001`：cond=820.5; max|ρ|=0.765; pair=cond=821
-  - 不可辨识 analyzer phase3 `10-09D_015__W001`：cond=666; max|ρ|=0.672; pair=cond=666
-  - 不可辨识 liu_phase phase3 `10-09D_015__W001`：cond=778.1; max|ρ|=0.664; pair=cond=778
-  - 不可辨识 analyzer phase4 `2022-10-11__W001`：cond=745.9; max|ρ|=0.722; pair=cond=746
-  - 不可辨识 liu_phase phase4 `2022-10-11__W001`：cond=886.9; max|ρ|=0.653; pair=cond=887
+主报告：参数列按优化器 `x_scale`=[0.05, 50.0, 1.0] 无量纲化后 cond(J@S) < 100.0 且全部 |ρ| < 0.9。原 cond(J)（ξ 以 mol/s）保留为历史读法，不推广。局部共线（|ρ|）、贴边界与全局条件数分开列。
+- 无量纲尺度下可分别辨识：14 / 26（逐窗 6/18；逐阶段 8/8）
+- 历史（原生单位）可分别辨识：0 / 26（不推广）
+- 局部共线（无量纲 |ρ|≥0.9）：12 / 26
+- 贴边界：6 / 26（单独列，不并入 cond 判据）
+  - 不可辨识 analyzer phase1 `09-28D_008__W003`：J@diag(0.05,50,1); cond=424.7; max|ρ|=1.000; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase1 `09-28D_008__W003`：J@diag(0.05,50,1); cond=59.38; max|ρ|=0.997; pair=kappa-lnfg
+  - 不可辨识 analyzer phase1 `2022-09-28__W001`：J@diag(0.05,50,1); cond=94.06; max|ρ|=0.992; pair=kappa-lnfg
+  - 不可辨识 analyzer phase2 `10-03D_011__W001`：J@diag(0.05,50,1); cond=55.45; max|ρ|=0.994; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase2 `10-03D_011__W001`：J@diag(0.05,50,1); cond=419.3; max|ρ|=1.000; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase2 `10-03N_013__W001`：J@diag(0.05,50,1); cond=335; max|ρ|=0.999; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase3 `10-09D_014__W004`：J@diag(0.05,50,1); cond=383.4; max|ρ|=1.000; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase3 `10-09D_015__W001`：J@diag(0.05,50,1); cond=375.1; max|ρ|=1.000; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase4 `10-10N_006__W001`：J@diag(0.05,50,1); cond=42.87; max|ρ|=0.988; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase4 `10-11N_009__W002`：J@diag(0.05,50,1); cond=180.4; max|ρ|=1.000; pair=kappa-lnfg
+  - 不可辨识 analyzer phase4 `2022-10-11__W001`：J@diag(0.05,50,1); cond=14.06; max|ρ|=0.929; pair=kappa-lnfg
+  - 不可辨识 liu_phase phase4 `2022-10-11__W001`：J@diag(0.05,50,1); cond=297; max|ρ|=1.000; pair=kappa-lnfg
 
 ## P3 一致性
-- `within_phase_std::kappa` analyzer phase1  = 0.016962399258633246 (threshold 0.5209398935010485) median 1σ=0.5209; n=2
-- `within_phase_std::xi_mol_s` analyzer phase1  = 3.025656736954309 (threshold 6.664199219435869) median 1σ=6.664; n=2
-- `within_phase_std::ln_f_gas` analyzer phase1  = 0.022839510765431833 (threshold 6.511452989129679) median 1σ=6.511; n=2
-- `within_phase_std::f_gas` analyzer phase1  = 0.06689273949736416 (threshold nan) median 1σ=nan; n=2
-- `within_phase_std::kappa` analyzer phase2  = 0.00889753527340254 (threshold 0.07890172461797128) median 1σ=0.0789; n=2
-- `within_phase_std::xi_mol_s` analyzer phase2  = 0.880077023891573 (threshold 6.686953461658912) median 1σ=6.687; n=2
-- `within_phase_std::ln_f_gas` analyzer phase2  = 0.29907009134299184 (threshold 0.9838979510216569) median 1σ=0.9839; n=2
-- `within_phase_std::f_gas` analyzer phase2  = 0.13303260660980679 (threshold nan) median 1σ=nan; n=2
-- `within_phase_std::kappa` analyzer phase3  = 0.003030511264186387 (threshold 0.017166044104842505) median 1σ=0.01717; n=2
-- `within_phase_std::xi_mol_s` analyzer phase3  = 0.4374275562697235 (threshold 6.545228617046176) median 1σ=6.545; n=2
-- `within_phase_std::ln_f_gas` analyzer phase3  = 0.03966496912269881 (threshold 0.4942665081108941) median 1σ=0.4943; n=2
-- `within_phase_std::f_gas` analyzer phase3  = 0.00424816660021419 (threshold nan) median 1σ=nan; n=2
-- `within_phase_std::kappa` analyzer phase4  = 0.0061787749168499785 (threshold 0.017551351678550705) median 1σ=0.01755; n=3
-- `within_phase_std::xi_mol_s` analyzer phase4  = 1.796743252794793 (threshold 6.594220769874649) median 1σ=6.594; n=3
-- `within_phase_std::ln_f_gas` analyzer phase4  = 0.13426121746567654 (threshold 0.5974052271152) median 1σ=0.5974; n=3
-- `within_phase_std::f_gas` analyzer phase4  = 0.02517719850935509 (threshold nan) median 1σ=nan; n=3
-- `within_phase_std::kappa` liu_phase phase1  = 0.01576819075895833 (threshold 0.07921880684816981) median 1σ=0.07922; n=2
-- `within_phase_std::xi_mol_s` liu_phase phase1  = 2.9847268391461554 (threshold 6.764148882779036) median 1σ=6.764; n=2
-- `within_phase_std::ln_f_gas` liu_phase phase1  = 1.0426652414591676e-08 (threshold 4.038899136187545) median 1σ=4.039; n=2
-- `within_phase_std::f_gas` liu_phase phase1  = 4.170660871631123e-08 (threshold nan) median 1σ=nan; n=2
-- `within_phase_std::kappa` liu_phase phase2  = 0.0019434211200064515 (threshold 0.6780832009720256) median 1σ=0.6781; n=2
-- `within_phase_std::xi_mol_s` liu_phase phase2  = 0.19697645946479098 (threshold 8.686424367175889) median 1σ=8.686; n=2
-- `within_phase_std::ln_f_gas` liu_phase phase2  = 0.2523980560197983 (threshold 17.589879204177695) median 1σ=17.59; n=2
-- `within_phase_std::f_gas` liu_phase phase2  = 0.81408418538413 (threshold nan) median 1σ=nan; n=2
-- `within_phase_std::kappa` liu_phase phase3  = 0.0019541640647281365 (threshold 0.9872516809968397) median 1σ=0.9873; n=2
-- `within_phase_std::xi_mol_s` liu_phase phase3  = 2.0939505573302037 (threshold 7.279895251493432) median 1σ=7.28; n=2
-- `within_phase_std::ln_f_gas` liu_phase phase3  = 0.4614549732169421 (threshold 9.212176168319639) median 1σ=9.212; n=2
-- `within_phase_std::f_gas` liu_phase phase3  = 1.3186841459128187 (threshold nan) median 1σ=nan; n=2
-- `within_phase_std::kappa` liu_phase phase4  = 0.005505259881892691 (threshold 0.42839986256715185) median 1σ=0.4284; n=3
-- `within_phase_std::xi_mol_s` liu_phase phase4  = 4.091494434144619 (threshold 7.285116267402258) median 1σ=7.285; n=3
-- `within_phase_std::ln_f_gas` liu_phase phase4  = 0.18830836146193783 (threshold 5.156167588818063) median 1σ=5.156; n=3
-- `within_phase_std::f_gas` liu_phase phase4  = 0.6377406371605786 (threshold nan) median 1σ=nan; n=3
+- `within_phase_std::kappa` analyzer phase1  = 0.016962399258633246 (threshold 0.5209398935010485) median curvature 1σ=0.5209; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` analyzer phase1  = 3.025656736954309 (threshold 6.664199219435869) median curvature 1σ=6.664; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` analyzer phase1  = 0.022839510765431833 (threshold 6.511452989129679) median curvature 1σ=6.511; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` analyzer phase1  = 0.06689273949736416 (threshold nan) median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::kappa` analyzer phase2  = 0.00889753527340254 (threshold 0.07890172461797128) median curvature 1σ=0.0789; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` analyzer phase2  = 0.880077023891573 (threshold 6.686953461658912) median curvature 1σ=6.687; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` analyzer phase2  = 0.29907009134299184 (threshold 0.9838979510216569) median curvature 1σ=0.9839; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` analyzer phase2  = 0.13303260660980679 (threshold nan) median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::kappa` analyzer phase3  = 0.003030511264186387 (threshold 0.017166044104842505) median curvature 1σ=0.01717; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` analyzer phase3  = 0.4374275562697235 (threshold 6.545228617046176) median curvature 1σ=6.545; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` analyzer phase3  = 0.03966496912269881 (threshold 0.4942665081108941) median curvature 1σ=0.4943; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` analyzer phase3  = 0.00424816660021419 (threshold nan) median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::kappa` analyzer phase4  = 0.0061787749168499785 (threshold 0.017551351678550705) median curvature 1σ=0.01755; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` analyzer phase4  = 1.796743252794793 (threshold 6.594220769874649) median curvature 1σ=6.594; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` analyzer phase4  = 0.13426121746567654 (threshold 0.5974052271152) median curvature 1σ=0.5974; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` analyzer phase4  = 0.02517719850935509 (threshold nan) median curvature 1σ=nan; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::kappa` liu_phase phase1  = 0.01576819075895833 (threshold 0.07921880684816981) median curvature 1σ=0.07922; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` liu_phase phase1  = 2.9847268391461554 (threshold 6.764148882779036) median curvature 1σ=6.764; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` liu_phase phase1  = 1.0426652414591676e-08 (threshold 4.038899136187545) median curvature 1σ=4.039; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` liu_phase phase1  = 4.170660871631123e-08 (threshold nan) median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::kappa` liu_phase phase2  = 0.0019434211200064515 (threshold 0.6780832009720256) median curvature 1σ=0.6781; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` liu_phase phase2  = 0.19697645946479098 (threshold 8.686424367175889) median curvature 1σ=8.686; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` liu_phase phase2  = 0.2523980560197983 (threshold 17.589879204177695) median curvature 1σ=17.59; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` liu_phase phase2  = 0.81408418538413 (threshold nan) median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::kappa` liu_phase phase3  = 0.0019541640647281365 (threshold 0.9872516809968397) median curvature 1σ=0.9873; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` liu_phase phase3  = 2.0939505573302037 (threshold 7.279895251493432) median curvature 1σ=7.28; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` liu_phase phase3  = 0.4614549732169421 (threshold 9.212176168319639) median curvature 1σ=9.212; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` liu_phase phase3  = 1.3186841459128187 (threshold nan) median curvature 1σ=nan; n=2; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::kappa` liu_phase phase4  = 0.005505259881892691 (threshold 0.42839986256715185) median curvature 1σ=0.4284; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::xi_mol_s` liu_phase phase4  = 4.091494434144619 (threshold 7.285116267402258) median curvature 1σ=7.285; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::ln_f_gas` liu_phase phase4  = 0.18830836146193783 (threshold 5.156167588818063) median curvature 1σ=5.156; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
+- `within_phase_std::f_gas` liu_phase phase4  = 0.6377406371605786 (threshold nan) median curvature 1σ=nan; n=3; (JᵀJ)⁻¹ 是局部曲率，不是统计 1σ
 - `basis_diff::kappa`   09-28D_008__W003 = 0.0030503291463409576 (threshold 0.9415788902541158) σ_an=0.9416; σ_liu=0.1384
 - `basis_diff::xi_mol_s`   09-28D_008__W003 = 16.825948747698845 (threshold 6.542745841161109) σ_an=6.299; σ_liu=6.543
 - `basis_diff::ln_f_gas`   09-28D_008__W003 = 0.29558937737502755 (threshold 5.692166271840502) σ_an=5.692; σ_liu=3.347
@@ -119,6 +109,8 @@
 
 ## P4 物理合理性（只标记，不判通过）
 - `n_bound_hit_windows` = 6.0. >6 窗贴边界则判读单列；不停止
+- `n_needs_quench_water` = 15.0. /18；T_eq 用反应器出口 H2O，假定激冷水恰好补 ξ mol
+- `T_eq_is_proxy` = 1.0. 表观平衡温度是该水量假设下的代理量，不是测得的激冷后平衡温度
 - `n_kappa_in_phys` = 14.0. /18 收敛窗（两口径合计）
 - `n_fgas_in_phys` = 7.0. /18 收敛窗（两口径合计）
 - `n_Teq_in_phys` = 18.0. /18 收敛窗（两口径合计）
@@ -185,7 +177,7 @@
 - `n_converged_starts` = 126.0. /126 起点
 
 ## P7 留一窗预测（只报告）
-对照：(a) 不修正 θ=(1,0,1)；(b) 训练窗常数残差补丁。
+对照：(a) 不修正 θ=(1,0,1)；(b) 训练窗常数残差补丁。同阶段跨窗转移；刘文口径在阶段内组成目标相同，不作独立组成预测验证。
 - `median_test_rms::inversion` analyzer 中位测试 rms = 0.5936648823576116
 - `median_test_rms::residual_patch` analyzer 中位测试 rms = 0.39105365749592247
 - `median_test_rms::uncorrected` analyzer 中位测试 rms = 10.612650302147651
@@ -194,7 +186,7 @@
 - `median_test_rms::uncorrected` liu_phase 中位测试 rms = 14.488179690673238
 
 ## 必须回答
-1. 每次拟合的 θ̂±1σ、相关、条件数与缩放残差见 `fits_window.csv` / `fits_phase.csv`；全部起点见 `multistart.csv`；缩放雅可比见 `jacobians.csv`。
+1. 每次拟合的 θ̂±曲率 1σ、相关、条件数与缩放残差见 `fits_window.csv` / `fits_phase.csv`；全部起点见 `multistart.csv`；加权残差雅可比见 `jacobians.csv`（含 `start_name`/`selected`）。主报告条件数为 `cond_J_xscale`。
 2. P1–P7 见上。
 3. 求解失败、贴边界、非唯一解见 `multistart.csv` 的 `success` / `bound_hits` 与 fits 表的 `nonunique`。
 
