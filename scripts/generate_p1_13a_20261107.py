@@ -68,6 +68,7 @@ DIFF_REL = 1e-4
 STEP_FLOOR = np.array([1.0, 10.0, 1.0])  # κ, ξ mol/s, ln f_gas
 # least_squares x_scale；P2 主报告用 J @ diag(X_SCALE)。原 cond(J) 保留为历史读法。
 X_SCALE = np.array([0.05, 50.0, 1.0])
+LEDGER_SCHEMA_ONCE = "xi_counted_once"
 MAX_NFEV = 240
 N_WORKERS_DEFAULT = 15
 COST_REL_UNIQUE = 0.01
@@ -436,6 +437,8 @@ def _enrich_point(wid, basis, fit: dict, l_wsr, hl) -> dict:
     out["H_ledger_h2only"] = float(h_h2only / plant_h2) if plant_h2 > 0 else float("nan")
     out["H_ledger_full_over_plant_h2"] = (
         float(h_full_num / plant_h2) if plant_h2 > 0 else float("nan"))
+    out["H_ledger_schema"] = LEDGER_SCHEMA_ONCE
+    out["H_ledger_xi_counted_once"] = True
     out["H_ledger_num"] = (
         "2·F_H2_shifted = 2·(F_H2_reactor+ξ); 2ξ counted once "
         "[+ 4 CH4 + 2 H2S in full column]"
@@ -783,6 +786,96 @@ def _fix_h_ledger_row(r) -> float:
     return raw - 2.0 * xi / den
 
 
+def _as_true_series(s: pd.Series) -> pd.Series:
+    return s.map(lambda x: str(x).strip().lower() in ("true", "1", "yes"))
+
+
+def _ledger_is_counted_once(df: pd.DataFrame) -> bool:
+    """已是去重口径：生成路径写了 schema，或旧表已迁移并打上 counted_once。"""
+    if df is None or df.empty or "H_ledger_full_over_plant_h2" not in df.columns:
+        return True
+    if "H_ledger_schema" in df.columns:
+        return bool(df["H_ledger_schema"].astype(str).str.strip().eq(LEDGER_SCHEMA_ONCE).all())
+    if "H_ledger_xi_counted_once" in df.columns:
+        return bool(_as_true_series(df["H_ledger_xi_counted_once"]).all())
+    return False
+
+
+def _stamp_ledger_once(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df["H_ledger_schema"] = LEDGER_SCHEMA_ONCE
+    df["H_ledger_xi_counted_once"] = True
+    df["H_ledger_num"] = (
+        "2·F_H2_shifted = 2·(F_H2_reactor+ξ); 2ξ counted once "
+        "[+ 4 CH4 + 2 H2S in full column]"
+    )
+    df["H_ledger_den"] = "2 · plant_dry · y_H2（装置 H2-only；全干气列分子含 CH4/H2S，分母不含）"
+    df["T_eq_assumption"] = (
+        "shifted CO/H2/CO2 with reactor-outlet H2O; quench replaces ξ moles of water"
+    )
+    return df
+
+
+def _maybe_migrate_h_ledger(df: pd.DataFrame) -> pd.DataFrame:
+    """只迁移确认属于旧口径（重复计入 2ξ）的表。已去重的表只打标记，不再扣减。"""
+    if df is None or df.empty or "H_ledger_full_over_plant_h2" not in df.columns:
+        return df
+    if _ledger_is_counted_once(df):
+        return _stamp_ledger_once(df)
+    df = df.copy()
+    df["H_ledger_full_over_plant_h2_raw"] = df["H_ledger_full_over_plant_h2"]
+    df["H_ledger_full_over_plant_h2"] = [_fix_h_ledger_row(r) for _, r in df.iterrows()]
+    return _stamp_ledger_once(df)
+
+
+def verify_h_ledger_read_paths(win: pd.DataFrame) -> None:
+    """旧表迁一次、再读保持、新表直接读保持。不跑反应器。失败则抛错。"""
+    if win is None or win.empty or "H_ledger_full_over_plant_h2" not in win.columns:
+        raise RuntimeError("ledger check: no H_ledger_full_over_plant_h2")
+    if "by_id" not in _CTX:
+        _init_worker()
+    truth = win["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
+
+    old = win.copy()
+    if "H_ledger_full_over_plant_h2_raw" in old.columns:
+        old["H_ledger_full_over_plant_h2"] = old["H_ledger_full_over_plant_h2_raw"]
+    else:
+        raised = []
+        for _, r in old.iterrows():
+            base = float(r["H_ledger_full_over_plant_h2"])
+            xi = float(r["xi_mol_s"])
+            wid = str(r["window_id"]).split(",")[0]
+            den = 2.0 * _plant_dry_mol(wid) * float(r["plant_H2_vol_pct"]) / 100.0
+            raised.append(base + 2.0 * xi / den if den > 0 else base)
+        old["H_ledger_full_over_plant_h2"] = raised
+    old = old.drop(columns=[c for c in (
+        "H_ledger_schema", "H_ledger_xi_counted_once", "H_ledger_full_over_plant_h2_raw",
+    ) if c in old.columns])
+    once = _maybe_migrate_h_ledger(old)
+    a = once["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
+    if not np.allclose(a, truth, rtol=0, atol=1e-12):
+        raise RuntimeError(f"ledger check A (old migrate once) failed: {a[0]!r} vs {truth[0]!r}")
+
+    twice = _maybe_migrate_h_ledger(once)
+    b = twice["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
+    if not np.allclose(b, truth, rtol=0, atol=1e-12):
+        raise RuntimeError(f"ledger check B (re-read) failed: {b[0]!r} vs {truth[0]!r}")
+
+    fresh = win.copy()
+    if "H_ledger_full_over_plant_h2_raw" in fresh.columns:
+        fresh = fresh.drop(columns=["H_ledger_full_over_plant_h2_raw"])
+    fresh["H_ledger_schema"] = LEDGER_SCHEMA_ONCE
+    fresh["H_ledger_xi_counted_once"] = True
+    c = _maybe_migrate_h_ledger(fresh)["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
+    if not np.allclose(c, truth, rtol=0, atol=1e-12):
+        raise RuntimeError(f"ledger check C (new table read) failed: {c[0]!r} vs {truth[0]!r}")
+    print(
+        "ledger-check PASS: old migrate once; re-read stable; new table stable "
+        f"H_full[0]={truth[0]:.12g}",
+        flush=True,
+    )
+
+
 def attach_xscale_and_ledgers(win, phase, robust, jac, starts) -> tuple:
     """从已存雅可比给获选解补 x_scale 条件数，并去掉氢账本重复的 2ξ。不重跑反应器。"""
     if "by_id" not in _CTX:
@@ -828,19 +921,7 @@ def attach_xscale_and_ledgers(win, phase, robust, jac, starts) -> tuple:
             if best_idx is not None and r.get("start_name"):
                 jac.loc[best_idx, "start_name"] = r.get("start_name")
                 jac.loc[best_idx, "selected"] = True
-        if "H_ledger_full_over_plant_h2" in df.columns and "H_ledger_full_over_plant_h2_raw" not in df.columns:
-            df["H_ledger_full_over_plant_h2_raw"] = df["H_ledger_full_over_plant_h2"]
-            df["H_ledger_full_over_plant_h2"] = [_fix_h_ledger_row(r) for _, r in df.iterrows()]
-            df["H_ledger_xi_counted_once"] = True
-            df["H_ledger_num"] = (
-                "2·F_H2_shifted = 2·(F_H2_reactor+ξ); 2ξ counted once "
-                "[+ 4 CH4 + 2 H2S in full column]"
-            )
-            df["H_ledger_den"] = "2 · plant_dry · y_H2（装置 H2-only；全干气列分子含 CH4/H2S，分母不含）"
-            df["T_eq_assumption"] = (
-                "shifted CO/H2/CO2 with reactor-outlet H2O; quench replaces ξ moles of water"
-            )
-        return df
+        return _maybe_migrate_h_ledger(df)
 
     if starts is not None and not starts.empty and "success" in starts.columns:
         ok_starts = starts[starts["success"] == True]  # noqa: E712
@@ -933,16 +1014,17 @@ def readings(win, phase, robust, loo, starts) -> pd.DataFrame:
                     pair_x = names[int(np.nanargmax([abs(x) if np.isfinite(x) else -1 for x in rhos_x]))]
                 elif np.isfinite(cond_x) and cond_x >= COND_OK:
                     pair_x = f"cond_xscale={cond_x:.3g}"
-            _add(rows, reading="P2", metric=f"{scope}_identifiable_xscale",
+            _add(rows, reading="P2", metric=f"{scope}_local_threshold_xscale",
                  basis=r.get("composition_basis"), phase=r.get("phase"),
                  window_id=r.get("window_id"), value=float(id_x),
                  pass_=id_x,
-                 note=f"J@diag(0.05,50,1); cond={cond_x:.4g}; max|ρ|={max_x:.3f}; pair={pair_x}")
-            _add(rows, reading="P2", metric=f"{scope}_identifiable_native",
+                 note=("post-hoc local screen J@diag(0.05,50,1); not global identifiability; "
+                       f"cond={cond_x:.4g}; max|ρ|={max_x:.3f}; pair={pair_x}"))
+            _add(rows, reading="P2", metric=f"{scope}_historical_threshold_native",
                  basis=r.get("composition_basis"), phase=r.get("phase"),
                  window_id=r.get("window_id"), value=float(id_n),
                  pass_=id_n,
-                 note=f"historical native units; cond={cond_n:.4g}; max|ρ|={max_n:.3f}")
+                 note=f"predeclared native units; cond={cond_n:.4g}; max|ρ|={max_n:.3f}")
             _add(rows, reading="P2", metric=f"{scope}_cond_J_xscale",
                  basis=r.get("composition_basis"), phase=r.get("phase"),
                  window_id=r.get("window_id"), value=cond_x, threshold=COND_OK,
@@ -1088,8 +1170,8 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
              f"σ = {SIGMAS.tolist()}（预声明试点权重，不是测量不确定度）。"
              f"算法：`least_squares` / `trf`，`x_scale` = {X_SCALE.tolist()}，"
              f"有限差分相对步长 {DIFF_REL}（ξ 步长外底 {STEP_FLOOR[1]} mol/s）。"
-             "P2 主报告用 `J @ diag(x_scale)`；(JᵀJ)⁻¹ 是局部曲率诊断。"
-             "本轮**不采纳**任何参数值。")
+             "P2 的无量纲尺度门槛是复审后的局部诊断，不是预声明读法。"
+             "(JᵀJ)⁻¹ 是局部曲率诊断。本轮**不采纳**任何参数值。")
     L.append("")
     if stopped:
         L.append("**停止条件触发**：逐窗失败数超过 3，未跑阶段拟合与稳健性。")
@@ -1109,21 +1191,22 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
         L.append(f"- `{r['metric']}` {r.get('composition_basis','')} = {r['value']}"
                  f"{flag}. {r.get('note','')}")
     L.append("")
-    L.append("## P2 可辨识性")
-    L.append(f"主报告：参数列按优化器 `x_scale`={X_SCALE.tolist()} 无量纲化后 "
-             f"cond(J@S) < {COND_OK} 且全部 |ρ| < {CORR_OK}。"
-             "原 cond(J)（ξ 以 mol/s）保留为历史读法，不推广。"
-             "局部共线（|ρ|）、贴边界与全局条件数分开列。")
-    p2x = _sel("P2", "identifiable_xscale")
-    p2n = _sel("P2", "identifiable_native")
+    L.append("## P2 局部条件数诊断（复审后修订，不是预声明读法）")
+    L.append("单点雅可比不能回答全局唯一性。下列「通过局部门槛」指参数列按优化器 "
+             f"`x_scale`={X_SCALE.tolist()} 无量纲化后 cond(J@S) < {COND_OK} "
+             f"且全部 |ρ| < {CORR_OK}，只是局部曲率与共线筛查。"
+             "预声明历史口径是原生单位 cond(J)（ξ 以 mol/s），结果 0/26，不推广。"
+             "局部共线、贴边界与该局部门槛分开列。")
+    p2x = _sel("P2", "local_threshold_xscale")
+    p2n = _sel("P2", "historical_threshold_native")
     n_x = int(p2x["pass"].astype(bool).sum()) if not p2x.empty else 0
     n_n = int(p2n["pass"].astype(bool).sum()) if not p2n.empty else 0
     wx = p2x[p2x["metric"].astype(str).str.startswith("window_")] if not p2x.empty else p2x
     px = p2x[p2x["metric"].astype(str).str.startswith("phase_")] if not p2x.empty else p2x
-    L.append(f"- 无量纲尺度下可分别辨识：{n_x} / {len(p2x)}"
+    L.append(f"- 通过所选尺度下的局部条件数与相关门槛：{n_x} / {len(p2x)}"
              f"（逐窗 {int(wx['pass'].astype(bool).sum()) if not wx.empty else 0}/{len(wx)}"
              f"；逐阶段 {int(px['pass'].astype(bool).sum()) if not px.empty else 0}/{len(px)}）")
-    L.append(f"- 历史（原生单位）可分别辨识：{n_n} / {len(p2n)}（不推广）")
+    L.append(f"- 历史预声明口径（原生单位）：{n_n} / {len(p2n)}（不推广）")
     p2rho = _sel("P2", "max_abs_rho_xscale")
     if not p2rho.empty:
         n_col = int(p2rho["pass"].eq(False).sum())
@@ -1131,10 +1214,10 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
     p2b = _sel("P2", "bound_hit")
     if not p2b.empty:
         n_b = int(pd.to_numeric(p2b["value"], errors="coerce").fillna(0).sum())
-        L.append(f"- 贴边界：{n_b} / {len(p2b)}（单独列，不并入 cond 判据）")
+        L.append(f"- 贴边界：{n_b} / {len(p2b)}（单独列；边界解不并入局部门槛，也不能当作全局可辨识）")
     for _, r in p2x.iterrows():
         if not bool(r["pass"]):
-            L.append(f"  - 不可辨识 {r.get('composition_basis')} {r.get('phase')} "
+            L.append(f"  - 未过局部门槛 {r.get('composition_basis')} {r.get('phase')} "
                      f"`{_short(str(r.get('window_id','')))}`：{r.get('note')}")
     L.append("")
     L.append("## P3 一致性")
@@ -1179,7 +1262,7 @@ def interpretation(win, phase, robust, loo, starts, rd, stopped: bool) -> str:
     L.append("## 必须回答")
     L.append("1. 每次拟合的 θ̂±曲率 1σ、相关、条件数与缩放残差见 `fits_window.csv` / `fits_phase.csv`；"
              "全部起点见 `multistart.csv`；加权残差雅可比见 `jacobians.csv`（含 `start_name`/`selected`）。"
-             "主报告条件数为 `cond_J_xscale`。")
+             "历史口径条件数为 `cond_J`；复审后局部诊断为 `cond_J_xscale`。")
     L.append("2. P1–P7 见上。")
     L.append("3. 求解失败、贴边界、非唯一解见 `multistart.csv` 的 `success` / `bound_hits` "
              "与 fits 表的 `nonunique`。")
@@ -1240,7 +1323,17 @@ def main() -> None:
         loo = pd.read_csv(OUT_DIR / "loo_prediction.csv") if (OUT_DIR / "loo_prediction.csv").exists() else pd.DataFrame()
         starts = pd.read_csv(OUT_DIR / "multistart.csv")
         jac = pd.read_csv(OUT_DIR / "jacobians.csv") if (OUT_DIR / "jacobians.csv").exists() else pd.DataFrame()
+        before = (win["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
+                  if "H_ledger_full_over_plant_h2" in win.columns else None)
+        already_once = _ledger_is_counted_once(win)
         win, phase, robust, jac = attach_xscale_and_ledgers(win, phase, robust, jac, starts)
+        if already_once and before is not None:
+            after = win["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
+            if not np.allclose(before, after, rtol=0, atol=1e-12):
+                raise RuntimeError(
+                    "attach mutated a counted-once hydrogen ledger: "
+                    f"{before[0]!r} -> {after[0]!r}")
+        verify_h_ledger_read_paths(win)
         stopped = False
         rd = readings(win, phase, robust, loo, starts)
         rd.to_csv(OUT_DIR / "readings.csv", index=False)
@@ -1397,12 +1490,20 @@ def _protocol(src_commit, stopped: bool) -> dict:
         },
         "predeclared": {
             "P1": "scaled RMS ≤ 1 → reaches predeclared fit tolerance (pilot weights, not measurement σ)",
-            "P2": "primary: cond(J @ diag(0.05,50,1))<100 and all |ρ|<0.9; native cond(J) historical only; collinearity, bound hits, global cond reported separately",
+            "P2": "HISTORICAL as run: cond(J)<100 and all |ρ|<0.9 in native parameter units (ξ mol/s); observation residuals scaled by σ. Result 0/26. Not generalized.",
             "P3": "within-phase scatter vs curvature 1σ; analyzer vs liu Δθ vs curvature 1σ; phase median/range",
             "P4": "flags only: κ in [0.92,1.03]; f_gas in [1/16,2]; T_eq proxy in [500,1300] K under quench-replaces-ξ water assumption; bound hits",
             "P5": "redo phase fits at L_wsr=4 m, HL_tot in {0.5,1.5}%; report Δθ/curvature 1σ",
             "P6": "non-unique if cost differs <1% but some parameter differs by > each curvature 1σ",
             "P7": "within-phase LOO vs uncorrected vs residual patch; report only; Liu targets identical across windows in a phase",
+        },
+        "post_hoc": {
+            "P2_local_xscale": (
+                "Review revision, not predeclared: cond(J @ diag(0.05,50,1))<100 and |ρ|<0.9 "
+                "as a local curvature/collinearity screen. Passing this threshold is not global "
+                "identifiability. Bound solutions listed separately."
+            ),
+            "H_ledger_schema": LEDGER_SCHEMA_ONCE,
         },
         "stopped": stopped,
         "source_csv": {
