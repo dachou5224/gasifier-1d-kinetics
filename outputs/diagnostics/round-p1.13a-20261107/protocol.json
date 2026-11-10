@@ -1,0 +1,140 @@
+{
+  "round": "P1.13-A / 2026-11-07",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "5b61023a4eb0213d0b41f1cb1c7b90a3fed3e0e5",
+  "mesh_family": "wsr_plus_pfr",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.13a-20261107.md",
+  "structure": {
+    "mesh_family": "wsr_plus_pfr",
+    "L_wsr_m": 1.0,
+    "dz_down_m": 0.0515,
+    "HL_tot_pct": 1.0,
+    "oxygen_mixing": "instant",
+    "frozen": [
+      "全部 Arrhenius（除 f_gas 作用的 C+H2O/C+CO2 指前因子）",
+      "限幅",
+      "燃烧区判据",
+      "煤量主口径",
+      "实测载气",
+      "求解器容差"
+    ]
+  },
+  "parameters": {
+    "kappa": "inlet O2 multiplier; O/C coordination factor; not attributed to a meter",
+    "xi_mol_s": "post-reactor WGS extent; does not enter the reactor solve; X_C unchanged",
+    "ln_f_gas": "log multiplier on shared C+H2O / C+CO2 prefactor",
+    "bounds": {
+      "kappa": [
+        0.88,
+        1.06
+      ],
+      "xi": [
+        0.0,
+        250.0
+      ],
+      "ln_f_gas": [
+        -4.1588830833596715,
+        1.3862943611198906
+      ]
+    }
+  },
+  "observations": {
+    "y": [
+      "X_C_pp",
+      "CO_vol_pct",
+      "H2_vol_pct",
+      "CO2_vol_pct"
+    ],
+    "sigma": [
+      1.5,
+      0.5,
+      0.5,
+      0.5
+    ],
+    "X_C": "xc_measured_pct from P1.8-D (measured carrier, calibrated syngas, recon coal)",
+    "composition": "analyzer = P1.7-A baseline plant vol%; liu_phase = Liu 2023 table 3"
+  },
+  "optimizer": {
+    "algorithm": "scipy.optimize.least_squares",
+    "method": "trf",
+    "jacobian": "custom 2-point finite difference on scaled residuals",
+    "diff_rel": 0.0001,
+    "step_floor": {
+      "kappa": 1.0,
+      "xi_mol_s": 10.0,
+      "ln_f_gas": 1.0
+    },
+    "starts": [
+      [
+        1.0,
+        0.0,
+        1.0
+      ],
+      [
+        0.97,
+        50.0,
+        0.25
+      ],
+      [
+        0.94,
+        100.0,
+        0.125
+      ]
+    ],
+    "max_nfev": 240,
+    "covariance": "(J_scaled^T J_scaled)^{-1}"
+  },
+  "predeclared": {
+    "P1": "scaled RMS ≤ 1 → within measurement uncertainty",
+    "P2": "cond(J_scaled)<100 and all |ρ|<0.9 → separately identifiable",
+    "P3": "within-phase scatter vs 1σ; analyzer vs liu Δθ vs 1σ; phase median/range",
+    "P4": "flags only: κ in [0.92,1.03]; f_gas in [1/16,2]; T_eq in [500,1300] K; bound hits",
+    "P5": "redo phase fits at L_wsr=4 m, HL_tot in {0.5,1.5}%; report Δθ/1σ",
+    "P6": "non-unique if cost differs <1% but some parameter differs by > each 1σ",
+    "P7": "LOO vs uncorrected vs residual patch; report only"
+  },
+  "stopped": false,
+  "source_csv": {
+    "p17d": {
+      "round": "p1.7d-20261103",
+      "file": "coal_reconciled_by_window.csv",
+      "sha256": "05b4172f9ee9d509dc6284ac94fdea56af40a9d7b638d8285c4232d962af6345"
+    },
+    "p18d": {
+      "round": "p1.8d-20261104",
+      "file": "carrier_by_window.csv",
+      "sha256": "38c7815de4affd3dd08797dcc935e73ec470d78516ea45fa59debcc33a148550"
+    },
+    "p17a_baseline": {
+      "round": "p1.7a-20261103",
+      "file": "baseline.csv",
+      "sha256": "f148e1c126296184683e3653ce5c1cf08fcaf10c270175443fbf67bbe20c6bca"
+    }
+  },
+  "outputs": [
+    "fits_window.csv",
+    "fits_phase.csv",
+    "multistart.csv",
+    "robustness.csv",
+    "loo_prediction.csv",
+    "jacobians.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}
