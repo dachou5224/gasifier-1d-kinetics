@@ -790,88 +790,178 @@ def _as_true_series(s: pd.Series) -> pd.Series:
     return s.map(lambda x: str(x).strip().lower() in ("true", "1", "yes"))
 
 
-def _ledger_is_counted_once(df: pd.DataFrame) -> bool:
-    """已是去重口径：生成路径写了 schema，或旧表已迁移并打上 counted_once。"""
-    if df is None or df.empty or "H_ledger_full_over_plant_h2" not in df.columns:
-        return True
+def _valid_ledger_mask(df: pd.DataFrame) -> pd.Series:
+    v = pd.to_numeric(df["H_ledger_full_over_plant_h2"], errors="coerce")
+    return v.notna() & np.isfinite(v.to_numpy(dtype=float))
+
+
+def _row_marked_once(df: pd.DataFrame) -> pd.Series:
+    once = pd.Series(False, index=df.index)
     if "H_ledger_schema" in df.columns:
-        return bool(df["H_ledger_schema"].astype(str).str.strip().eq(LEDGER_SCHEMA_ONCE).all())
+        once = once | df["H_ledger_schema"].astype(str).str.strip().eq(LEDGER_SCHEMA_ONCE)
     if "H_ledger_xi_counted_once" in df.columns:
-        return bool(_as_true_series(df["H_ledger_xi_counted_once"]).all())
-    return False
+        once = once | _as_true_series(df["H_ledger_xi_counted_once"])
+    if "H_ledger_num" in df.columns:
+        once = once | df["H_ledger_num"].astype(str).str.contains("counted once", case=False, na=False)
+    return once
+
+
+def _classify_h_ledger(df: pd.DataFrame) -> str:
+    """只看有限账本行。once / old；歧义表直接报错，不静默再扣。"""
+    if df is None or df.empty or "H_ledger_full_over_plant_h2" not in df.columns:
+        return "once"
+    valid = _valid_ledger_mask(df)
+    if not bool(valid.any()):
+        return "once"
+    marked = _row_marked_once(df)[valid]
+    if bool(marked.all()):
+        return "once"
+    if bool(marked.any()):
+        raise RuntimeError("ambiguous hydrogen-ledger schema among rows with a finite ledger")
+    if "H_ledger_full_over_plant_h2_raw" in df.columns:
+        return "once"
+    if "H_ledger_num" in df.columns:
+        raise RuntimeError(
+            "ambiguous hydrogen-ledger: H_ledger_num present but valid rows are not marked counted-once"
+        )
+    return "old"
+
+
+def _ledger_is_counted_once(df: pd.DataFrame) -> bool:
+    return _classify_h_ledger(df) == "once"
 
 
 def _stamp_ledger_once(df: pd.DataFrame) -> pd.DataFrame:
+    """只给有有效账本的行打口径标记；失败行保持缺值。"""
     df = df.copy()
-    df["H_ledger_schema"] = LEDGER_SCHEMA_ONCE
-    df["H_ledger_xi_counted_once"] = True
-    df["H_ledger_num"] = (
+    valid = _valid_ledger_mask(df)
+    if "H_ledger_schema" not in df.columns:
+        df["H_ledger_schema"] = ""
+    if "H_ledger_xi_counted_once" not in df.columns:
+        df["H_ledger_xi_counted_once"] = False
+    num = (
         "2·F_H2_shifted = 2·(F_H2_reactor+ξ); 2ξ counted once "
         "[+ 4 CH4 + 2 H2S in full column]"
     )
-    df["H_ledger_den"] = "2 · plant_dry · y_H2（装置 H2-only；全干气列分子含 CH4/H2S，分母不含）"
-    df["T_eq_assumption"] = (
-        "shifted CO/H2/CO2 with reactor-outlet H2O; quench replaces ξ moles of water"
-    )
+    den = "2 · plant_dry · y_H2（装置 H2-only；全干气列分子含 CH4/H2S，分母不含）"
+    teq = "shifted CO/H2/CO2 with reactor-outlet H2O; quench replaces ξ moles of water"
+    for col, fill in (("H_ledger_num", num), ("H_ledger_den", den), ("T_eq_assumption", teq)):
+        if col not in df.columns:
+            df[col] = ""
+        df.loc[valid, col] = fill
+    df.loc[valid, "H_ledger_schema"] = LEDGER_SCHEMA_ONCE
+    df.loc[valid, "H_ledger_xi_counted_once"] = True
     return df
 
 
 def _maybe_migrate_h_ledger(df: pd.DataFrame) -> pd.DataFrame:
-    """只迁移确认属于旧口径（重复计入 2ξ）的表。已去重的表只打标记，不再扣减。"""
+    """只迁移确认属于旧口径且账本有限的行。失败行保留缺值。"""
     if df is None or df.empty or "H_ledger_full_over_plant_h2" not in df.columns:
         return df
-    if _ledger_is_counted_once(df):
+    status = _classify_h_ledger(df)
+    if status == "once":
         return _stamp_ledger_once(df)
     df = df.copy()
-    df["H_ledger_full_over_plant_h2_raw"] = df["H_ledger_full_over_plant_h2"]
-    df["H_ledger_full_over_plant_h2"] = [_fix_h_ledger_row(r) for _, r in df.iterrows()]
+    valid = _valid_ledger_mask(df)
+    if "H_ledger_full_over_plant_h2_raw" not in df.columns:
+        df["H_ledger_full_over_plant_h2_raw"] = np.nan
+    df.loc[valid, "H_ledger_full_over_plant_h2_raw"] = df.loc[valid, "H_ledger_full_over_plant_h2"]
+    df.loc[valid, "H_ledger_full_over_plant_h2"] = [
+        _fix_h_ledger_row(r) for _, r in df.loc[valid].iterrows()
+    ]
     return _stamp_ledger_once(df)
 
 
+def _finite_equal(a, b, msg: str) -> None:
+    av = pd.to_numeric(a, errors="coerce").to_numpy(dtype=float)
+    bv = pd.to_numeric(b, errors="coerce").to_numpy(dtype=float)
+    ma, mb = np.isfinite(av), np.isfinite(bv)
+    if ma.shape != mb.shape or not np.array_equal(ma, mb):
+        raise RuntimeError(f"{msg}: finite-mask changed (kept failed rows?)")
+    if ma.any() and not np.allclose(av[ma], bv[ma], rtol=0, atol=1e-12):
+        i = int(np.flatnonzero(ma)[0])
+        raise RuntimeError(f"{msg}: {av[i]!r} vs {bv[i]!r}")
+
+
+def _with_failed_row(df: pd.DataFrame) -> pd.DataFrame:
+    """追加一条无账本的失败拟合，复现「整列 .all() 把新表当旧表」的路径。"""
+    fail = df.iloc[[0]].copy()
+    fail["success"] = False
+    for col in list(fail.columns):
+        if col == "H_ledger_schema":
+            fail[col] = ""
+        elif col == "H_ledger_xi_counted_once":
+            fail[col] = False
+        elif str(col).startswith("H_ledger") or col in ("cond_J", "cond_J_xscale"):
+            fail[col] = np.nan
+    return pd.concat([df, fail], ignore_index=True)
+
+
 def verify_h_ledger_read_paths(win: pd.DataFrame) -> None:
-    """旧表迁一次、再读保持、新表直接读保持。不跑反应器。失败则抛错。"""
+    """旧表迁一次、再读保持、新表直读保持；含失败行时成功行不被动。不跑反应器。"""
     if win is None or win.empty or "H_ledger_full_over_plant_h2" not in win.columns:
         raise RuntimeError("ledger check: no H_ledger_full_over_plant_h2")
     if "by_id" not in _CTX:
         _init_worker()
-    truth = win["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
+    base = win.loc[_valid_ledger_mask(win)].copy()
+    if base.empty:
+        raise RuntimeError("ledger check: no finite ledger rows")
+    truth = base["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
 
-    old = win.copy()
+    old = base.copy()
     if "H_ledger_full_over_plant_h2_raw" in old.columns:
         old["H_ledger_full_over_plant_h2"] = old["H_ledger_full_over_plant_h2_raw"]
     else:
         raised = []
         for _, r in old.iterrows():
-            base = float(r["H_ledger_full_over_plant_h2"])
+            val = float(r["H_ledger_full_over_plant_h2"])
             xi = float(r["xi_mol_s"])
             wid = str(r["window_id"]).split(",")[0]
             den = 2.0 * _plant_dry_mol(wid) * float(r["plant_H2_vol_pct"]) / 100.0
-            raised.append(base + 2.0 * xi / den if den > 0 else base)
+            raised.append(val + 2.0 * xi / den if den > 0 else val)
         old["H_ledger_full_over_plant_h2"] = raised
     old = old.drop(columns=[c for c in (
         "H_ledger_schema", "H_ledger_xi_counted_once", "H_ledger_full_over_plant_h2_raw",
+        "H_ledger_num", "H_ledger_den", "T_eq_assumption",
     ) if c in old.columns])
-    once = _maybe_migrate_h_ledger(old)
-    a = once["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
-    if not np.allclose(a, truth, rtol=0, atol=1e-12):
-        raise RuntimeError(f"ledger check A (old migrate once) failed: {a[0]!r} vs {truth[0]!r}")
+    old_fail = _with_failed_row(old)
+    once = _maybe_migrate_h_ledger(old_fail)
+    _finite_equal(once["H_ledger_full_over_plant_h2"].iloc[:len(base)], truth,
+                  "ledger check A (old migrate once, with failed row)")
+    if np.isfinite(float(once["H_ledger_full_over_plant_h2"].iloc[-1])):
+        raise RuntimeError("ledger check A: failed row should keep a missing ledger")
 
     twice = _maybe_migrate_h_ledger(once)
-    b = twice["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
-    if not np.allclose(b, truth, rtol=0, atol=1e-12):
-        raise RuntimeError(f"ledger check B (re-read) failed: {b[0]!r} vs {truth[0]!r}")
+    _finite_equal(twice["H_ledger_full_over_plant_h2"], once["H_ledger_full_over_plant_h2"],
+                  "ledger check B (re-read, with failed row)")
 
-    fresh = win.copy()
+    fresh = base.copy()
     if "H_ledger_full_over_plant_h2_raw" in fresh.columns:
         fresh = fresh.drop(columns=["H_ledger_full_over_plant_h2_raw"])
     fresh["H_ledger_schema"] = LEDGER_SCHEMA_ONCE
     fresh["H_ledger_xi_counted_once"] = True
-    c = _maybe_migrate_h_ledger(fresh)["H_ledger_full_over_plant_h2"].to_numpy(dtype=float)
-    if not np.allclose(c, truth, rtol=0, atol=1e-12):
-        raise RuntimeError(f"ledger check C (new table read) failed: {c[0]!r} vs {truth[0]!r}")
+    fresh_fail = _with_failed_row(fresh)
+    c = _maybe_migrate_h_ledger(fresh_fail)
+    _finite_equal(c["H_ledger_full_over_plant_h2"].iloc[:len(base)], truth,
+                  "ledger check C (new table + failed row)")
+    if float(c["H_ledger_full_over_plant_h2"].iloc[0]) < float(base["H_ledger_h2only"].iloc[0]):
+        raise RuntimeError("ledger check C: success row fell below H2-only (double-subtracted)")
+
+    # 4d26a31 新生成：已有去重分子和 num 文案，但缺 schema / counted_once
+    legacy = base.copy()
+    for col in ("H_ledger_schema", "H_ledger_xi_counted_once", "H_ledger_full_over_plant_h2_raw"):
+        if col in legacy.columns:
+            legacy = legacy.drop(columns=[col])
+    legacy["H_ledger_num"] = (
+        "2·F_H2_shifted = 2·(F_H2_reactor+ξ); 2ξ counted once "
+        "[+ 4 CH4 + 2 H2S in full column]"
+    )
+    d = _maybe_migrate_h_ledger(_with_failed_row(legacy))
+    _finite_equal(d["H_ledger_full_over_plant_h2"].iloc[:len(base)], truth,
+                  "ledger check D (4d26a31 metadata, with failed row)")
     print(
-        "ledger-check PASS: old migrate once; re-read stable; new table stable "
-        f"H_full[0]={truth[0]:.12g}",
+        "ledger-check PASS: old migrate once; re-read stable; new+failed stable; "
+        f"4d26a31 metadata stable; H_full[0]={truth[0]:.12g}",
         flush=True,
     )
 
