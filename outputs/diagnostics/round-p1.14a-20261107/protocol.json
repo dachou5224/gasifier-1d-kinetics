@@ -1,0 +1,219 @@
+{
+  "round": "P1.14-A / 2026-11-07",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "20e2b6d41110392f4cf2194c7f1401a7b934ae2d",
+  "mesh_family": "wsr_plus_pfr",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.14a-20261107.md",
+  "structure": {
+    "mesh_family": "wsr_plus_pfr",
+    "L_wsr_m": 1.0,
+    "dz_down_m": 0.0515,
+    "HL_tot_pct": 1.0,
+    "oxygen_mixing": "instant",
+    "D_wall_m": 3.8,
+    "frozen": [
+      "全部 Arrhenius（除 f_gas 作用的 C+H2O/C+CO2 指前因子）",
+      "限幅",
+      "燃烧区判据",
+      "煤量主口径 windows_142.coal_dry_recon_phase_kg_s",
+      "实测载气 windows_142.co2_carrier_measured_nm3_h",
+      "求解器容差"
+    ]
+  },
+  "parameters": {
+    "kappa": "inlet O2 multiplier; held at P1.13-A analyzer phase value; not inverted",
+    "xi_mol_s": "post-reactor WGS extent; does not enter the reactor solve",
+    "ln_f_gas": "log multiplier on shared C+H2O / C+CO2 prefactor; held at phase value",
+    "ln_U": "phase-level redundant scale for log Q_wall; column of unscaled log residual is 1",
+    "theta_phase_analyzer_Lwsr1_HLtot1pct": {
+      "phase1": {
+        "kappa": 0.9636054551111352,
+        "xi": 104.81669676840302,
+        "f_gas": 0.6531139633486652
+      },
+      "phase2": {
+        "kappa": 0.8998492036049609,
+        "xi": 86.5403359100365,
+        "f_gas": 0.3965369477333102
+      },
+      "phase3": {
+        "kappa": 0.9238312741474483,
+        "xi": 82.14896736151056,
+        "f_gas": 0.10788183495180284
+      },
+      "phase4": {
+        "kappa": 0.949661873527387,
+        "xi": 56.13939397745541,
+        "f_gas": 0.1776065048633667
+      }
+    },
+    "theta0": {
+      "kappa": 1.0,
+      "xi": 0.0,
+      "f_gas": 1.0
+    }
+  },
+  "observations": {
+    "y": [
+      "X_C_pp",
+      "CO_vol_pct",
+      "H2_vol_pct",
+      "CO2_vol_pct",
+      "CH4_vol_pct",
+      "dry_per_coal_mol_kg",
+      "T_out_K",
+      "Q_wall_conv",
+      "Q_wall_rad"
+    ],
+    "sigma_additive": {
+      "X_C_pp": 1.5,
+      "CO_vol_pct": 0.5,
+      "H2_vol_pct": 0.5,
+      "CO2_vol_pct": 0.5,
+      "CH4_vol_pct": 0.05,
+      "T_out_K": 20.0
+    },
+    "sigma_relative": {
+      "dry_per_coal_mol_kg": 0.02
+    },
+    "sigma_log": {
+      "Q_wall_conv": 0.1,
+      "Q_wall_rad": 0.1
+    },
+    "T_out_K_sigma": 20.0,
+    "T_out_K_sigma_note": "理想设计假设 20 K，不是装置出口温测量不确定度；仅用于含 T_out 的子集（S4_conv / S4_rad / S4_no_wall）",
+    "Q_wall": "diagnostic index, not in the solve: Q_conv = Σ A_i (T_i-T_w), Q_rad = Σ A_i (T_i^4-T_w^4), A_i = π D dz_i",
+    "T_w": "T_sat_iapws_C + 273.15 K; default 537 K if missing (phase 4)",
+    "dry_per_coal": "shifted dry mol/s per coal_dry_recon_phase_kg_s (mol/kg)"
+  },
+  "jacobian": {
+    "scheme": "forward finite difference at phase θ",
+    "diff_rel": 0.0001,
+    "step_floor": {
+      "kappa": 1.0,
+      "ln_f_gas": 1.0,
+      "xi_mol_s": 10.0
+    },
+    "step_rule": "h = diff_rel * max(|θ_j|, floor_j); ξ does not re-solve the reactor",
+    "param_order": [
+      "kappa",
+      "ln_f_gas",
+      "xi_mol_s"
+    ]
+  },
+  "fisher": {
+    "train_only": "主分析 window_set=train 仅 P1/P2。P3 全为 validation、P4 全为 test；其 phase_all 标 exploratory，不是独立验证（阶段 θ 已用同阶段观测）。",
+    "subsets": {
+      "S0": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct"
+      ],
+      "S1": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct"
+      ],
+      "S2": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "dry_per_coal_mol_kg"
+      ],
+      "S3_conv": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "Q_wall_conv"
+      ],
+      "S3_rad": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "Q_wall_rad"
+      ],
+      "S4_conv": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct",
+        "dry_per_coal_mol_kg",
+        "T_out_K",
+        "Q_wall_conv"
+      ],
+      "S4_rad": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct",
+        "dry_per_coal_mol_kg",
+        "T_out_K",
+        "Q_wall_rad"
+      ],
+      "S4_no_wall": [
+        "X_C_pp",
+        "CO_vol_pct",
+        "H2_vol_pct",
+        "CO2_vol_pct",
+        "CH4_vol_pct",
+        "dry_per_coal_mol_kg",
+        "T_out_K"
+      ]
+    },
+    "S3_S4_wall": "S3_conv / S3_rad / S4_conv / S4_rad 仅 phase1–3，各含恰好一个壁面代理并各自带 ln U；禁止 conv+rad 同堆。S4_no_wall 为探索变体，不是卡面 S4。",
+    "ln_U_column": "仅当子集含恰好一个壁面代理时加入；unscaled log residual d/d ln U = 1; scaled = 1/0.10",
+    "q1": "|ρ(κ,ln f_gas)|<0.9 且 σ(ln f_gas)<ln 2；通过=局部设计门槛，不是统计可辨识",
+    "q1_assumptions": "逆 Fisher 是固定阶段 θ、共享 κ/ln f_gas/ξ、对角预声明权重、窗间独立假设下的曲率尺度。装置 X_C 与 CO/CO2/CH4 及校准干气流量共享原始数据，阶段内还共享标定系数。通过的是局部设计门槛，不是统计可辨识。",
+    "q3": "分别报告 stacked 总信息、σ√n 每窗归一、ρ 变化；扩窗同时改变 n 与工况，总尺度下降不能归因于 O/C。"
+  },
+  "predeclared": {
+    "Q1": "固定阶段 θ、共享 κ/ln f_gas/ξ、对角预声明权重、窗间独立。|ρ|<0.9 且 σ(ln f_gas)<ln 2 → 通过局部设计门槛，不是统计可辨识。主结论仅 P1/P2 train。",
+    "Q2": "P1/P2 train：S1、S2、S3_conv、S3_rad 相对 S0 的 σ 缩小；分开谁贡献最大。P3/P4 若报则标 exploratory。",
+    "Q3": "S0：stacked（σ_ref、σ_exp、σ_ref/σ_exp）、per-window（σ√n 及其比）、ρ 变化。不归因于 O/C；不跑等 n 对照反应器。",
+    "Q4": "sign of dT_out/dκ vs dT_out/d ln f_gas; same-sign fraction >20% listed separately",
+    "Q5": "P1.14-D Q2 numbers used as given; drown flag if both |ρ|<0.3 or CV_between<CV_within"
+  },
+  "stopped": false,
+  "n_failed_windows": 0,
+  "fail_stop_threshold": 10,
+  "source_csv": {
+    "p1.14d": {
+      "round": "p1.14d-20261107",
+      "file": "windows_142.csv",
+      "relative_path": "outputs/diagnostics/p1.14d-20261107/windows_142.csv",
+      "sha256": "25f3a7b4d403adc83ab888c893bc23e555af2121b1d4fa04cb53c93d57e0f991",
+      "n_rows": 142
+    }
+  },
+  "outputs": [
+    "baseline_142.csv",
+    "jacobians_142.csv",
+    "fisher_subsets.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}

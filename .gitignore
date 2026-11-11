@@ -157,6 +157,9 @@ results/
 !outputs/diagnostics/round-*/
 !outputs/diagnostics/round-*/*.csv
 !outputs/diagnostics/round-*/**/*.csv
+# P1.14-A 只读输入（P1.14-D windows_142 副本）
+!outputs/diagnostics/p1.14d-20261107/
+!outputs/diagnostics/p1.14d-20261107/*.csv
 # round53-56 的轮次目录用无连字符命名，四份 result markdown 明确列出这些 CSV
 # 为 "Created files"；不收录会让已提交的摘要指向不存在的文件。
 !outputs/diagnostics/round[0-9]*/
