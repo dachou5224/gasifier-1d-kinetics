@@ -1,0 +1,159 @@
+{
+  "round": "P1.15-A / 2026-11-08",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "6e20c5f7f735a372212ac87a859353fe46b19ea6",
+  "mesh_family": "wsr_plus_pfr",
+  "particle_size_model": "fortran_constant",
+  "solver_strict_root": true,
+  "frozen_items": [
+    "all Arrhenius constants",
+    "phi",
+    "f_co2 = 1.0",
+    "P_O2_Combustion_atm = 0.05",
+    "CharCombustionRateFactor = 0.3",
+    "H2_OxidationFactor",
+    "CO_OxidationFactor",
+    "pyrolysis yields",
+    "hydrogen post-oxidation limiting",
+    "USE_RK_GILL_COMBUSTION = False"
+  ],
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p1.15a-20261108.md",
+  "structure": {
+    "mesh_family": "wsr_plus_pfr",
+    "L_wsr_m": 1.0,
+    "dz_down_m": 0.0515,
+    "HL_tot_pct": 1.0,
+    "oxygen_mixing": "instant",
+    "frozen": [
+      "全部 Arrhenius（除候选明确改动的 C+CO2 指前因子或 f_gas）",
+      "限幅",
+      "燃烧区判据",
+      "煤量主口径 windows_142.coal_dry_recon_phase_kg_s",
+      "载气 windows_142.co2_carrier_measured_nm3_h",
+      "氧气 windows_142.o2_fy1103a_nm3_h_mean（装置）与 o2_flow_scale=κ（模型）",
+      "求解器容差 jacobian_mode=scipy"
+    ]
+  },
+  "parameters": {
+    "theta_phase_analyzer_Lwsr1_HLtot1pct": {
+      "phase1": {
+        "kappa": 0.9636054551111352,
+        "xi": 104.81669676840302,
+        "f_gas": 0.6531139633486652
+      },
+      "phase2": {
+        "kappa": 0.8998492036049609,
+        "xi": 86.5403359100365,
+        "f_gas": 0.3965369477333102
+      },
+      "phase3": {
+        "kappa": 0.9238312741474483,
+        "xi": 82.14896736151056,
+        "f_gas": 0.10788183495180284
+      },
+      "phase4": {
+        "kappa": 0.949661873527387,
+        "xi": 56.13939397745541,
+        "f_gas": 0.1776065048633667
+      }
+    },
+    "xi": "C0/C2/C3/C4 用阶段常数 ξ，只作用于出口；C1/C5 用激冷平衡 ξ_eq 替代",
+    "CharCO2RateFactor": "缺省 1.0；C2 为 f_gas * f_CO2 只乘 C+CO2",
+    "adopted": false
+  },
+  "plant_regression": {
+    "y": [
+      "X_C_pp",
+      "CO_vol_pct",
+      "H2_vol_pct",
+      "CO2_vol_pct",
+      "CH4_vol_pct",
+      "dry_per_coal_mol_kg"
+    ],
+    "primary": "y ~ ln O2 + ln coal + ln carrier",
+    "secondary": "y ~ ln O2 + ln coal",
+    "per3": "beta_ln * ln(1.03)",
+    "bootstrap": {
+      "n": 1000,
+      "unit": "window",
+      "seed_base": 20261108
+    },
+    "X_C_note": "公共分母（煤碳）伪相关，不用于 R1–R4"
+  },
+  "model_fd": {
+    "scheme": "two-sided ±3%",
+    "d_ln": " (y(1.03)-y(0.97)) / ln(1.03/0.97) ",
+    "per3": "slope_ln * ln(1.03)",
+    "no_onesided": true
+  },
+  "predeclared": {
+    "R1": "装置斜率 95% 自助区间不含 0 → 有符号；只对有符号 (观测, ln O2 或 ln 煤量, 阶段) 比较；X_C 不进判据；CH4 若有符号则计入",
+    "R2": "模型阶段中位每+3% 与装置每+3% 同号 → 一致；报 一致数/有符号数",
+    "R3": "一致组合中 模型/装置 的中位与范围",
+    "R4": "哪个候选使 R2≥80%；若无则「现有候选均不能复现装置哈应方向」",
+    "R5": "各候选在 θ̂ 处水平偏差（模型−装置）相对 C0 的变化"
+  },
+  "c5_selection": "C1、C2 最好档按全部阶段有符号组合的一致比例（一致数/有符号数）选取；并列时先取 R3 中位更接近 1，再取 |R5| 组成偏差更小。C5 = 该 C1 档的激冷后处理作用于该 C2 档的反应器快照；C1 全不可行则跳过 C5。",
+  "c5_note": "选用 C1_T900_rw1（R2=0.619）+ C2_f1（R2=0.476）",
+  "c2_checks": {
+    "f1_matches_c0": true,
+    "f1_note": "1/1 窗出口逐位一致",
+    "f256_rate_down": true,
+    "f256_note": "133/133 窗全混区 C+CO2 毛速率下降",
+    "unbind_note": "C0 绑定分数=1.000，f_CO2=1/256 绑定分数=1.000；绑定未随 f_CO2 下降而解除"
+  },
+  "stopped_stages": [],
+  "c0_phase": {
+    "phase1": {
+      "n_ok": 37,
+      "n_fail": 0,
+      "n_total": 37,
+      "stopped": false
+    },
+    "phase2": {
+      "n_ok": 44,
+      "n_fail": 0,
+      "n_total": 44,
+      "stopped": false
+    },
+    "phase3": {
+      "n_ok": 44,
+      "n_fail": 0,
+      "n_total": 44,
+      "stopped": false
+    },
+    "phase4": {
+      "n_ok": 17,
+      "n_fail": 0,
+      "n_total": 17,
+      "stopped": false
+    }
+  },
+  "fail_stop_threshold_per_stage": 5,
+  "n_workers": 15,
+  "source_csv": {
+    "p1.14d": {
+      "round": "p1.14d-20261107",
+      "file": "windows_142.csv",
+      "relative_path": "outputs/diagnostics/p1.14d-20261107/windows_142.csv",
+      "sha256": "25f3a7b4d403adc83ab888c893bc23e555af2121b1d4fa04cb53c93d57e0f991",
+      "n_rows": 142
+    },
+    "p1.14a_level_control": {
+      "round": "p1.14a-20261107",
+      "file": "baseline_142.csv",
+      "relative_path": "outputs/diagnostics/round-p1.14a-20261107/baseline_142.csv",
+      "note": "水平对照；不含出口 H2O，C1 用水由 C0 反应器快照提供"
+    }
+  },
+  "outputs": [
+    "plant_slopes.csv",
+    "model_slopes.csv",
+    "candidates.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ],
+  "adopted_parameters": false
+}

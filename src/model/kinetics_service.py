@@ -51,7 +51,8 @@ class KineticsService:
                                  char_combustion_factor: float = None,
                                  use_fortran_diffusion: bool = False,
                                  conversion_cutoff: str = "smooth",
-                                 gasification_rate_factor: float = 1.0) -> Dict[str, float]:
+                                 gasification_rate_factor: float = 1.0,
+                                 char_co2_rate_factor: float = 1.0) -> Dict[str, float]:
         """
         Calculate Surface Reaction Rates (mol/s).
         T_particle: 颗粒温度 Ts_avg；None 时用 Ross 修正 T_p = T + 6.6e4*C_O2（向后兼容）
@@ -60,6 +61,9 @@ class KineticsService:
           "smooth"    —— 去掉 ``X_total >= 0.999`` 的硬截断；完全转化时 UCSM 的
                          ``1/(k_s*Y^2)`` 阻力让速率按 ``Y^2`` 自然趋零，不设人为上限。
           "hard_0999" —— 修改前行为：``X_total >= 0.999`` 时该反应速率直接置 0。
+
+        P1.15-A：``char_co2_rate_factor`` 只乘在 C+CO2 指前因子上（C+H2O 仍只用
+        ``gasification_rate_factor``）。缺省 1.0 → 与旧调用逐位一致。
         """
         r = {}
         hard_cutoff = str(conversion_cutoff).lower() == "hard_0999"
@@ -143,12 +147,16 @@ class KineticsService:
                 r[rxn] = 0.0
                 continue
 
+            if rxn == "C+H2O":
+                rate_factor = float(gasification_rate_factor)
+            elif rxn == "C+CO2":
+                rate_factor = float(gasification_rate_factor) * float(char_co2_rate_factor)
+            else:
+                rate_factor = 1.0
             rate_kmols = self.het_model.calculate_total_rate(
                 rxn, T, P, P_eff, particle_diameter, Y, nu=nu, Re=Re, Sc=Sc, T_p=T_p,
                 use_fortran_diffusion=use_fortran_diffusion, phi=r.get('phi', 1.0),
-                rate_factor=(
-                    gasification_rate_factor if rxn in ('C+H2O', 'C+CO2') else 1.0
-                ),
+                rate_factor=rate_factor,
             )
 
             rate_flux = rate_kmols * 1000.0
