@@ -1,7 +1,7 @@
 {
   "round": "P1.15-A / 2026-11-08",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "6e20c5f7f735a372212ac87a859353fe46b19ea6",
+  "source_commit": "c0b9bf744178fd14a8ec38c34aee62ab5481ed51",
   "mesh_family": "wsr_plus_pfr",
   "particle_size_model": "fortran_constant",
   "solver_strict_root": true,
@@ -78,47 +78,78 @@
       "unit": "window",
       "seed_base": 20261108
     },
-    "X_C_note": "公共分母（煤碳）伪相关，不用于 R1–R4"
+    "X_C_note": "公共分母（煤碳）伪相关，不用于 R1–R4",
+    "identification": "阶段内窗口 OLS 条件关联；不是控制扰动。有符号仅表示该回归与窗口自助假设下区间不含 0。",
+    "design_cond": {
+      "phase1": {
+        "cond_X_with_carrier": 7759.065793536957,
+        "cond_X_no_carrier": 5940.599534222763,
+        "sign_stable_obs_input": 9,
+        "n_obs_input": 10
+      },
+      "phase2": {
+        "cond_X_with_carrier": 29731.935648084152,
+        "cond_X_no_carrier": 19709.614770458007,
+        "sign_stable_obs_input": 8,
+        "n_obs_input": 10
+      },
+      "phase3": {
+        "cond_X_with_carrier": 20421.148292781312,
+        "cond_X_no_carrier": 14038.317440321513,
+        "sign_stable_obs_input": 10,
+        "n_obs_input": 10
+      },
+      "phase4": {
+        "cond_X_with_carrier": 28187.795081356657,
+        "cond_X_no_carrier": 21593.40123764846,
+        "sign_stable_obs_input": 9,
+        "n_obs_input": 10
+      }
+    }
   },
   "model_fd": {
     "scheme": "two-sided ±3%",
     "d_ln": " (y(1.03)-y(0.97)) / ln(1.03/0.97) ",
     "per3": "slope_ln * ln(1.03)",
-    "no_onesided": true
+    "no_onesided": true,
+    "dry_per_coal_denominator": "each snap coal_dry_kg_s; fallback PERT_SCALE[pert][1] * nominal coal",
+    "identification": "ceteris paribus ±3% control perturbation at frozen phase theta-hat"
   },
   "predeclared": {
-    "R1": "装置斜率 95% 自助区间不含 0 → 有符号；只对有符号 (观测, ln O2 或 ln 煤量, 阶段) 比较；X_C 不进判据；CH4 若有符号则计入",
+    "R1": "给定含载气 OLS 与窗口自助假设下，95% 区间不含 0 → 有符号；不写成装置斜率可信；只对有符号 (观测, ln O2 或 ln 煤量, 阶段) 比较；X_C 不进判据；CH4 若有符号则计入",
     "R2": "模型阶段中位每+3% 与装置每+3% 同号 → 一致；报 一致数/有符号数",
     "R3": "一致组合中 模型/装置 的中位与范围",
-    "R4": "哪个候选使 R2≥80%；若无则「现有候选均不能复现装置哈应方向」",
+    "R4": "在当前候选、固定阶段 θ̂、装置含载气 OLS、模型两侧 ±3% 控制扰动这一口径下，哪个候选使 R2≥80%；若无则记该口径下现有候选均不能复现装置响应方向。不得推广为任何反演都不能外推",
     "R5": "各候选在 θ̂ 处水平偏差（模型−装置）相对 C0 的变化"
   },
+  "cache_only": true,
+  "n_cache_json": 1200,
   "c5_selection": "C1、C2 最好档按全部阶段有符号组合的一致比例（一致数/有符号数）选取；并列时先取 R3 中位更接近 1，再取 |R5| 组成偏差更小。C5 = 该 C1 档的激冷后处理作用于该 C2 档的反应器快照；C1 全不可行则跳过 C5。",
-  "c5_note": "选用 C1_T900_rw1（R2=0.619）+ C2_f1（R2=0.476）",
+  "c5_note": "选用 C1_T1100_rw1（R2=0.762）+ C2_f1over256（R2=0.667）",
   "c2_checks": {
-    "f1_matches_c0": true,
-    "f1_note": "1/1 窗出口逐位一致",
+    "f1_matches_c0": false,
+    "f1_note": "未跑独立 f_CO2=1 求解，C2_f1 复用 C0",
     "f256_rate_down": true,
-    "f256_note": "133/133 窗全混区 C+CO2 毛速率下降",
+    "f256_note": "126/126 窗全混区 C+CO2 毛速率下降",
     "unbind_note": "C0 绑定分数=1.000，f_CO2=1/256 绑定分数=1.000；绑定未随 f_CO2 下降而解除"
   },
   "stopped_stages": [],
   "c0_phase": {
     "phase1": {
-      "n_ok": 37,
-      "n_fail": 0,
+      "n_ok": 34,
+      "n_fail": 3,
       "n_total": 37,
       "stopped": false
     },
     "phase2": {
-      "n_ok": 44,
-      "n_fail": 0,
+      "n_ok": 41,
+      "n_fail": 3,
       "n_total": 44,
       "stopped": false
     },
     "phase3": {
-      "n_ok": 44,
-      "n_fail": 0,
+      "n_ok": 41,
+      "n_fail": 3,
       "n_total": 44,
       "stopped": false
     },

@@ -8,7 +8,7 @@ HL_tot=1%、OxygenMixingModel=instant、全部 Arrhenius（除候选明确改动
 本轮不做反演、不采纳任何参数。run_case 走 scipy（jacobian_mode 由执行层固定）。
 
 用法：
-    ./.venv/bin/python scripts/generate_p1_15a_20261108.py [--stage all|smoke|read]
+    ./.venv/bin/python scripts/generate_p1_15a_20261108.py [--stage all|smoke|read] [--cache-only]
 """
 from __future__ import annotations
 
@@ -328,6 +328,8 @@ def _run_reactor(
     coal_mult: float,
     f_co2: float | None,
 ) -> dict:
+    if _CTX.get("cache_only"):
+        raise RuntimeError(f"cache-only refuse solve {_short(wid)}")
     row = _CTX["by_id"][wid]
     dry = _coal_dry(wid) * float(coal_mult)
     op = {
@@ -413,9 +415,22 @@ def _run_reactor(
     return snap
 
 
+def _wid_key(wid: str) -> str:
+    digest = hashlib.sha1(str(wid).encode("utf-8")).hexdigest()[:10]
+    return f"{_short(wid)}_{digest}"
+
+
+def _safe_cache_name(token: str, group: str) -> str:
+    raw = f"{token}__{group}"
+    return "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in raw)
+
+
 def _cache_path(wid: str, group: str) -> Path:
-    safe = "".join(ch if ch.isalnum() or ch in "-_." else "_" for ch in f"{_short(wid)}__{group}")
-    return CACHE_DIR / f"{safe}.json"
+    return CACHE_DIR / f"{_safe_cache_name(_wid_key(wid), group)}.json"
+
+
+def _legacy_cache_path(wid: str, group: str) -> Path:
+    return CACHE_DIR / f"{_safe_cache_name(_short(wid), group)}.json"
 
 
 def _dump_snaps(path: Path, payload: dict) -> None:
@@ -432,6 +447,18 @@ def _load_snaps(path: Path) -> dict | None:
         return None
 
 
+def _load_group_cache(wid: str, group: str) -> dict | None:
+    """命中须核对 JSON 内 window_id，避免短名交接班窗口互相覆盖。"""
+    for path in (_cache_path(wid, group), _legacy_cache_path(wid, group)):
+        hit = _load_snaps(path)
+        if not hit:
+            continue
+        if str(hit.get("window_id") or "") != str(wid):
+            continue
+        return hit
+    return None
+
+
 def reactor_group_job(spec: dict) -> dict:
     """一个窗口 × 一个反应器组：名义 + O2± + 煤±。"""
     if "by_id" not in _CTX:
@@ -440,13 +467,23 @@ def reactor_group_job(spec: dict) -> dict:
     group = str(spec["group"])
     cache_p = _cache_path(wid, group)
     perts = tuple(spec.get("perts") or PERTS)
-    hit = _load_snaps(cache_p)
+    hit = _load_group_cache(wid, group)
     if (
         hit and hit.get("complete")
         and all(p in (hit.get("snaps") or {}) for p in perts)
     ):
         print(f"  cache hit {_short(wid)} {group}", flush=True)
         return hit
+    if _CTX.get("cache_only"):
+        print(f"  cache miss {_short(wid)} {group} (cache-only, skip solve)", flush=True)
+        return {
+            "window_id": wid, "group": group, "complete": False, "ok_nom": False,
+            "error": "cache_miss_cache_only",
+            "snaps": {
+                p: _empty_snap(wid, pert=p, group=group, skipped_cache_miss=True)
+                for p in perts
+            },
+        }
     phase = _phase_of_row(_CTX["p114d"].loc[wid, "phase"])
     th = PHASE_THETA[phase]
     snaps = {}
@@ -511,7 +548,7 @@ def _job(spec: dict) -> dict:
         }
 
 
-def _init_worker():
+def _init_worker(cache_only: bool = False):
     silence_solver_logs()
     ok, rows_, _inv = load_frozen_split()
     if not ok:
@@ -525,7 +562,7 @@ def _init_worker():
             f"windows_142 ids do not match frozen split: "
             f"csv-frz={len(csv_ids - frz_ids)} frz-csv={len(frz_ids - csv_ids)}"
         )
-    _CTX.update({"by_id": by_id, "p114d": p114d})
+    _CTX.update({"by_id": by_id, "p114d": p114d, "cache_only": bool(cache_only)})
     p113a._CTX.update({"by_id": by_id, "p114d": p114d})
     p113a._CACHE.clear()
 
@@ -559,6 +596,48 @@ def _bootstrap_per3(X: np.ndarray, y: np.ndarray, col: int, seed: int) -> tuple[
     return float(lo), float(hi)
 
 
+def _design_cond(X: np.ndarray) -> float:
+    ok = np.isfinite(X).all(axis=1)
+    if int(ok.sum()) < X.shape[1]:
+        return float("nan")
+    try:
+        return float(np.linalg.cond(X[ok]))
+    except np.linalg.LinAlgError:
+        return float("nan")
+
+
+def _mark_sign_stable(df: pd.DataFrame) -> pd.DataFrame:
+    """两种回归下 signed 是否一致；仅 ln_O2 / ln_coal 有对照。"""
+    out = df.copy()
+    if out.empty:
+        out["sign_stable"] = []
+        return out
+    stable_map: dict[tuple[str, str, str], bool] = {}
+    keys = out.loc[out["input"].isin(INPUTS), ["phase", "obs", "input"]].drop_duplicates()
+    for _, k in keys.iterrows():
+        sub = out[
+            (out["phase"] == k["phase"])
+            & (out["obs"] == k["obs"])
+            & (out["input"] == k["input"])
+        ]
+        w = sub[sub["model"] == "with_carrier"]
+        n = sub[sub["model"] == "no_carrier"]
+        if w.empty or n.empty:
+            continue
+        stable_map[(str(k["phase"]), str(k["obs"]), str(k["input"]))] = bool(
+            bool(w.iloc[0]["signed"]) == bool(n.iloc[0]["signed"])
+        )
+    vals = []
+    for _, r in out.iterrows():
+        key = (str(r["phase"]), str(r["obs"]), str(r["input"]))
+        if key in stable_map:
+            vals.append("Y" if stable_map[key] else "N")
+        else:
+            vals.append("")
+    out["sign_stable"] = vals
+    return out
+
+
 def plant_slopes_table(p114d: pd.DataFrame) -> pd.DataFrame:
     rows = []
     df = p114d.reset_index()
@@ -574,13 +653,15 @@ def plant_slopes_table(p114d: pd.DataFrame) -> pd.DataFrame:
         ln_car = np.log(sub["co2_carrier_measured_nm3_h"].to_numpy(dtype=float))
         Xw = np.column_stack([np.ones(n), ln_o2, ln_coal, ln_car])
         Xn = np.column_stack([np.ones(n), ln_o2, ln_coal])
+        cond_w = _design_cond(Xw)
+        cond_n = _design_cond(Xn)
         ymap = {obs: sub[col].to_numpy(dtype=float) for obs, col in PLANT_Y.items()}
         ymap["dry_per_coal_mol_kg"] = np.array(
             [_plant_dry_per_coal(str(w)) for w in sub["window_id"]], dtype=float
         )
-        for model, X, names in (
-            ("with_carrier", Xw, names_with),
-            ("no_carrier", Xn, names_no),
+        for model, X, names, cond_this in (
+            ("with_carrier", Xw, names_with, cond_w),
+            ("no_carrier", Xn, names_no, cond_n),
         ):
             for obs in OBS_ALL:
                 y = ymap[obs]
@@ -594,6 +675,9 @@ def plant_slopes_table(p114d: pd.DataFrame) -> pd.DataFrame:
                             "se_per3": float("nan"), "boot_lo": float("nan"),
                             "boot_hi": float("nan"), "signed": False,
                             "used_in_R1": False,
+                            "cond_X": cond_this,
+                            "cond_X_with_carrier": cond_w,
+                            "cond_X_no_carrier": cond_n,
                             "note": "n too small or nonfinite",
                         })
                     continue
@@ -624,13 +708,29 @@ def plant_slopes_table(p114d: pd.DataFrame) -> pd.DataFrame:
                         "se_ln": float(se[j]), "per3": per3, "se_per3": se3,
                         "boot_lo": lo, "boot_hi": hi, "signed": signed,
                         "used_in_R1": used, "boot_n": BOOT_N, "boot_seed": col_seed,
+                        "cond_X": cond_this,
+                        "cond_X_with_carrier": cond_w,
+                        "cond_X_no_carrier": cond_n,
                         "note": note,
                     })
-    return pd.DataFrame(rows)
+    return _mark_sign_stable(pd.DataFrame(rows))
+
+
+def _coal_for_snap(snap: dict, pert: str, coal_nom: float | None) -> float:
+    """单位煤量产率分母：该扰动快照的实际煤量，而不是名义煤量。"""
+    v = _f((snap or {}).get("coal_dry_kg_s"))
+    if math.isfinite(v) and v > 0.0:
+        return v
+    nom = _f(coal_nom)
+    if math.isfinite(nom) and nom > 0.0:
+        return float(PERT_SCALE[pert][1]) * nom
+    return float("nan")
 
 
 def _y_for_post(snap: dict, cand: dict, coal: float) -> dict | None:
     if not snap.get("ok"):
+        return None
+    if not (math.isfinite(coal) and coal > 0.0):
         return None
     kind = cand["kind"]
     if kind in ("C0", "C2", "C3", "C4"):
@@ -640,8 +740,11 @@ def _y_for_post(snap: dict, cand: dict, coal: float) -> dict | None:
     raise KeyError(kind)
 
 
-def window_fd(snaps: dict, cand: dict, coal: float) -> dict:
-    ys = {p: _y_for_post(snaps.get(p) or {}, cand, coal) for p in PERTS}
+def window_fd(snaps: dict, cand: dict, coal: float | None = None) -> dict:
+    ys = {}
+    for p in PERTS:
+        snap = snaps.get(p) or {}
+        ys[p] = _y_for_post(snap, cand, _coal_for_snap(snap, p, coal))
     nom = ys["nom"]
     out = {
         "ok_nom": nom is not None,
@@ -750,24 +853,28 @@ def reactor_specs_for(cands: list[dict], wids: list[str], stopped: set[str]) -> 
     return specs
 
 
-def run_specs(specs: list[dict], n_workers: int) -> dict[tuple[str, str], dict]:
+def run_specs(specs: list[dict], n_workers: int, cache_only: bool = False) -> dict[tuple[str, str], dict]:
     out: dict[tuple[str, str], dict] = {}
     if not specs:
         return out
+    _CTX["cache_only"] = bool(cache_only)
     n_workers = max(1, min(int(n_workers), len(specs)))
-    print(f"START jobs={len(specs)} n_workers={n_workers}", flush=True)
+    print(f"START jobs={len(specs)} n_workers={n_workers} cache_only={cache_only}", flush=True)
     if n_workers == 1:
         for i, spec in enumerate(specs, 1):
             rec = _job(spec)
-            out[(str(rec["window_id"]), str(rec["group"]))] = rec
+            out[(str(spec["window_id"]), str(spec["group"]))] = rec
             print(f"progress {i}/{len(specs)} {rec.get('group')} ok_nom={rec.get('ok_nom')}", flush=True)
         return out
-    with ProcessPoolExecutor(max_workers=n_workers, initializer=_init_worker) as ex:
+    with ProcessPoolExecutor(
+        max_workers=n_workers, initializer=_init_worker, initargs=(cache_only,),
+    ) as ex:
         fut = {ex.submit(_job, spec): spec for spec in specs}
         done = 0
         for f in as_completed(fut):
             rec = f.result()
-            out[(str(rec["window_id"]), str(rec["group"]))] = rec
+            spec = fut[f]
+            out[(str(spec["window_id"]), str(spec["group"]))] = rec
             done += 1
             print(
                 f"progress {done}/{len(specs)} {_short(str(rec.get('window_id')))} "
@@ -1028,7 +1135,10 @@ def build_readings(
         "reading": "R1", "metric": "n_signed", "phase": "all", "subset": "",
         "window_set": "ln_O2,ln_coal", "window_id": "",
         "value": n_signed, "threshold": "", "pass": "",
-        "note": "有符号=(观测,输入,阶段)；X_C 不计入；主模型含载气",
+            "note": (
+                "有符号=给定含载气 OLS 与窗口自助假设下区间不含 0；"
+                "(观测,输入,阶段)；X_C 不计入。不写成装置斜率可信"
+            ),
         "exploratory": False, "candidate": "",
     })
     for _, s in cands.iterrows():
@@ -1065,13 +1175,17 @@ def build_readings(
             })
     feas = cands[cands["feasible"].astype(bool)]
     hit = feas[feas["r2_ratio"] >= 0.8] if not feas.empty else feas
+    scope = (
+        "比较口径限于当前候选、固定阶段 θ̂、装置含载气 OLS、模型两侧 ±3% 控制扰动；"
+        "装置为条件关联，模型为控制扰动。不得推广为任何参数反演都不能外推。"
+    )
     if hit is not None and not hit.empty:
         best = hit.sort_values("r2_ratio", ascending=False).iloc[0]
-        r4_note = f"{best['candidate']} R2={best['r2_ratio']:.3f}"
+        r4_note = f"在该口径下 {best['candidate']} 使 R2={best['r2_ratio']:.3f}≥80%。{scope}"
         r4_pass = True
         r4_val = best["candidate"]
     else:
-        r4_note = "现有候选均不能复现装置哈应方向"
+        r4_note = f"在该口径下现有候选无一使 R2≥80%。{scope}"
         r4_pass = False
         r4_val = ""
     rows.append({
@@ -1136,10 +1250,20 @@ def interpretation(
         L.append(f"- 触发停止的阶段：{', '.join(sorted(stopped))}。")
     else:
         L.append("- 未触发分阶段停止。")
+    n_fail_tot = sum(int(rec.get("n_fail", 0) or 0) for rec in c0_phase.values())
+    if n_fail_tot:
+        L.append(
+            f"- C0 失败合计 {n_fail_tot} 窗。既有 cache 用 wid[-16:] 作文件名，"
+            "交接班窗口会互相覆盖；本轮核对 JSON 内 window_id，缺档不求解、不复用他窗快照。"
+        )
     L.append("")
     L.append("## 第 1 节 装置斜率（含载气；每 +3% = β_ln × ln(1.03)）")
     L.append("主模型：y ~ ln O2 + ln 干煤 + ln 实测载气。窗口自助 1000 次，种子见 protocol。")
+    L.append("装置侧是阶段内有限窗口、给定协变量下的条件关联；窗口自助区间只反映该回归与重采样假设，")
+    L.append("未识别时序相关、遗漏变量和内生性。有符号 = 该回归下区间不含 0，不写成「装置斜率可信」。")
+    L.append("模型侧是固定其余输入的 ±3% 控制扰动。二者不是同一识别策略。")
     L.append("X_C 因与煤碳公共分母而不进入 R1–R4。并列不含载气的版本见 `plant_slopes.csv`。")
+    L.append("单位煤量干气的模型斜率分母为各扰动快照的 `coal_dry_kg_s`，不是名义煤量。")
     L.append("")
     sub = plant[(plant["model"] == "with_carrier") & (plant["input"].isin(INPUTS))]
     for phase in PHASES:
@@ -1153,6 +1277,30 @@ def interpretation(
                 f"**{sig}**。"
             )
         L.append("")
+    L.append("## 设计矩阵条件数与载气符号稳定性")
+    L.append("cond(X) 为该阶段协变量矩阵（含截距）的 2-范数条件数；符号稳定 = 含载气 / 不含载气两种回归的 signed 一致。")
+    for phase in PHASES:
+        hit = plant[plant["phase"] == phase]
+        if hit.empty:
+            continue
+        cw = _fmt(hit["cond_X_with_carrier"].iloc[0])
+        cn = _fmt(hit["cond_X_no_carrier"].iloc[0])
+        pairs = hit[
+            (hit["model"] == "with_carrier")
+            & (hit["input"].isin(INPUTS))
+            & (hit["obs"].isin(OBS_R))
+        ]
+        n_stable = int((pairs["sign_stable"] == "Y").sum())
+        n_pairs = int(len(pairs))
+        L.append(f"- {phase}：cond(X_with_carrier)={cw}，cond(X_no_carrier)={cn}；")
+        L.append(f"  OBS_R×{{ln_O2,ln_coal}} 符号稳定 {n_stable}/{n_pairs}。")
+        unstable = pairs[pairs["sign_stable"] == "N"]
+        for _, r in unstable.iterrows():
+            L.append(
+                f"  - 不稳定：{r['obs']} ← {r['input']} "
+                f"（含载气 signed={bool(r['signed'])}）"
+            )
+    L.append("")
     L.append("## 第 2 节 基准模型斜率（C0，两侧 ±3%）")
     m0 = model[model["candidate"] == "C0"]
     for phase in PHASES:
@@ -1193,9 +1341,12 @@ def interpretation(
     )
     L.append(f"- 全混区 C+CO2 限幅是否随 f_CO2 解除：{c2_check.get('unbind_note', '')}")
     L.append("")
-    L.append("## R1 装置斜率可信（有符号组合）")
+    L.append("## R1 给定回归与窗口自助假设下区间不含 0（有符号组合）")
     n_signed = int(len(signed_index(plant)[~signed_index(plant)["phase"].isin(stopped)]))
-    L.append(f"- 有符号组合数（含载气主模型，X_C 除外）= {n_signed}。逐条见 `readings.csv` / 第 1 节。")
+    L.append(
+        f"- 有符号组合数（含载气主模型，X_C 除外）= {n_signed}。"
+        "这只说明该回归与窗口自助假设下区间不含 0，不写成装置斜率可信。逐条见 `readings.csv` / 第 1 节。"
+    )
     L.append("")
     L.append("## R2 方向一致（一致数 / 有符号数）")
     for _, s in cands.iterrows():
@@ -1214,7 +1365,9 @@ def interpretation(
             f"范围 [{_fmt(s['r3_min'])},{_fmt(s['r3_max'])}]"
         )
     L.append("")
-    L.append("## R4 机理归属")
+    L.append("## R4 机理归属（限于当前比较口径）")
+    L.append("口径：当前候选、固定阶段 θ̂、装置含载气 OLS、模型两侧 ±3% 控制扰动。")
+    L.append("不得把该口径下的方向比较推广为「任何参数反演都不能外推」。")
     r4 = readings[(readings["reading"] == "R4") & (readings["metric"] == "attribution")]
     if not r4.empty:
         L.append(f"- {r4.iloc[0]['note']}")
@@ -1248,7 +1401,32 @@ def interpretation(
     return "\n".join(L) + "\n"
 
 
-def _protocol(src_commit, stopped, c0_phase, c2_check, pick_rule, c5_note) -> dict:
+def _plant_design_block(plant: pd.DataFrame | None) -> dict:
+    out = {}
+    if plant is None or plant.empty:
+        return out
+    for phase in PHASES:
+        hit = plant[plant["phase"] == phase]
+        if hit.empty or "cond_X_with_carrier" not in hit.columns:
+            continue
+        pairs = hit[
+            (hit["model"] == "with_carrier")
+            & (hit["input"].isin(INPUTS))
+            & (hit["obs"].isin(OBS_R))
+        ]
+        out[phase] = {
+            "cond_X_with_carrier": _f(hit["cond_X_with_carrier"].iloc[0]),
+            "cond_X_no_carrier": _f(hit["cond_X_no_carrier"].iloc[0]),
+            "sign_stable_obs_input": int((pairs["sign_stable"] == "Y").sum()),
+            "n_obs_input": int(len(pairs)),
+        }
+    return out
+
+
+def _protocol(
+    src_commit, stopped, c0_phase, c2_check, pick_rule, c5_note,
+    plant=None, cache_only=False, n_cache=0,
+) -> dict:
     sha_in = hashlib.sha256(P114D_CSV.read_bytes()).hexdigest() if P114D_CSV.exists() else ""
     return base_protocol({
         "round": "P1.15-A / 2026-11-08",
@@ -1285,20 +1463,39 @@ def _protocol(src_commit, stopped, c0_phase, c2_check, pick_rule, c5_note) -> di
             "per3": "beta_ln * ln(1.03)",
             "bootstrap": {"n": BOOT_N, "unit": "window", "seed_base": BOOT_SEED},
             "X_C_note": "公共分母（煤碳）伪相关，不用于 R1–R4",
+            "identification": (
+                "阶段内窗口 OLS 条件关联；不是控制扰动。"
+                "有符号仅表示该回归与窗口自助假设下区间不含 0。"
+            ),
+            "design_cond": _plant_design_block(plant),
         },
         "model_fd": {
             "scheme": "two-sided ±3%",
             "d_ln": " (y(1.03)-y(0.97)) / ln(1.03/0.97) ",
             "per3": "slope_ln * ln(1.03)",
             "no_onesided": True,
+            "dry_per_coal_denominator": (
+                "each snap coal_dry_kg_s; fallback PERT_SCALE[pert][1] * nominal coal"
+            ),
+            "identification": "ceteris paribus ±3% control perturbation at frozen phase theta-hat",
         },
         "predeclared": {
-            "R1": "装置斜率 95% 自助区间不含 0 → 有符号；只对有符号 (观测, ln O2 或 ln 煤量, 阶段) 比较；X_C 不进判据；CH4 若有符号则计入",
+            "R1": (
+                "给定含载气 OLS 与窗口自助假设下，95% 区间不含 0 → 有符号；"
+                "不写成装置斜率可信；只对有符号 (观测, ln O2 或 ln 煤量, 阶段) 比较；"
+                "X_C 不进判据；CH4 若有符号则计入"
+            ),
             "R2": "模型阶段中位每+3% 与装置每+3% 同号 → 一致；报 一致数/有符号数",
             "R3": "一致组合中 模型/装置 的中位与范围",
-            "R4": "哪个候选使 R2≥80%；若无则「现有候选均不能复现装置哈应方向」",
+            "R4": (
+                "在当前候选、固定阶段 θ̂、装置含载气 OLS、模型两侧 ±3% 控制扰动这一口径下，"
+                "哪个候选使 R2≥80%；若无则记该口径下现有候选均不能复现装置响应方向。"
+                "不得推广为任何反演都不能外推"
+            ),
             "R5": "各候选在 θ̂ 处水平偏差（模型−装置）相对 C0 的变化",
         },
+        "cache_only": bool(cache_only),
+        "n_cache_json": int(n_cache),
         "c5_selection": pick_rule,
         "c5_note": c5_note,
         "c2_checks": c2_check,
@@ -1330,7 +1527,7 @@ def _protocol(src_commit, stopped, c0_phase, c2_check, pick_rule, c5_note) -> di
 
 
 def _rewrite_manifest(out_dir: Path) -> None:
-    skip = {"sha256.txt", "run.log"}
+    skip = {"sha256.txt", "run.log", "run.log.prev"}
     files = sorted(
         p for p in out_dir.iterdir()
         if p.is_file() and p.name not in skip
@@ -1473,16 +1670,25 @@ def main() -> None:
     ap.add_argument("--source-commit", default=None)
     ap.add_argument("--n-workers", type=int, default=N_WORKERS_DEFAULT)
     ap.add_argument("--n-windows", type=int, default=0)
+    ap.add_argument(
+        "--cache-only", action="store_true",
+        help="cache 未命中则跳过该组，绝不调用求解器",
+    )
     args = ap.parse_args()
     silence_solver_logs()
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    n_cache = len(list(CACHE_DIR.glob("*.json")))
+    print(
+        f"preflight cache json={n_cache} cache_only={args.cache_only}",
+        flush=True,
+    )
 
     if args.stage == "smoke":
         smoke()
         return
 
-    _init_worker()
+    _init_worker(cache_only=args.cache_only)
     p114d = _CTX["p114d"]
     window_ids = [str(w) for w in p114d.index]
     if args.n_windows and args.n_windows > 0:
@@ -1506,8 +1712,11 @@ def main() -> None:
         text = interpretation(
             plant, model, cand_df, readings, c0_phase, stopped, c1_bad, c5_note, c2_check,
         )
-        protocol = _protocol(args.source_commit or proto.get("source_commit"),
-                             stopped, c0_phase, c2_check, proto.get("c5_selection"), c5_note)
+        protocol = _protocol(
+            args.source_commit or proto.get("source_commit"),
+            stopped, c0_phase, c2_check, proto.get("c5_selection"), c5_note,
+            plant=plant, cache_only=args.cache_only, n_cache=n_cache,
+        )
         write_all(plant, model, cand_df, readings, protocol, text)
         print("written read-stage", flush=True)
         return
@@ -1526,7 +1735,7 @@ def main() -> None:
          "HL_tot_pct": HL_NOM, "f_CO2": None}
         for wid in window_ids
     ]
-    store = run_specs(c0_specs, args.n_workers)
+    store = run_specs(c0_specs, args.n_workers, cache_only=args.cache_only)
     c0_phase, stopped = _count_c0(store, p114d)
     print(f"C0 done stopped={sorted(stopped)} {c0_phase}", flush=True)
     ok_wid = next((w for w in window_ids if store.get((w, "C0"), {}).get("ok_nom")), None)
@@ -1539,7 +1748,7 @@ def main() -> None:
 
     rest = [c for c in catalog if c["kind"] in ("C2", "C3", "C4") and not c.get("reuse_c0")]
     rest_specs = reactor_specs_for(rest, window_ids, stopped)
-    store.update(run_specs(rest_specs, args.n_workers))
+    store.update(run_specs(rest_specs, args.n_workers, cache_only=args.cache_only))
 
     summaries = []
     slope_frames = []
@@ -1595,7 +1804,10 @@ def main() -> None:
     text = interpretation(
         plant, model, cand_df, readings, c0_phase, stopped, c1_bad, c5_note, c2_check,
     )
-    protocol = _protocol(args.source_commit, stopped, c0_phase, c2_check, pick_rule, c5_note)
+    protocol = _protocol(
+        args.source_commit, stopped, c0_phase, c2_check, pick_rule, c5_note,
+        plant=plant, cache_only=args.cache_only, n_cache=n_cache,
+    )
     if c1_notes:
         pd.DataFrame(c1_notes).to_csv(OUT_DIR / "c1_windows.csv", index=False)
     write_all(plant, model, cand_df, readings, protocol, text)
