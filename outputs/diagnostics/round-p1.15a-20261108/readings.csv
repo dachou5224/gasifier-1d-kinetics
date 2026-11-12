@@ -1,0 +1,204 @@
+reading,metric,phase,subset,window_set,window_id,value,threshold,pass,note,exploratory,candidate
+R1,signed,phase1,CO2_vol_pct,ln_coal,,-0.2934646315741745,0.0,True,"装置每+3%=-0.29346 自助95% [-0.51412,-0.14265] β_ln=-9.9282",False,
+R1,signed,phase1,CH4_vol_pct,ln_O2,,-0.023193284047461668,0.0,True,"装置每+3%=-0.023193 自助95% [-0.037125,-0.0089558] β_ln=-0.78465",False,
+R1,signed,phase1,CH4_vol_pct,ln_coal,,0.017346657695348842,0.0,True,"装置每+3%=0.017347 自助95% [0.0082994,0.026318] β_ln=0.58685",False,
+R1,signed,phase1,dry_per_coal_mol_kg,ln_O2,,2.359529683428457,0.0,True,"装置每+3%=2.3595 自助95% [1.2145,3.2996] β_ln=79.825",False,
+R1,signed,phase1,dry_per_coal_mol_kg,ln_coal,,-2.9106419726556694,0.0,True,"装置每+3%=-2.9106 自助95% [-3.452,-2.0959] β_ln=-98.47",False,
+R1,signed,phase2,CO_vol_pct,ln_coal,,0.6967429115398697,0.0,True,"装置每+3%=0.69674 自助95% [0.54085,0.88746] β_ln=23.571",False,
+R1,signed,phase2,CO2_vol_pct,ln_coal,,-0.7468895902246678,0.0,True,"装置每+3%=-0.74689 自助95% [-0.89301,-0.62047] β_ln=-25.268",False,
+R1,signed,phase2,CH4_vol_pct,ln_coal,,0.03191675466837631,0.0,True,"装置每+3%=0.031917 自助95% [0.027505,0.036378] β_ln=1.0798",False,
+R1,signed,phase2,dry_per_coal_mol_kg,ln_O2,,1.6760636620201936,0.0,True,"装置每+3%=1.6761 自助95% [0.30812,2.2647] β_ln=56.703",False,
+R1,signed,phase2,dry_per_coal_mol_kg,ln_coal,,-1.4205386954680292,0.0,True,"装置每+3%=-1.4205 自助95% [-1.675,-1.1651] β_ln=-48.058",False,
+R1,signed,phase3,CO_vol_pct,ln_coal,,0.28141784603196895,0.0,True,"装置每+3%=0.28142 自助95% [0.11176,0.44127] β_ln=9.5206",False,
+R1,signed,phase3,CO2_vol_pct,ln_coal,,-0.30941803176586935,0.0,True,"装置每+3%=-0.30942 自助95% [-0.45592,-0.12611] β_ln=-10.468",False,
+R1,signed,phase3,CH4_vol_pct,ln_O2,,-0.011490858154646781,0.0,True,"装置每+3%=-0.011491 自助95% [-0.024141,-0.0020785] β_ln=-0.38875",False,
+R1,signed,phase3,CH4_vol_pct,ln_coal,,0.016292512405510755,0.0,True,"装置每+3%=0.016293 自助95% [0.0088788,0.022653] β_ln=0.55119",False,
+R1,signed,phase3,dry_per_coal_mol_kg,ln_coal,,-1.6225364433972072,0.0,True,"装置每+3%=-1.6225 自助95% [-2.0951,-1.1627] β_ln=-54.892",False,
+R1,signed,phase4,CO_vol_pct,ln_coal,,0.5276876360172579,0.0,True,"装置每+3%=0.52769 自助95% [0.31598,1.1558] β_ln=17.852",False,
+R1,signed,phase4,H2_vol_pct,ln_O2,,-0.48502847508285113,0.0,True,"装置每+3%=-0.48503 自助95% [-0.77541,-0.18743] β_ln=-16.409",False,
+R1,signed,phase4,CO2_vol_pct,ln_coal,,-0.623477273482688,0.0,True,"装置每+3%=-0.62348 自助95% [-1.1547,-0.4138] β_ln=-21.093",False,
+R1,signed,phase4,CH4_vol_pct,ln_coal,,0.03522666482916309,0.0,True,"装置每+3%=0.035227 自助95% [0.022602,0.067888] β_ln=1.1917",False,
+R1,signed,phase4,dry_per_coal_mol_kg,ln_O2,,3.0448135308234896,0.0,True,"装置每+3%=3.0448 自助95% [1.9871,3.9845] β_ln=103.01",False,
+R1,signed,phase4,dry_per_coal_mol_kg,ln_coal,,-1.6773341807848414,0.0,True,"装置每+3%=-1.6773 自助95% [-2.0722,-0.88075] β_ln=-56.746",False,
+R1,n_signed,all,,"ln_O2,ln_coal",,21.0,,,"有符号=给定含载气 OLS 与窗口自助假设下区间不含 0；(观测,输入,阶段)；X_C 不计入。不写成装置斜率可信",False,
+R2,consistent_ratio,all,C0,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C0
+R3,ratio_median,all,C0,,,1.4953628976340683,,,"range [0.6779462690491291,8.657529585268287] 仅一致组合",False,C0
+R5,bias_X_C_pp,all,C0,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C0
+R5,bias_CO_vol_pct,all,C0,,,-0.30058643100964844,,,模型−装置，阶段窗中位,False,C0
+R5,bias_H2_vol_pct,all,C0,,,-0.242520389062431,,,模型−装置，阶段窗中位,False,C0
+R5,bias_CO2_vol_pct,all,C0,,,0.0041548338937928975,,,模型−装置，阶段窗中位,False,C0
+R5,bias_CH4_vol_pct,all,C0,,,0.6210168272492438,,,模型−装置，阶段窗中位,False,C0
+R5,bias_dry_per_coal_mol_kg,all,C0,,,-0.4905891011114818,,,模型−装置，阶段窗中位,False,C0
+R2,consistent_ratio,all,C1_T900_rw0.3,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C1_T900_rw0.3
+R3,ratio_median,all,C1_T900_rw0.3,,,1.6818016872264505,,,"range [0.41794329119065765,7.571317599359332] 仅一致组合",False,C1_T900_rw0.3
+R5,bias_X_C_pp,all,C1_T900_rw0.3,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T900_rw0.3
+R5,bias_CO_vol_pct,all,C1_T900_rw0.3,,,-23.018851337288154,,,模型−装置，阶段窗中位,False,C1_T900_rw0.3
+R5,bias_H2_vol_pct,all,C1_T900_rw0.3,,,10.028434688192132,,,模型−装置，阶段窗中位,False,C1_T900_rw0.3
+R5,bias_CO2_vol_pct,all,C1_T900_rw0.3,,,12.584628190818798,,,模型−装置，阶段窗中位,False,C1_T900_rw0.3
+R5,bias_CH4_vol_pct,all,C1_T900_rw0.3,,,0.5245455038214589,,,模型−装置，阶段窗中位,False,C1_T900_rw0.3
+R5,bias_dry_per_coal_mol_kg,all,C1_T900_rw0.3,,,13.75436303569191,,,模型−装置，阶段窗中位,False,C1_T900_rw0.3
+R2,consistent_ratio,all,C1_T900_rw0.6,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C1_T900_rw0.6
+R3,ratio_median,all,C1_T900_rw0.6,,,1.8459285864511719,,,"range [0.21124476489052077,6.926208360100117] 仅一致组合",False,C1_T900_rw0.6
+R5,bias_X_C_pp,all,C1_T900_rw0.6,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T900_rw0.6
+R5,bias_CO_vol_pct,all,C1_T900_rw0.6,,,-36.50045178066236,,,模型−装置，阶段窗中位,False,C1_T900_rw0.6
+R5,bias_H2_vol_pct,all,C1_T900_rw0.6,,,16.073588228066825,,,模型−装置，阶段窗中位,False,C1_T900_rw0.6
+R5,bias_CO2_vol_pct,all,C1_T900_rw0.6,,,20.11767590673973,,,模型−装置，阶段窗中位,False,C1_T900_rw0.6
+R5,bias_CH4_vol_pct,all,C1_T900_rw0.6,,,0.467170337542983,,,模型−装置，阶段窗中位,False,C1_T900_rw0.6
+R5,bias_dry_per_coal_mol_kg,all,C1_T900_rw0.6,,,24.398594340591046,,,模型−装置，阶段窗中位,False,C1_T900_rw0.6
+R2,consistent_ratio,all,C1_T900_rw1,,,0.7619047619047619,0.8,False,16/21 feasible=True nan,False,C1_T900_rw1
+R3,ratio_median,all,C1_T900_rw1,,,1.8792756428051276,,,"range [0.03736681863772244,6.494610441186693] 仅一致组合",False,C1_T900_rw1
+R5,bias_X_C_pp,all,C1_T900_rw1,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T900_rw1
+R5,bias_CO_vol_pct,all,C1_T900_rw1,,,-45.4674542602735,,,模型−装置，阶段窗中位,False,C1_T900_rw1
+R5,bias_H2_vol_pct,all,C1_T900_rw1,,,20.102586433529325,,,模型−装置，阶段窗中位,False,C1_T900_rw1
+R5,bias_CO2_vol_pct,all,C1_T900_rw1,,,25.146389106271943,,,模型−装置，阶段窗中位,False,C1_T900_rw1
+R5,bias_CH4_vol_pct,all,C1_T900_rw1,,,0.42871571742752956,,,模型−装置，阶段窗中位,False,C1_T900_rw1
+R5,bias_dry_per_coal_mol_kg,all,C1_T900_rw1,,,32.93530366876739,,,模型−装置，阶段窗中位,False,C1_T900_rw1
+R2,consistent_ratio,all,C1_T1000_rw0.3,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C1_T1000_rw0.3
+R3,ratio_median,all,C1_T1000_rw0.3,,,1.697949604116363,,,"range [0.3672521835275377,7.779853416548334] 仅一致组合",False,C1_T1000_rw0.3
+R5,bias_X_C_pp,all,C1_T1000_rw0.3,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.3
+R5,bias_CO_vol_pct,all,C1_T1000_rw0.3,,,-19.693871508781534,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.3
+R5,bias_H2_vol_pct,all,C1_T1000_rw0.3,,,8.533797948571973,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.3
+R5,bias_CO2_vol_pct,all,C1_T1000_rw0.3,,,10.738701348160713,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.3
+R5,bias_CH4_vol_pct,all,C1_T1000_rw0.3,,,0.5390915129440227,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.3
+R5,bias_dry_per_coal_mol_kg,all,C1_T1000_rw0.3,,,11.404332075171212,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.3
+R2,consistent_ratio,all,C1_T1000_rw0.6,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C1_T1000_rw0.6
+R3,ratio_median,all,C1_T1000_rw0.6,,,1.80199523234237,,,"range [0.19502115965809216,7.17625422076318] 仅一致组合",False,C1_T1000_rw0.6
+R5,bias_X_C_pp,all,C1_T1000_rw0.6,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.6
+R5,bias_CO_vol_pct,all,C1_T1000_rw0.6,,,-32.12124044971114,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.6
+R5,bias_H2_vol_pct,all,C1_T1000_rw0.6,,,14.110332523996654,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.6
+R5,bias_CO2_vol_pct,all,C1_T1000_rw0.6,,,17.668998494723688,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.6
+R5,bias_CH4_vol_pct,all,C1_T1000_rw0.6,,,0.4864438183146889,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.6
+R5,bias_dry_per_coal_mol_kg,all,C1_T1000_rw0.6,,,20.642991385807477,,,模型−装置，阶段窗中位,False,C1_T1000_rw0.6
+R2,consistent_ratio,all,C1_T1000_rw1,,,0.7619047619047619,0.8,False,16/21 feasible=True nan,False,C1_T1000_rw1
+R3,ratio_median,all,C1_T1000_rw1,,,1.8757353040246336,,,"range [0.0280751656563331,6.739340804986158] 仅一致组合",False,C1_T1000_rw1
+R5,bias_X_C_pp,all,C1_T1000_rw1,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T1000_rw1
+R5,bias_CO_vol_pct,all,C1_T1000_rw1,,,-40.985947796331374,,,模型−装置，阶段窗中位,False,C1_T1000_rw1
+R5,bias_H2_vol_pct,all,C1_T1000_rw1,,,18.085728419432563,,,模型−装置，阶段窗中位,False,C1_T1000_rw1
+R5,bias_CO2_vol_pct,all,C1_T1000_rw1,,,22.641898052989557,,,模型−装置，阶段窗中位,False,C1_T1000_rw1
+R5,bias_CH4_vol_pct,all,C1_T1000_rw1,,,0.4480413787237255,,,模型−装置，阶段窗中位,False,C1_T1000_rw1
+R5,bias_dry_per_coal_mol_kg,all,C1_T1000_rw1,,,28.38875576048811,,,模型−装置，阶段窗中位,False,C1_T1000_rw1
+R2,consistent_ratio,all,C1_T1100_rw0.3,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C1_T1100_rw0.3
+R3,ratio_median,all,C1_T1100_rw0.3,,,1.7106081419791397,,,"range [0.32671410015283725,7.961532269479915] 仅一致组合",False,C1_T1100_rw0.3
+R5,bias_X_C_pp,all,C1_T1100_rw0.3,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.3
+R5,bias_CO_vol_pct,all,C1_T1100_rw0.3,,,-16.75599719399758,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.3
+R5,bias_H2_vol_pct,all,C1_T1100_rw0.3,,,7.209842733066793,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.3
+R5,bias_CO2_vol_pct,all,C1_T1100_rw0.3,,,9.088009795864203,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.3
+R5,bias_CH4_vol_pct,all,C1_T1100_rw0.3,,,0.5519262863663531,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.3
+R5,bias_dry_per_coal_mol_kg,all,C1_T1100_rw0.3,,,9.348953729515713,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.3
+R2,consistent_ratio,all,C1_T1100_rw0.6,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C1_T1100_rw0.6
+R3,ratio_median,all,C1_T1100_rw0.6,,,1.757508870870165,,,"range [0.18044726706652675,7.391565847380676] 仅一致组合",False,C1_T1100_rw0.6
+R5,bias_X_C_pp,all,C1_T1100_rw0.6,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.6
+R5,bias_CO_vol_pct,all,C1_T1100_rw0.6,,,-28.3518864426115,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.6
+R5,bias_H2_vol_pct,all,C1_T1100_rw0.6,,,12.419548586172837,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.6
+R5,bias_CO2_vol_pct,all,C1_T1100_rw0.6,,,15.56052672788508,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.6
+R5,bias_CH4_vol_pct,all,C1_T1100_rw0.6,,,0.5024287975739841,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.6
+R5,bias_dry_per_coal_mol_kg,all,C1_T1100_rw0.6,,,17.622594032837426,,,模型−装置，阶段窗中位,False,C1_T1100_rw0.6
+R2,consistent_ratio,all,C1_T1100_rw1,,,0.7619047619047619,0.8,False,16/21 feasible=True nan,False,C1_T1100_rw1
+R3,ratio_median,all,C1_T1100_rw1,,,1.8553028159207172,,,"range [0.02419566313415632,6.956359516575036] 仅一致组合",False,C1_T1100_rw1
+R5,bias_X_C_pp,all,C1_T1100_rw1,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C1_T1100_rw1
+R5,bias_CO_vol_pct,all,C1_T1100_rw1,,,-37.0391378007397,,,模型−装置，阶段窗中位,False,C1_T1100_rw1
+R5,bias_H2_vol_pct,all,C1_T1100_rw1,,,16.314630154948855,,,模型−装置，阶段窗中位,False,C1_T1100_rw1
+R5,bias_CO2_vol_pct,all,C1_T1100_rw1,,,20.433014853085762,,,模型−装置，阶段窗中位,False,C1_T1100_rw1
+R5,bias_CH4_vol_pct,all,C1_T1100_rw1,,,0.4654322066765836,,,模型−装置，阶段窗中位,False,C1_T1100_rw1
+R5,bias_dry_per_coal_mol_kg,all,C1_T1100_rw1,,,24.72226524436246,,,模型−装置，阶段窗中位,False,C1_T1100_rw1
+R2,consistent_ratio,all,C2_f1,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C2_f1
+R3,ratio_median,all,C2_f1,,,1.4953628976340683,,,"range [0.6779462690491291,8.657529585268287] 仅一致组合",False,C2_f1
+R5,bias_X_C_pp,all,C2_f1,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C2_f1
+R5,bias_CO_vol_pct,all,C2_f1,,,-0.30058643100964844,,,模型−装置，阶段窗中位,False,C2_f1
+R5,bias_H2_vol_pct,all,C2_f1,,,-0.242520389062431,,,模型−装置，阶段窗中位,False,C2_f1
+R5,bias_CO2_vol_pct,all,C2_f1,,,0.0041548338937928975,,,模型−装置，阶段窗中位,False,C2_f1
+R5,bias_CH4_vol_pct,all,C2_f1,,,0.6210168272492438,,,模型−装置，阶段窗中位,False,C2_f1
+R5,bias_dry_per_coal_mol_kg,all,C2_f1,,,-0.4905891011114818,,,模型−装置，阶段窗中位,False,C2_f1
+R2,consistent_ratio,all,C2_f1over4,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C2_f1over4
+R3,ratio_median,all,C2_f1over4,,,1.470472426403572,,,"range [0.6600369741575839,9.688389874258771] 仅一致组合",False,C2_f1over4
+R5,bias_X_C_pp,all,C2_f1over4,,,0.2267537457639861,,,模型−装置，阶段窗中位,False,C2_f1over4
+R5,bias_CO_vol_pct,all,C2_f1over4,,,-0.22734046759895676,,,模型−装置，阶段窗中位,False,C2_f1over4
+R5,bias_H2_vol_pct,all,C2_f1over4,,,-0.5882433403565486,,,模型−装置，阶段窗中位,False,C2_f1over4
+R5,bias_CO2_vol_pct,all,C2_f1over4,,,0.036898580830285965,,,模型−装置，阶段窗中位,False,C2_f1over4
+R5,bias_CH4_vol_pct,all,C2_f1over4,,,0.74971742801441,,,模型−装置，阶段窗中位,False,C2_f1over4
+R5,bias_dry_per_coal_mol_kg,all,C2_f1over4,,,-0.568113309715045,,,模型−装置，阶段窗中位,False,C2_f1over4
+R2,consistent_ratio,all,C2_f1over16,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C2_f1over16
+R3,ratio_median,all,C2_f1over16,,,1.4578332830308165,,,"range [0.6503883657007045,10.256707816800075] 仅一致组合",False,C2_f1over16
+R5,bias_X_C_pp,all,C2_f1over16,,,0.34188733338531563,,,模型−装置，阶段窗中位,False,C2_f1over16
+R5,bias_CO_vol_pct,all,C2_f1over16,,,-0.1780630559085452,,,模型−装置，阶段窗中位,False,C2_f1over16
+R5,bias_H2_vol_pct,all,C2_f1over16,,,-0.7637350407215067,,,模型−装置，阶段窗中位,False,C2_f1over16
+R5,bias_CO2_vol_pct,all,C2_f1over16,,,0.07134439944494453,,,模型−装置，阶段窗中位,False,C2_f1over16
+R5,bias_CH4_vol_pct,all,C2_f1over16,,,0.8467969460779917,,,模型−装置，阶段窗中位,False,C2_f1over16
+R5,bias_dry_per_coal_mol_kg,all,C2_f1over16,,,-0.6258806087460584,,,模型−装置，阶段窗中位,False,C2_f1over16
+R2,consistent_ratio,all,C2_f1over64,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C2_f1over64
+R3,ratio_median,all,C2_f1over64,,,1.4528718740154485,,,"range [0.647015897397262,10.412496427163923] 仅一致组合",False,C2_f1over64
+R5,bias_X_C_pp,all,C2_f1over64,,,0.4241333134130514,,,模型−装置，阶段窗中位,False,C2_f1over64
+R5,bias_CO_vol_pct,all,C2_f1over64,,,-0.14875064013103412,,,模型−装置，阶段窗中位,False,C2_f1over64
+R5,bias_H2_vol_pct,all,C2_f1over64,,,-0.8396692923982734,,,模型−装置，阶段窗中位,False,C2_f1over64
+R5,bias_CO2_vol_pct,all,C2_f1over64,,,0.07136405846265426,,,模型−装置，阶段窗中位,False,C2_f1over64
+R5,bias_CH4_vol_pct,all,C2_f1over64,,,0.8920103234389624,,,模型−装置，阶段窗中位,False,C2_f1over64
+R5,bias_dry_per_coal_mol_kg,all,C2_f1over64,,,-0.6444542714138919,,,模型−装置，阶段窗中位,False,C2_f1over64
+R2,consistent_ratio,all,C2_f1over256,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C2_f1over256
+R3,ratio_median,all,C2_f1over256,,,1.4518217343343798,,,"range [0.6460447301591093,10.452867397798915] 仅一致组合",False,C2_f1over256
+R5,bias_X_C_pp,all,C2_f1over256,,,0.4595847180970054,,,模型−装置，阶段窗中位,False,C2_f1over256
+R5,bias_CO_vol_pct,all,C2_f1over256,,,-0.13986867916517554,,,模型−装置，阶段窗中位,False,C2_f1over256
+R5,bias_H2_vol_pct,all,C2_f1over256,,,-0.8725303975947085,,,模型−装置，阶段窗中位,False,C2_f1over256
+R5,bias_CO2_vol_pct,all,C2_f1over256,,,0.07558152226394732,,,模型−装置，阶段窗中位,False,C2_f1over256
+R5,bias_CH4_vol_pct,all,C2_f1over256,,,0.9067743844311509,,,模型−装置，阶段窗中位,False,C2_f1over256
+R5,bias_dry_per_coal_mol_kg,all,C2_f1over256,,,-0.6506192372455786,,,模型−装置，阶段窗中位,False,C2_f1over256
+R2,consistent_ratio,all,C3_L0p2575,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C3_L0p2575
+R3,ratio_median,all,C3_L0p2575,,,1.4086583831066646,,,"range [0.6762572405790843,8.348589716656944] 仅一致组合",False,C3_L0p2575
+R5,bias_X_C_pp,all,C3_L0p2575,,,0.4141315109285131,,,模型−装置，阶段窗中位,False,C3_L0p2575
+R5,bias_CO_vol_pct,all,C3_L0p2575,,,-0.14975988653245764,,,模型−装置，阶段窗中位,False,C3_L0p2575
+R5,bias_H2_vol_pct,all,C3_L0p2575,,,-0.2551654858671455,,,模型−装置，阶段窗中位,False,C3_L0p2575
+R5,bias_CO2_vol_pct,all,C3_L0p2575,,,-0.155825739317363,,,模型−装置，阶段窗中位,False,C3_L0p2575
+R5,bias_CH4_vol_pct,all,C3_L0p2575,,,0.620139523061739,,,模型−装置，阶段窗中位,False,C3_L0p2575
+R5,bias_dry_per_coal_mol_kg,all,C3_L0p2575,,,-0.09636581001868194,,,模型−装置，阶段窗中位,False,C3_L0p2575
+R2,consistent_ratio,all,C3_L1,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C3_L1
+R3,ratio_median,all,C3_L1,,,1.4953628976340683,,,"range [0.6779462690491291,8.657529585268287] 仅一致组合",False,C3_L1
+R5,bias_X_C_pp,all,C3_L1,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C3_L1
+R5,bias_CO_vol_pct,all,C3_L1,,,-0.30058643100964844,,,模型−装置，阶段窗中位,False,C3_L1
+R5,bias_H2_vol_pct,all,C3_L1,,,-0.242520389062431,,,模型−装置，阶段窗中位,False,C3_L1
+R5,bias_CO2_vol_pct,all,C3_L1,,,0.0041548338937928975,,,模型−装置，阶段窗中位,False,C3_L1
+R5,bias_CH4_vol_pct,all,C3_L1,,,0.6210168272492438,,,模型−装置，阶段窗中位,False,C3_L1
+R5,bias_dry_per_coal_mol_kg,all,C3_L1,,,-0.4905891011114818,,,模型−装置，阶段窗中位,False,C3_L1
+R2,consistent_ratio,all,C3_L4,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C3_L4
+R3,ratio_median,all,C3_L4,,,1.3323930281503218,,,"range [0.6767821175058115,5.449644511020065] 仅一致组合",False,C3_L4
+R5,bias_X_C_pp,all,C3_L4,,,-0.5924145184591936,,,模型−装置，阶段窗中位,False,C3_L4
+R5,bias_CO_vol_pct,all,C3_L4,,,-0.5072562920980133,,,模型−装置，阶段窗中位,False,C3_L4
+R5,bias_H2_vol_pct,all,C3_L4,,,-0.26497814596479685,,,模型−装置，阶段窗中位,False,C3_L4
+R5,bias_CO2_vol_pct,all,C3_L4,,,0.25871934285788,,,模型−装置，阶段窗中位,False,C3_L4
+R5,bias_CH4_vol_pct,all,C3_L4,,,0.5937119778049802,,,模型−装置，阶段窗中位,False,C3_L4
+R5,bias_dry_per_coal_mol_kg,all,C3_L4,,,-0.9328609590093322,,,模型−装置，阶段窗中位,False,C3_L4
+R2,consistent_ratio,all,C4_HL0p5,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C4_HL0p5
+R3,ratio_median,all,C4_HL0p5,,,1.4720583629758053,,,"range [0.6683207955668838,9.941471140074926] 仅一致组合",False,C4_HL0p5
+R5,bias_X_C_pp,all,C4_HL0p5,,,0.9293860366396132,,,模型−装置，阶段窗中位,False,C4_HL0p5
+R5,bias_CO_vol_pct,all,C4_HL0p5,,,0.21620905528372703,,,模型−装置，阶段窗中位,False,C4_HL0p5
+R5,bias_H2_vol_pct,all,C4_HL0p5,,,-0.310385255188919,,,模型−装置，阶段窗中位,False,C4_HL0p5
+R5,bias_CO2_vol_pct,all,C4_HL0p5,,,-0.4355948930839926,,,模型−装置，阶段窗中位,False,C4_HL0p5
+R5,bias_CH4_vol_pct,all,C4_HL0p5,,,0.644433471418065,,,模型−装置，阶段窗中位,False,C4_HL0p5
+R5,bias_dry_per_coal_mol_kg,all,C4_HL0p5,,,0.2518460917717533,,,模型−装置，阶段窗中位,False,C4_HL0p5
+R2,consistent_ratio,all,C4_HL1,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C4_HL1
+R3,ratio_median,all,C4_HL1,,,1.4953628976340683,,,"range [0.6779462690491291,8.657529585268287] 仅一致组合",False,C4_HL1
+R5,bias_X_C_pp,all,C4_HL1,,,-0.1351008811977863,,,模型−装置，阶段窗中位,False,C4_HL1
+R5,bias_CO_vol_pct,all,C4_HL1,,,-0.30058643100964844,,,模型−装置，阶段窗中位,False,C4_HL1
+R5,bias_H2_vol_pct,all,C4_HL1,,,-0.242520389062431,,,模型−装置，阶段窗中位,False,C4_HL1
+R5,bias_CO2_vol_pct,all,C4_HL1,,,0.0041548338937928975,,,模型−装置，阶段窗中位,False,C4_HL1
+R5,bias_CH4_vol_pct,all,C4_HL1,,,0.6210168272492438,,,模型−装置，阶段窗中位,False,C4_HL1
+R5,bias_dry_per_coal_mol_kg,all,C4_HL1,,,-0.4905891011114818,,,模型−装置，阶段窗中位,False,C4_HL1
+R2,consistent_ratio,all,C4_HL2,,,0.6666666666666666,0.8,False,14/21 feasible=True nan,False,C4_HL2
+R3,ratio_median,all,C4_HL2,,,1.5210118521805984,,,"range [0.6959856486888696,6.635118509228981] 仅一致组合",False,C4_HL2
+R5,bias_X_C_pp,all,C4_HL2,,,-1.7835556213220087,,,模型−装置，阶段窗中位,False,C4_HL2
+R5,bias_CO_vol_pct,all,C4_HL2,,,-1.3522494462664056,,,模型−装置，阶段窗中位,False,C4_HL2
+R5,bias_H2_vol_pct,all,C4_HL2,,,-0.10623219930550931,,,模型−装置，阶段窗中位,False,C4_HL2
+R5,bias_CO2_vol_pct,all,C4_HL2,,,0.9476669298647842,,,模型−装置，阶段窗中位,False,C4_HL2
+R5,bias_CH4_vol_pct,all,C4_HL2,,,0.5693666186879462,,,模型−装置，阶段窗中位,False,C4_HL2
+R5,bias_dry_per_coal_mol_kg,all,C4_HL2,,,-1.7081437508570616,,,模型−装置，阶段窗中位,False,C4_HL2
+R2,consistent_ratio,all,C5_C1_T1100_rw1+C2_f1over256,,,0.7619047619047619,0.8,False,16/21 feasible=True nan,False,C5_C1_T1100_rw1+C2_f1over256
+R3,ratio_median,all,C5_C1_T1100_rw1+C2_f1over256,,,1.7908395190409494,,,"range [0.09656438303236312,8.422904649816957] 仅一致组合",False,C5_C1_T1100_rw1+C2_f1over256
+R5,bias_X_C_pp,all,C5_C1_T1100_rw1+C2_f1over256,,,0.4595847180970054,,,模型−装置，阶段窗中位,False,C5_C1_T1100_rw1+C2_f1over256
+R5,bias_CO_vol_pct,all,C5_C1_T1100_rw1+C2_f1over256,,,-37.038572775611186,,,模型−装置，阶段窗中位,False,C5_C1_T1100_rw1+C2_f1over256
+R5,bias_H2_vol_pct,all,C5_C1_T1100_rw1+C2_f1over256,,,15.89931547486114,,,模型−装置，阶段窗中位,False,C5_C1_T1100_rw1+C2_f1over256
+R5,bias_CO2_vol_pct,all,C5_C1_T1100_rw1+C2_f1over256,,,20.64230646149196,,,模型−装置，阶段窗中位,False,C5_C1_T1100_rw1+C2_f1over256
+R5,bias_CH4_vol_pct,all,C5_C1_T1100_rw1+C2_f1over256,,,0.6861790926260742,,,模型−装置，阶段窗中位,False,C5_C1_T1100_rw1+C2_f1over256
+R5,bias_dry_per_coal_mol_kg,all,C5_C1_T1100_rw1+C2_f1over256,,,24.576961904244584,,,模型−装置，阶段窗中位,False,C5_C1_T1100_rw1+C2_f1over256
+R4,attribution,all,,,,0.0,0.8,False,在该口径下现有候选无一使 R2≥80%。比较口径限于当前候选、固定阶段 θ̂、装置含载气 OLS、模型两侧 ±3% 控制扰动；装置为条件关联，模型为控制扰动。不得推广为任何参数反演都不能外推。,False,
+C0,n_success,phase1,C0,,,34.0,,True,fail=3 stopped=False,False,C0
+C0,n_success,phase2,C0,,,41.0,,True,fail=3 stopped=False,False,C0
+C0,n_success,phase3,C0,,,41.0,,True,fail=3 stopped=False,False,C0
+C0,n_success,phase4,C0,,,17.0,,True,fail=0 stopped=False,False,C0

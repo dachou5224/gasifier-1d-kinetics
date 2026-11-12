@@ -314,6 +314,8 @@ class Cell:
         het_cutoff = resolve_het_conversion_cutoff(self.op_conds)
         # P1.8-A：C+H2O 与 C+CO2 共用的指前因子倍数（E 不变）。缺省 1.0 → 逐位不变。
         f_gas = float(self.op_conds.get('GasificationRateFactor', 1.0))
+        # P1.15-A：只缩放 C+CO2。缺省 1.0 → C+CO2 仍为 f_gas，与 C0 逐位一致。
+        f_char_co2 = float(self.op_conds.get('CharCO2RateFactor', 1.0))
         r_het = self.kinetics.calc_heterogeneous_rates(
             current, phys['d_p'], phys['S_total'],
             X_total=phys['X_total'], Re=phys['Re_p'], Sc=phys['Sc_p'],
@@ -322,6 +324,7 @@ class Cell:
             use_fortran_diffusion=use_fortran_diff,
             conversion_cutoff=het_cutoff,
             gasification_rate_factor=f_gas,
+            char_co2_rate_factor=f_char_co2,
         )
         phi = r_het.pop('phi', 1.0)
         wgs_rat = self.op_conds.get('WGS_RatFactor', False)

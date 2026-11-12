@@ -157,6 +157,9 @@ results/
 !outputs/diagnostics/round-*/
 !outputs/diagnostics/round-*/*.csv
 !outputs/diagnostics/round-*/**/*.csv
+# P1.15-A 求解缓存与运行日志不入库
+outputs/diagnostics/round-p1.15a-20261108/cache/
+outputs/diagnostics/round-p1.15a-20261108/run.log
 # P1.14-A 只读输入（P1.14-D windows_142 副本）
 !outputs/diagnostics/p1.14d-20261107/
 !outputs/diagnostics/p1.14d-20261107/*.csv

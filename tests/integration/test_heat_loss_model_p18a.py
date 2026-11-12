@@ -72,6 +72,7 @@ def test_jax_path_rejects_fortran_wall_and_rate_factor():
     built = build_case_inputs(case, geometry=geo)
     for extra in ({"HeatLossModel": "fortran_wall"},
                   {"GasificationRateFactor": 0.5},
+                  {"CharCO2RateFactor": 0.25},
                   {"HeatLossModel": "total_percent", "HeatLossPercentTotal": 1.0},
                   {"HeatLossModel": "total_percent_uniform", "HeatLossPercentTotal": 1.0}):
         system = GasifierSystem(built["geometry"], built["coal_props"],

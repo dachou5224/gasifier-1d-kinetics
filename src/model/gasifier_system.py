@@ -550,6 +550,11 @@ class GasifierSystem:
                 "GasificationRateFactor is not implemented on the JAX batch path "
                 "(GasifierSystem._solve_jax_v4); it would be silently ignored."
             )
+        if float(self.op_conds.get("CharCO2RateFactor", 1.0)) != 1.0:
+            raise ValueError(
+                "CharCO2RateFactor is not implemented on the JAX batch path "
+                "(GasifierSystem._solve_jax_v4); it would be silently ignored."
+            )
         # P1.10-A：O2 分布式进入在 JAX 批处理路径上没有对应实现——必须报错，不得静默回退。
         if resolve_oxygen_mixing_model(self.op_conds) != OXYGEN_MIXING_INSTANT:
             raise ValueError(
