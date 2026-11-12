@@ -606,13 +606,34 @@ def _design_cond(X: np.ndarray) -> float:
         return float("nan")
 
 
+def _as_bool(v) -> bool:
+    if isinstance(v, str):
+        return v.strip().lower() in ("true", "1", "yes", "y")
+    if v is None or (isinstance(v, float) and not math.isfinite(v)):
+        return False
+    return bool(v)
+
+
+def _coef_sign(per3) -> int:
+    v = _f(per3)
+    if not math.isfinite(v) or v == 0.0:
+        return 0
+    return 1 if v > 0.0 else -1
+
+
 def _mark_sign_stable(df: pd.DataFrame) -> pd.DataFrame:
-    """两种回归下 signed 是否一致；仅 ln_O2 / ln_coal 有对照。"""
+    """含载气 / 不含载气对照。
+
+    signed_agree: 区间是否排除 0 的状态一致。
+    dir_agree: 点估计 per3 符号一致（有限且非零）。
+    sign_stable: 两者区间均不含 0 且 per3 同号。两者均含 0 不记为方向稳定。
+    """
     out = df.copy()
+    for col in ("signed_agree", "dir_agree", "sign_stable"):
+        out[col] = ""
     if out.empty:
-        out["sign_stable"] = []
         return out
-    stable_map: dict[tuple[str, str, str], bool] = {}
+    rec_map: dict[tuple[str, str, str], tuple[str, str, str]] = {}
     keys = out.loc[out["input"].isin(INPUTS), ["phase", "obs", "input"]].drop_duplicates()
     for _, k in keys.iterrows():
         sub = out[
@@ -624,18 +645,48 @@ def _mark_sign_stable(df: pd.DataFrame) -> pd.DataFrame:
         n = sub[sub["model"] == "no_carrier"]
         if w.empty or n.empty:
             continue
-        stable_map[(str(k["phase"]), str(k["obs"]), str(k["input"]))] = bool(
-            bool(w.iloc[0]["signed"]) == bool(n.iloc[0]["signed"])
+        sw = _as_bool(w.iloc[0]["signed"])
+        sn = _as_bool(n.iloc[0]["signed"])
+        dw = _coef_sign(w.iloc[0]["per3"])
+        dn = _coef_sign(n.iloc[0]["per3"])
+        signed_agree = sw == sn
+        dir_agree = dw != 0 and dn != 0 and dw == dn
+        sign_stable = sw and sn and dir_agree
+        rec_map[(str(k["phase"]), str(k["obs"]), str(k["input"]))] = (
+            "Y" if signed_agree else "N",
+            "Y" if dir_agree else "N",
+            "Y" if sign_stable else "N",
         )
-    vals = []
+    sa, da, ss = [], [], []
     for _, r in out.iterrows():
         key = (str(r["phase"]), str(r["obs"]), str(r["input"]))
-        if key in stable_map:
-            vals.append("Y" if stable_map[key] else "N")
+        if key in rec_map:
+            a, b, c = rec_map[key]
+            sa.append(a)
+            da.append(b)
+            ss.append(c)
         else:
-            vals.append("")
-    out["sign_stable"] = vals
+            sa.append("")
+            da.append("")
+            ss.append("")
+    out["signed_agree"] = sa
+    out["dir_agree"] = da
+    out["sign_stable"] = ss
     return out
+
+
+def _sign_mismatch_why(row, w_signed: bool, n_signed: bool) -> str:
+    signed_ag = str(row.get("signed_agree") or "") == "Y"
+    dir_ag = str(row.get("dir_agree") or "") == "Y"
+    if (not w_signed) and (not n_signed):
+        return "两者区间均含 0（不记方向稳定）"
+    if not signed_ag and dir_ag:
+        return "区间有符号状态不一致（点估计同号，不是系数方向翻转）"
+    if not signed_ag and not dir_ag:
+        return "区间有符号状态不一致且点估计异号"
+    if signed_ag and not dir_ag:
+        return "点估计异号"
+    return "方向不稳定"
 
 
 def plant_slopes_table(p114d: pd.DataFrame) -> pd.DataFrame:
@@ -1192,7 +1243,7 @@ def build_readings(
         "reading": "R4", "metric": "attribution", "phase": "all",
         "subset": r4_val, "window_set": "", "window_id": "",
         "value": 1.0 if r4_pass else 0.0, "threshold": 0.8, "pass": r4_pass,
-        "note": r4_note + (("；" + c5_note) if c5_note else ""),
+        "note": r4_note,
         "exploratory": False, "candidate": r4_val,
     })
     for ph, rec in c0_phase.items():
@@ -1278,7 +1329,9 @@ def interpretation(
             )
         L.append("")
     L.append("## 设计矩阵条件数与载气符号稳定性")
-    L.append("cond(X) 为该阶段协变量矩阵（含截距）的 2-范数条件数；符号稳定 = 含载气 / 不含载气两种回归的 signed 一致。")
+    L.append("cond(X) 为该阶段协变量矩阵（含截距）的 2-范数条件数。")
+    L.append("符号稳定 = 含载气与不含载气的区间均不含 0，且点估计 per3 同号。两者均含 0 不记为方向稳定。")
+    L.append("signed_agree = 区间有符号状态一致；dir_agree = 点估计同号（有限非零）。")
     for phase in PHASES:
         hit = plant[plant["phase"] == phase]
         if hit.empty:
@@ -1290,15 +1343,31 @@ def interpretation(
             & (hit["input"].isin(INPUTS))
             & (hit["obs"].isin(OBS_R))
         ]
-        n_stable = int((pairs["sign_stable"] == "Y").sum())
         n_pairs = int(len(pairs))
+        n_stable = int((pairs["sign_stable"] == "Y").sum())
+        n_signed_ag = int((pairs["signed_agree"] == "Y").sum())
+        n_dir_ag = int((pairs["dir_agree"] == "Y").sum())
         L.append(f"- {phase}：cond(X_with_carrier)={cw}，cond(X_no_carrier)={cn}；")
-        L.append(f"  OBS_R×{{ln_O2,ln_coal}} 符号稳定 {n_stable}/{n_pairs}。")
-        unstable = pairs[pairs["sign_stable"] == "N"]
-        for _, r in unstable.iterrows():
+        L.append(
+            f"  OBS_R×{{ln_O2,ln_coal}} 方向稳定 {n_stable}/{n_pairs}，"
+            f"区间有符号状态一致 {n_signed_ag}/{n_pairs}，点估计同号 {n_dir_ag}/{n_pairs}。"
+        )
+        for _, r in pairs.iterrows():
+            if str(r.get("sign_stable") or "") == "Y":
+                continue
+            nr = hit[
+                (hit["model"] == "no_carrier")
+                & (hit["obs"] == r["obs"])
+                & (hit["input"] == r["input"])
+            ]
+            n_signed = _as_bool(nr.iloc[0]["signed"]) if not nr.empty else False
+            n_per3 = _fmt(nr.iloc[0]["per3"]) if not nr.empty else "nan"
+            w_signed = _as_bool(r["signed"])
+            why = _sign_mismatch_why(r, w_signed, n_signed)
             L.append(
-                f"  - 不稳定：{r['obs']} ← {r['input']} "
-                f"（含载气 signed={bool(r['signed'])}）"
+                f"  - {why}：{r['obs']} ← {r['input']}；"
+                f"含载气 per3={_fmt(r['per3'])}（{'有符号' if w_signed else '含 0'}），"
+                f"不含载气 per3={n_per3}（{'有符号' if n_signed else '含 0'}）"
             )
     L.append("")
     L.append("## 第 2 节 基准模型斜率（C0，两侧 ±3%）")
@@ -1351,9 +1420,12 @@ def interpretation(
     L.append("## R2 方向一致（一致数 / 有符号数）")
     for _, s in cands.iterrows():
         flag = "" if s["feasible"] else " [不可行]"
+        reason = s.get("infeasible_reason")
+        if not isinstance(reason, str) or not reason.strip() or reason.strip().lower() == "nan":
+            reason = ""
         L.append(
             f"- {s['candidate']}{flag}：{int(s['n_consistent'])}/{int(s['n_signed'])} "
-            f"= {_fmt(s['r2_ratio'], 3)}。{s.get('infeasible_reason') or ''}"
+            f"= {_fmt(s['r2_ratio'], 3)}。{reason}"
         )
     L.append("")
     L.append("## R3 量级（一致组合中 模型/装置）")
@@ -1418,7 +1490,13 @@ def _plant_design_block(plant: pd.DataFrame | None) -> dict:
             "cond_X_with_carrier": _f(hit["cond_X_with_carrier"].iloc[0]),
             "cond_X_no_carrier": _f(hit["cond_X_no_carrier"].iloc[0]),
             "sign_stable_obs_input": int((pairs["sign_stable"] == "Y").sum()),
+            "signed_agree_obs_input": int((pairs["signed_agree"] == "Y").sum()),
+            "dir_agree_obs_input": int((pairs["dir_agree"] == "Y").sum()),
             "n_obs_input": int(len(pairs)),
+            "sign_stable_def": (
+                "both intervals exclude 0 and per3 same sign; "
+                "both unsigned is not direction-stable"
+            ),
         }
     return out
 
@@ -1466,6 +1544,8 @@ def _protocol(
             "identification": (
                 "阶段内窗口 OLS 条件关联；不是控制扰动。"
                 "有符号仅表示该回归与窗口自助假设下区间不含 0。"
+                "sign_stable=两者区间均不含 0 且 per3 同号；两者均含 0 不记方向稳定。"
+                "signed_agree=区间有符号状态一致；dir_agree=点估计同号。"
             ),
             "design_cond": _plant_design_block(plant),
         },
@@ -1696,7 +1776,7 @@ def main() -> None:
         p114d = p114d.loc[window_ids]
 
     if args.stage == "read":
-        plant = pd.read_csv(OUT_DIR / "plant_slopes.csv")
+        plant = _mark_sign_stable(pd.read_csv(OUT_DIR / "plant_slopes.csv"))
         model = pd.read_csv(OUT_DIR / "model_slopes.csv")
         cand_df = pd.read_csv(OUT_DIR / "candidates.csv")
         proto = json.loads((OUT_DIR / "protocol.json").read_text(encoding="utf-8"))

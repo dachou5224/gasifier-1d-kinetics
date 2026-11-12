@@ -79,31 +79,43 @@
       "seed_base": 20261108
     },
     "X_C_note": "公共分母（煤碳）伪相关，不用于 R1–R4",
-    "identification": "阶段内窗口 OLS 条件关联；不是控制扰动。有符号仅表示该回归与窗口自助假设下区间不含 0。",
+    "identification": "阶段内窗口 OLS 条件关联；不是控制扰动。有符号仅表示该回归与窗口自助假设下区间不含 0。sign_stable=两者区间均不含 0 且 per3 同号；两者均含 0 不记方向稳定。signed_agree=区间有符号状态一致；dir_agree=点估计同号。",
     "design_cond": {
       "phase1": {
         "cond_X_with_carrier": 7759.065793536957,
         "cond_X_no_carrier": 5940.599534222763,
-        "sign_stable_obs_input": 9,
-        "n_obs_input": 10
+        "sign_stable_obs_input": 5,
+        "signed_agree_obs_input": 9,
+        "dir_agree_obs_input": 9,
+        "n_obs_input": 10,
+        "sign_stable_def": "both intervals exclude 0 and per3 same sign; both unsigned is not direction-stable"
       },
       "phase2": {
         "cond_X_with_carrier": 29731.935648084152,
         "cond_X_no_carrier": 19709.614770458007,
-        "sign_stable_obs_input": 8,
-        "n_obs_input": 10
+        "sign_stable_obs_input": 4,
+        "signed_agree_obs_input": 8,
+        "dir_agree_obs_input": 9,
+        "n_obs_input": 10,
+        "sign_stable_def": "both intervals exclude 0 and per3 same sign; both unsigned is not direction-stable"
       },
       "phase3": {
         "cond_X_with_carrier": 20421.148292781312,
         "cond_X_no_carrier": 14038.317440321513,
-        "sign_stable_obs_input": 10,
-        "n_obs_input": 10
+        "sign_stable_obs_input": 5,
+        "signed_agree_obs_input": 10,
+        "dir_agree_obs_input": 10,
+        "n_obs_input": 10,
+        "sign_stable_def": "both intervals exclude 0 and per3 same sign; both unsigned is not direction-stable"
       },
       "phase4": {
         "cond_X_with_carrier": 28187.795081356657,
         "cond_X_no_carrier": 21593.40123764846,
-        "sign_stable_obs_input": 9,
-        "n_obs_input": 10
+        "sign_stable_obs_input": 6,
+        "signed_agree_obs_input": 9,
+        "dir_agree_obs_input": 10,
+        "n_obs_input": 10,
+        "sign_stable_def": "both intervals exclude 0 and per3 same sign; both unsigned is not direction-stable"
       }
     }
   },
