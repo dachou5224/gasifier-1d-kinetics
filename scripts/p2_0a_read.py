@@ -183,6 +183,9 @@ def build_all(out_dir: Path, src_commit: str | None = None) -> None:
     hl_snaps = json.loads((out_dir / "hl_snaps.json").read_text(encoding="utf-8"))
     hl_cp = pd.read_csv(out_dir / "hl_comparison_points.csv")
     prof = json.loads((out_dir / "profiles.json").read_text(encoding="utf-8"))
+    # 单元检查表也需要传入解释生成器：否则 U1–U5 一节会落进「未提供」分支，
+    # 与实际已生成的 unit_checks.csv 不一致（2026-11-14 修正）。
+    unit_df = pd.read_csv(out_dir / "unit_checks.csv")
 
     # 快照索引：candidate → phase → window → pert → snap
     idx: dict[str, dict[str, dict[str, dict[str, dict]]]] = {}
@@ -280,7 +283,8 @@ def build_all(out_dir: Path, src_commit: str | None = None) -> None:
     readings.to_csv(out_dir / "readings.csv", index=False)
 
     text = _interpretation(cp, slopes_df, elas_df, levels_df, readings,
-                           hl_df, hl_verdicts, n_fail)
+                           hl_df, hl_verdicts, n_fail,
+                           prof_df=prof_df, unit_df=unit_df)
     (out_dir / "interpretation.md").write_text(text, encoding="utf-8")
 
     proto = _protocol(out_dir, cp, readings, hl_verdicts, src_commit)
@@ -633,8 +637,9 @@ def _readings(cp, slopes, elas, levels, hl_verdict, n_fail) -> pd.DataFrame:
         g1_vals = [abs(_f(v)) for v in e["dT_out_per3_K_median"] if math.isfinite(_f(v))]
         add("G1", "min_abs_dT_across_phases", "all",
             float(min(g1_vals)) if g1_vals else float("nan"), G1_MIN_K,
-            bool(g1_vals and min(g1_vals) >= G1_MIN_K),
-            "四个阶段的最小 |ΔT_out|；判定要求每阶段都 ≥50 K", cand)
+            bool(len(g1_vals) == len(PHASES) and min(g1_vals) >= G1_MIN_K),
+            f"四个阶段的最小 |ΔT_out|；判定要求四个阶段都有斜率且每阶段 ≥50 K"
+            f"（实际有斜率的阶段数 {len(g1_vals)}）", cand)
 
         n_same = 0
         for (ph, obs, inp) in G2_COMBOS:
@@ -871,7 +876,12 @@ def _fmt(x, nd=4):
     return "NA" if not math.isfinite(v) else f"{v:.{nd}g}"
 
 
-def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fail) -> str:
+def _is_true(x) -> bool:
+    return (x is True) or (x == True)  # noqa: E712
+
+
+def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fail,
+                    prof_df=None, unit_df=None) -> str:
     L = []
     L.append("# P2.0-A 碳转化率受限机理的并列比较（2026-11-13）")
     L.append("")
@@ -879,8 +889,45 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
              "两个钩子并列比较。**本轮不反演、不采纳参数、不加回流、不改合同。**")
     L.append("")
     L.append("## 第 1 节 单元检查")
-    L.append("逐条见 `unit_checks.csv`。U1 的参照为 P1.12-A `input_sensitivity.csv` 中 "
-             "`L_wsr = 1`、`perturb_tag = baseline` 的 9 行。")
+    if unit_df is not None and len(unit_df):
+        L.append("逐条见 `unit_checks.csv`（%d 行）。U1 的参照为 P1.12-A "
+                 "`input_sensitivity.csv` 中 `L_wsr = 1`、`perturb_tag = baseline` 的 9 行。"
+                 % len(unit_df))
+        L.append("")
+        u1 = unit_df[unit_df["check"] == "U1"]
+        if len(u1):
+            L.append(f"- **U1**：9 窗 X_C／出口温度／CO／CO2／H2 的最大相对偏差 = "
+                     f"{_f(u1['value'].iloc[0]):.3e}（阈值 1e-9）→ "
+                     f"**{'一致' if _is_true(u1['pass'].iloc[0]) else '不一致'}**。"
+                     "缺省钩子时不进入任何新分支，实测逐位相同。")
+        for cid in ("M1-0", "M1-80", "M1-90", "M2"):
+            h = unit_df[(unit_df["check"] == "U2") & (unit_df["item"].str.startswith(cid))]
+            if len(h):
+                L.append(f"- **U2** {cid}（param=0）：{h['value'].iloc[0]}/"
+                         f"{h['threshold'].iloc[0]} 窗逐位一致 → "
+                         f"**{'一致' if _is_true(h['pass'].iloc[0]) else '不一致'}**。")
+        u3 = unit_df[(unit_df["check"] == "U3") & (unit_df["item"].str.contains("汇总"))]
+        if len(u3):
+            L.append("- **U3** 汇总（9 参照窗的最大相对闭合误差）：")
+            for _, r in u3.iterrows():
+                L.append(f"  - {r['item']}：{_f(r['value']):.3e}"
+                         f"（字面 1e-8：{'通过' if _is_true(r['pass']) else '不通过'}）")
+            L.append("  字面阈值的失败不是钩子引入的：冻结求解器把逐格碳残差按 `char_Xc0`"
+                     "（无量纲 ~0.7）缩放，182 格累加后碳闭合底就在 1e-4 量级；"
+                     "M1 的碳闭合 1e-9、M2 的 1.2e-4 与同窗「Σ逐格碳残差/入炉碳」逐位对应，"
+                     "说明误差是求解器停点而不是缺项。M2 若**不**计入被截留流股，碳闭合误差"
+                     "会等于截留碳占入炉碳的比例（1e-1 量级）。能量闭合含截留焓后 ≤1.4e-9。")
+        u4 = unit_df[(unit_df["check"] == "U4")]
+        if len(u4):
+            L.append(f"- **U4**：ϑ 连续性与 0<ϑ≤1 全部 "
+                     f"{int(u4['pass'].sum())}/{len(u4)} 通过；"
+                     "n 递增与 f_s 递增在阶段 2 参照窗上都使 X_C 单调下降。")
+        u5 = unit_df[(unit_df["check"] == "U5")]
+        for _, r in u5.iterrows():
+            L.append(f"- **U5** {r['item']}：实际异常 = `{r['value']}` → "
+                     f"**{'通过' if _is_true(r['pass']) else '不通过'}**。")
+    else:
+        L.append("未读到 `unit_checks.csv`。")
     L.append("")
     L.append("## 第 2 节 比较点")
     L.append("")
@@ -926,7 +973,7 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
                             "same_sign_total", "phases_with_ecoal_ge_0p3")))]
         for _, r in sub.iterrows():
             L.append(f"- {r['candidate']}：{_fmt(r['value'], 4)}（阈值 {r['threshold']}）"
-                     f"**{'通过' if r['pass'] is True else '不通过'}**。{r['note']}")
+                     f"**{'通过' if _is_true(r['pass']) else '不通过'}**。{r['note']}")
         L.append("")
     L.append("### G4 水平（ξ 闭合后，142 窗阶段中位偏差，模型−装置）")
     L.append("")
@@ -971,15 +1018,28 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
         )
     L.append("")
     L.append("比较点参数随阶段的走向（阶段按 liu2023 的 X_C 递减排序，代表掺混比例上升）：")
-    for cand in CAND_ORDER:
-        if PARAM_NAME[cand] == "none":
-            continue
-        bits = []
-        for ph in PHASES:
+    liu = {}
+    for ph in PHASES:
+        ws = _CTX["win"][ph]
+        liu[ph] = float(np.median([float(_CTX["p114d"].loc[w, "liu2023_xc_phase_pct"])
+                                   for w in ws]))
+    L.append("")
+    L.append("| 阶段 | liu2023 X_C % | " + " | ".join(
+        f"{c}（{PARAM_NAME[c]}）" for c in CAND_ORDER if PARAM_NAME[c] != "none") + " |")
+    L.append("|---|---|" + "---|" * sum(1 for c in CAND_ORDER if PARAM_NAME[c] != "none"))
+    for ph in PHASES:
+        cells = []
+        for cand in CAND_ORDER:
+            if PARAM_NAME[cand] == "none":
+                continue
             h = cp[(cp["candidate"] == cand) & (cp["phase"] == ph)]
             if len(h):
-                bits.append(f"{ph}={_fmt(h['param'].iloc[0], 4)}")
-        L.append(f"- {cand}（{PARAM_NAME[cand]}）：" + "，".join(bits))
+                rr = h.iloc[0]
+                tag = _fmt(rr["param"], 4) if bool(rr["reachable"]) else "不可达"
+                cells.append(tag)
+            else:
+                cells.append("—")
+        L.append(f"| {ph} | {_fmt(liu[ph], 4)} | " + " | ".join(cells) + " |")
     L.append("")
     L.append("### G6 载气（探索性）")
     sub = readings[(readings["reading"] == "G6")
@@ -987,18 +1047,110 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
     for _, r in sub.iterrows():
         L.append(f"- {r['candidate']}：{_fmt(r['value'], 3)}/{_fmt(r['threshold'], 3)} 同号")
     L.append("")
+    L.append("### 剖面：未转化碳留在何处")
+    L.append("")
+    if prof_df is not None and len(prof_df):
+        L.append("每阶段取该阶段第一个参照窗（按 window_id 排序）。X_C 为相对入炉煤碳。")
+        L.append("")
+        L.append("| 阶段 | 候选 | 窗 | X_C 全混区出口 | 2 m | 4 m | 6 m | X_C 出口 | T 全混区出口 K | T 出口 K |")
+        L.append("|---|---|---|---|---|---|---|---|---|---|")
+        for ph in PHASES:
+            for cand in CAND_ORDER:
+                sub = prof_df[(prof_df["phase"] == ph) & (prof_df["candidate"] == cand)]
+                if sub.empty:
+                    continue
+                sub = sub.sort_values("i")
+                z = sub["z_m"].to_numpy()
+                xc = sub["X_C_pp"].to_numpy()
+                t = sub["T_gas_K"].to_numpy()
+                wid = str(sub["window_id"].iloc[0])
+                at = lambda zz: float(np.interp(zz, z, xc))  # noqa: E731
+                L.append(
+                    f"| {ph} | {cand} | …{wid[-9:]} | {_fmt(xc[0], 4)} | {_fmt(at(2.0), 4)} | "
+                    f"{_fmt(at(4.0), 4)} | {_fmt(at(6.0), 4)} | {_fmt(xc[-1], 4)} | "
+                    f"{_fmt(t[0], 5)} | {_fmt(t[-1], 5)} |"
+                )
+        L.append("")
+        L.append("读法：全混区（首格 1 m）出口只转化了约一半碳，其后的下游格在约 2 700 K 下把"
+                 "夹带碳迅速烧掉；M1 的 ϑ 把这一段的 C+H2O／C+CO2 压下去，未转化碳因此"
+                 "留在下游段而非全混区；M2 的未转化碳则在全混区出口一次离开反应流。")
+        L.append("")
+    else:
+        L.append("未生成剖面。")
+        L.append("")
     L.append("## 判定")
     for _, r in readings[readings["reading"] == "verdict"].iterrows():
         L.append(f"- {r['candidate']}：{r['value']} → "
-                 f"**{'入选' if r['pass'] is True else '不入选'}**。{r['note']}")
+                 f"**{'入选' if _is_true(r['pass']) else '不入选'}**。{r['note']}")
     L.append("")
-    L.append("## 求解失败与不可达")
+    L.append("## 求解失败、不可达与跨越 99.9%")
+    L.append("")
+    L.append("跨越判据：该阶段全部窗口中，基准或任一扰动点的 X_C ≥ 99.9% 的窗口比例。")
+    L.append("")
+    L.append("| 候选 | 阶段 | X_C≥99.9% 窗比例（任一扰动） | 基准点窗比例 |")
+    L.append("|---|---|---|---|")
+    for cand in CAND_ORDER:
+        sub = slopes[(slopes["candidate"] == cand) & (slopes["obs"] == "X_C_pp")
+                     & (slopes["input"] == "ln_O2")]
+        for _, r in sub.iterrows():
+            L.append(f"| {cand} | {r['phase']} | {_fmt(r['xc_ceil_frac_any_pert'], 3)} | "
+                     f"{_fmt(r['xc_ceil_frac_nom'], 3)} |")
     L.append("")
     L.append("| 候选 | 阶段 | 成功窗 | 失败窗 | 第 3 节 |")
     L.append("|---|---|---|---|---|")
     for (cand, ph), v in n_fail.items():
         L.append(f"| {cand} | {ph} | {v['n_ok']} | {v['n_fail']} | "
                  f"{'跳过（不可达）' if v.get('skipped') else '做'} |")
+    L.append("")
+    L.append("## C0 的地位：κ = 1 的基准几乎自己通过闸门")
+    L.append("")
+    L.append("C0 是两个钩子都关闭、κ = 1 的现有模型。逐闸门看：G0 通过、G2 6/8 通过、"
+             "G3 3/3 通过，**只差 G1**（20.48 K < 50 K）。也就是说：去掉 κ 这个补偿因子之后，"
+             "不加任何机理钩子，响应方向与碳转化率弹性就已经落在装置一侧。")
+    L.append("")
+    L.append("这必须与 P1.15-A 的记载分开读，否则看起来像数据矛盾。两者的模型斜率符号相反：")
+    L.append("")
+    L.append("| 组合 | P1.15-A C0（κ = κ̂ ≈ 0.90–0.96） | 本轮 C0（κ = 1） |")
+    L.append("|---|---:|---:|")
+    L.append("| phase1 CO2←煤量 | +0.168 | −0.570 |")
+    L.append("| phase2 CO←煤量 | −0.691 | +0.259 |")
+    L.append("| phase2 CO2←煤量 | +0.273 | −0.850 |")
+    L.append("| phase4 CO←煤量 | −0.791 | −0.695 |")
+    L.append("")
+    L.append("**这不是实现差异**。κ = κ̂ 时模型处于能量封顶（缺氧）状态，多给的煤不参与反应，"
+             "组成响应由激冷段变换主导；κ = 1 时供氧充足，组成响应回到碳转化的配平。"
+             "验证文档已写明 κ 是「唯一能移动 X_C 的量」，把它固定在 1 就同时改变了响应结构。")
+    L.append("")
+    L.append("**对判定的影响**：G2 的阈值是参照装置斜率定的，而装置斜率与 κ 无关，所以用 κ = 1 "
+             "的模型去比是自洽的。但结果是 **C0 的 G2（6/8）高于 M2（5/8）、高于 M1-0（3/8）**——"
+             "两个候选在响应方向上都没有超过「什么都不加、只把 κ 放回 1」。"
+             "这一点比「均不入选」本身更值得带进下一轮：它提示瓶颈可能不在缺少某个机理钩子，"
+             "而在 κ 被当成自由量这件事本身。")
+    L.append("")
+    L.append("## 卡面自相矛盾 / 无法按字面执行的条目")
+    L.append("")
+    L.append("1. **U3 的元素闭合阈值 1e-8 低于冻结求解器的精度底。** C0（两钩子关闭）"
+             "自身在 9 个参照窗上 O 闭合达 1.7e-5、C 闭合达 4.0e-6；原因是 `res_Xc` 的"
+             "缩放因子是 `char_Xc0`（无量纲），不是碳流量。逐窗核对显示闭合误差与"
+             "「Σ逐格碳残差/入炉碳」逐位对应。因此字面上的 1e-8 无论是否开钩子都不成立；"
+             "本轮按「钩子不引入新的闭合缺项」判定（M2 计入被截留流股后碳闭合从 1e-1 降到 "
+             "1e-4 量级），并保留字面结果供核对。")
+    L.append("2. **U5 的异常类型。** 卡面写「报 `NotImplementedError`（与 "
+             "`GasificationRateFactor` 现有做法一致）」，但现有代码对 `GasificationRateFactor` "
+             "与 `CharCO2RateFactor` 抛的是 `ValueError`。本轮按字面执行，两个钩子抛 "
+             "`NotImplementedError`；同一位置的守卫、同一错误信息格式与既有做法一致。")
+    L.append("3. **M2 的「全混区出口温度」有歧义。** 气相温度与固相温度在全混区出口可不同。"
+             "被截留固体的焓按**固相温度**（`results[0].T_solid`）计，因为首格能量平衡正是"
+             "在这一温度上记固相焓，这样系统级能量闭合严格。`comparison_points.csv` 的 "
+             "`T_wsr_med_K` 为气相温度，`capture_T_solid_K` 为所用固相温度。")
+    L.append("4. **G1 的阶段口径。** 卡面只给「出口温度变化（每 +3%，阶段中位）≥ 50 K」，"
+             "未说明是否要求每个阶段都满足。本轮按「四个阶段都 ≥ 50 K」判定，"
+             "同时报最小 |ΔT_out|，使放宽口径时也能直接读出。")
+    L.append("5. **U4 的 0<ϑ≤1 与 X=1。** 幂律在 X=1 处给 ϑ=0。该点已无碳，速率本就是 0；"
+             "本轮在 X∈[0,0.999] 上检查值域，并说明 ϑ(1)=0 是极限。")
+    L.append("6. **判定与「不可达」的关系。** M1-80 与 M1-90 在 3 个阶段不可达，按卡面"
+             "「不可达的候选不做第 3 节」，其 G1–G3 无逐窗斜率，G0 直接不通过，"
+             "因此不进入入选比较；它们的端点 X_C 已逐阶段报出。")
     L.append("")
     return "\n".join(L) + "\n"
 

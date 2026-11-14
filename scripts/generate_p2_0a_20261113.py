@@ -617,7 +617,7 @@ def compare_point(cand_id: str, wids: list[str], n_workers: int,
         "candidate": cand_id, "kind": c["kind"], "phase": rec_phase(wids),
         "param_name": c["param_name"], "target_X_C_pp": target,
         "n_ref_windows": len(wids), "hl_tot_pct": float(hl),
-        "reachable": False, "reason": "", "param": float("nan"),
+        "reachable": False, "reason": "", "param": float("nan"), "at_bound": "",
         "X_C_pp_median": float("nan"), "dX_C_pp": float("nan"),
         "endpoint_X_C_pp": float("nan"), "n_solve_fail": 0,
     }
@@ -654,16 +654,28 @@ def compare_point(cand_id: str, wids: list[str], n_workers: int,
         rec["reason"] = "端点求解失败"
         rec["endpoint_X_C_pp"] = x_lo if math.isfinite(x_lo) else x_hi
         return rec, store
-    # 目标须落在 [x_hi, x_lo]（两个机理都使 X_C 随参数单调下降）
+    # 目标须落在 [x_hi, x_lo]（两个机理都使 X_C 随参数单调下降）；
+    # 端点若已在 0.2 pp 容差内，按卡面「容差 0.2 个百分点」接受该端点。
     if target > x_lo:
+        if abs(x_lo - target) <= 0.2:
+            rec.update({"param": lo, "X_C_pp_median": x_lo, "dX_C_pp": x_lo - target,
+                        "reachable": True, "at_bound": "lo",
+                        "reason": "在上界（最完全转化端）于 0.2 pp 容差内达标"})
+            return rec, store
         rec["reason"] = "端点仍高于装置值（参数下界已是最完全转化）"
         rec["endpoint_X_C_pp"] = x_lo
         rec["X_C_pp_median"] = x_lo
         return rec, store
     if target < x_hi:
+        if abs(x_hi - target) <= 0.2:
+            rec.update({"param": hi, "X_C_pp_median": x_hi, "dX_C_pp": x_hi - target,
+                        "reachable": True, "at_bound": "hi",
+                        "reason": "在上界 n=8 / f_s=0.5 处于 0.2 pp 容差内达标"})
+            return rec, store
         rec["reason"] = "端点仍低于装置值（参数上界不足以回到装置值）"
         rec["endpoint_X_C_pp"] = x_hi
         rec["X_C_pp_median"] = x_hi
+        rec["dX_C_pp"] = x_hi - target
         return rec, store
     a, b = lo, hi
     xa, xb = x_lo, x_hi
