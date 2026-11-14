@@ -1,0 +1,128 @@
+{
+  "round": "P2.0-A / 2026-11-13",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "4ae9ce9",
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p2.0a-20261113.md",
+  "frozen": {
+    "MeshFamily": "wsr_plus_pfr",
+    "WSRLength_m": 1.0,
+    "PFRCellLength_m": 0.0515,
+    "L_reactor_m": 10.3,
+    "n_cells": 182,
+    "HeatLossModel": "total_percent",
+    "HeatLossPercentTotal_nominal": 1.0,
+    "o2_flow_scale_kappa": 1.0,
+    "GasificationRateFactor": 1.0,
+    "CharCO2RateFactor": 1.0,
+    "OxygenMixingModel": "instant",
+    "particle_size_model": "fortran_constant",
+    "coal_flow": "windows_142.coal_dry_recon_phase_kg_s（逐窗协调干煤量）",
+    "carrier": "windows_142.co2_carrier_measured_nm3_h（实测载气，CO2）",
+    "kinetics": "全部 Arrhenius 为 Wen 1979 原值",
+    "solver": "scipy least_squares (trf, xtol=1e-12, ftol=1e-8)"
+  },
+  "hooks": {
+    "M1": {
+      "op_conds": [
+        "CharLateDecayX0 (default None = off)",
+        "CharLateDecayExponent (default 0)"
+      ],
+      "form": "X<=X0: theta=1; X>X0: theta=((1-X)/(1-X0))**n",
+      "applies_to": [
+        "C+H2O",
+        "C+CO2"
+      ],
+      "X_source": "Cell._calc_physics_props 的 X_total（相对入炉煤碳）",
+      "X0_tiers": [
+        0.0,
+        0.8,
+        0.9
+      ],
+      "n_bounds": [
+        0.0,
+        8.0
+      ]
+    },
+    "M2": {
+      "op_conds": [
+        "SlagCaptureFraction (default 0)"
+      ],
+      "location": "全混区（首格）出口一处",
+      "split": "固体质量份额 f_s，碳与灰同比例离开反应流",
+      "enthalpy": "被截留固体在全混区出口固相温度下的显热（焦炭生成焓取 0，与 Cell._calc_energy_balance 出口口径一致）；单列，不计入 HeatLossPercentTotal；以占干煤 HHV 百分比报告",
+      "X_C": "1 - (出口夹带固体碳 + 被截留碳)/入炉煤碳",
+      "f_s_bounds": [
+        0.0,
+        0.5
+      ]
+    }
+  },
+  "comparison_point": {
+    "target": "参照窗模型 X_C 中位 = 同批窗装置 X_C 中位（baseline_142.plant_X_C_pp）",
+    "tolerance_pp": 0.2,
+    "search": "一维二分（端点扫描 + 60 次折半，容差 0.02 pp）",
+    "unreachable": "记不可达并报端点 X_C；该候选不做第 3 节",
+    "xi": "每阶段每候选一个常数，使参照窗 CO2 中位 = 装置值；扰动时不变"
+  },
+  "perturbation": {
+    "scale": "±3%，每次只改一项（O2 / 干煤量 / 载气）",
+    "two_sided": "(y(1.03)-y(0.97))/ln(1.03/0.97)*ln(1.03)",
+    "one_sided": "plus = y(1.03)-y(1)；minus = y(1)-y(0.97)",
+    "elasticity": "e_煤 = 1 + (ΔX_C/X_C)/ln1.03; e_氧 = (ΔX_C/X_C)/ln1.03",
+    "plant_side": "P1.15-A plant_slopes.csv 含载气主模型，同公式；区间用自助端点",
+    "cache_key": "含完整 window_id、candidate、param、X0、HL、三个扰动倍数、κ、f_gas、f_CO2、L_wsr、dz_down；载入时核对 key 全等"
+  },
+  "predeclared": {
+    "G0": "四个阶段的比较点都可达",
+    "G1": "O2 ±3% 的出口温度变化（每 +3%，阶段中位）≥ 50 K；判定要求每阶段都满足",
+    "G2": "P1.15-A 的 8 个有符号组合中模型与装置同号 ≥ 6",
+    "G3": "e_煤 ≥ 0.3 的阶段数 ≥ 3；逐阶段报 (e_煤, e_氧) 是否落在装置 95% 区间",
+    "G4": "ξ 闭合后 142 窗 CO、H2、X_C 的阶段中位偏差，与 P1.13-A θ̂ 拟合并列",
+    "G5": "HL_tot ∈ {0.5, 2} 时只在参照窗上重做第 2、3 节，看 G1–G3 结论是否改变",
+    "G6": "CO、H2 对载气的 5 个有符号组合同号个数（探索性，不计入判定）",
+    "verdict": "G0–G3 全通过 → 入选；两类都入选以落在装置弹性区间内的阶段数多者为先"
+  },
+  "stopping": {
+    "unit_fail": "U1–U5 任一不通过即停止",
+    "window_fail_per_stage": 5,
+    "unreachable": "该候选不做第 3 节"
+  },
+  "adopted_parameters": false,
+  "no_recirculation": true,
+  "contract_unchanged": true,
+  "source_csv": {
+    "p1.14d": {
+      "relative_path": "outputs/diagnostics/p1.14d-20261107/windows_142.csv",
+      "sha256": "25f3a7b4d403adc83ab888c893bc23e555af2121b1d4fa04cb53c93d57e0f991",
+      "exists": true
+    },
+    "p1.12a": {
+      "relative_path": "outputs/diagnostics/round-p1.12a-20261106/input_sensitivity.csv",
+      "sha256": "6fabddb6160b45d44066298fdd10d3c1676fa65fdb40053527f1168285a0ffaf",
+      "exists": true
+    },
+    "p1.15a_plant_slopes": {
+      "relative_path": "outputs/diagnostics/round-p1.15a-20261108/plant_slopes.csv",
+      "sha256": "272d4fc97feda36741394dfe37f5e04cef51c7c2743e13afd4403f5aef7384e7",
+      "exists": true
+    },
+    "p1.15a_candidates": {
+      "relative_path": "outputs/diagnostics/round-p1.15a-20261108/candidates.csv",
+      "sha256": "3d74acc20d2a40f2e5ba283c01ab1a0405c98e190d908cea5422a22340a63e1d",
+      "exists": true
+    }
+  },
+  "outputs": [
+    "unit_checks.csv",
+    "comparison_points.csv",
+    "model_slopes.csv",
+    "elasticities.csv",
+    "levels.csv",
+    "hl_sensitivity.csv",
+    "profiles.csv",
+    "readings.csv",
+    "protocol.json",
+    "interpretation.md",
+    "sha256.txt"
+  ]
+}

@@ -125,6 +125,8 @@ class GasifierSystem:
             self.hf_coal_source = _mf
         self.material = MaterialService(); self.kinetics = KineticsService(); self.pyrolysis = PyrolysisService()
         self.results = []; self.cells = []; self.solve_stats = {"fallback_count": 0, "poor_convergence_count": 0}
+        # P2.0-A（M2）渣层截留：全混区出口处离开反应流的固体流股。缺省 None。
+        self.slag_capture = None
 
     def _validate_inputs(self, geometry, coal_props, op_conds):
         required_geom = ['L', 'D']
@@ -451,6 +453,7 @@ class GasifierSystem:
             self.results = []
             self.cells = []
             self.cell_diagnostics = []
+            self.slag_capture = None
             self.execution_status = "completed"
             self.no_root_cell_index = None
             self.cell0_branches = []
@@ -554,6 +557,22 @@ class GasifierSystem:
             raise ValueError(
                 "CharCO2RateFactor is not implemented on the JAX batch path "
                 "(GasifierSystem._solve_jax_v4); it would be silently ignored."
+            )
+        # P2.0-A（U5）：两个钩子在 JAX 批量路径上没有对应实现——必须报错，不得静默回退。
+        if self.op_conds.get("CharLateDecayX0") is not None:
+            raise NotImplementedError(
+                "CharLateDecayX0 (P2.0-A M1 late char-reactivity decay) is not implemented on "
+                "the JAX batch path (GasifierSystem._solve_jax_v4); it would be silently ignored."
+            )
+        if float(self.op_conds.get("CharLateDecayExponent", 0.0)) != 0.0:
+            raise NotImplementedError(
+                "CharLateDecayExponent (P2.0-A M1 late char-reactivity decay) is not implemented "
+                "on the JAX batch path (GasifierSystem._solve_jax_v4); it would be silently ignored."
+            )
+        if float(self.op_conds.get("SlagCaptureFraction", 0.0) or 0.0) != 0.0:
+            raise NotImplementedError(
+                "SlagCaptureFraction (P2.0-A M2 slag capture) is not implemented on the JAX "
+                "batch path (GasifierSystem._solve_jax_v4); it would be silently ignored."
             )
         # P1.10-A：O2 分布式进入在 JAX 批处理路径上没有对应实现——必须报错，不得静默回退。
         if resolve_oxygen_mixing_model(self.op_conds) != OXYGEN_MIXING_INSTANT:
@@ -759,6 +778,7 @@ class GasifierSystem:
 
     def _solve_sequential(self, dz_list, inlet, A, solver_method, jacobian_mode):
         N_cells = len(dz_list); current_inlet = inlet; self.results = []; self.cells = []
+        self.slag_capture = None
         ref_f = self._ref_flow_scale(inlet); ref_e = max(ref_f * 35.0 * 200.0, 5.0e5)
         cell_ops = self._cell_ops_for_solve(dz_list)
         # 首格会并入的旁流 O2 份额（初值用；instant 下为 0）
@@ -936,8 +956,51 @@ class GasifierSystem:
                 sol_state.solid_mass, sol_state.carbon_fraction,
                 rho_p=phys.get('rho_p'),
             )
-            sol_state.T_solid = Ts_out; self.results.append(sol_state); current_inlet = sol_state
+            sol_state.T_solid = Ts_out; self.results.append(sol_state)
+            # P2.0-A（M2）：全混区（首格）出口处按份额 f_s 截留固体，其余进入下游。
+            current_inlet = self._split_slag_at_wsr_outlet(i, sol_state)
         return self._package_results()
+
+    def _split_slag_at_wsr_outlet(self, i: int, wsr_outlet: StateVector) -> StateVector:
+        """P2.0-A（M2）渣层截留：全混区出口一处，碳与灰同比例离开反应流。
+
+        ``SlagCaptureFraction``（缺省 0）为被截留固体占**离开全混区的固体**的质量份额。
+        被截留流股带走其在全混区出口固相温度下的显热（焦炭生成焓取 0，与
+        ``Cell._calc_energy_balance`` 的出口口径一致），单列于 ``self.slag_capture``，
+        不计入 ``HeatLossPercentTotal``。该流股不再参与下游任何反应。
+
+        f_s = 0 时返回原状态对象，逐位不变。
+        """
+        f_s = float(self.op_conds.get('SlagCaptureFraction', 0.0) or 0.0)
+        if i != 0 or f_s <= 0.0:
+            return wsr_outlet
+        if not (0.0 <= f_s < 1.0):
+            raise ValueError(f"SlagCaptureFraction 必须落在 [0, 1)，得到 {f_s!r}")
+        m_cap = float(wsr_outlet.solid_mass) * f_s
+        cf = float(wsr_outlet.carbon_fraction)
+        T_solid_cap = float(wsr_outlet.T_solid_or_gas)
+        cp_s = float(self.coal_props.get("cp_char", 1300.0))
+        self.slag_capture = {
+            "cell_index": int(i),
+            "fraction": float(f_s),
+            "solid_mass_kg_s": m_cap,
+            "carbon_fraction": cf,
+            "carbon_kg_s": m_cap * cf,
+            "T_solid_K": T_solid_cap,
+            "T_gas_K": float(wsr_outlet.T),
+            "cp_char_j_per_kg_k": cp_s,
+            # 与 Cell._calc_energy_balance 出口固相同一口径：焦炭生成焓为 0，只计显热
+            "enthalpy_W": m_cap * cp_s * (T_solid_cap - 298.15),
+        }
+        return StateVector(
+            gas_moles=wsr_outlet.gas_moles.copy(),
+            solid_mass=float(wsr_outlet.solid_mass) * (1.0 - f_s),
+            carbon_fraction=cf,
+            T=float(wsr_outlet.T),
+            P=float(wsr_outlet.P),
+            z=float(wsr_outlet.z),
+            T_solid=wsr_outlet.T_solid,
+        )
 
     def _build_cell_diagnostic(self, i, cell, sol_state, cell_cost, residuals_now, solver_failed):
         """P1.5-A B5/B6：逐单元记录残差成本、主残差分量与限幅激活布尔量。"""

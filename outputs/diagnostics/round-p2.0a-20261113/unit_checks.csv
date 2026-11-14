@@ -1,0 +1,200 @@
+check,item,n,value,threshold,pass,detail,pass_solver_floor
+U1,"缺省钩子 9 窗 vs P1.12-A(L=1,baseline)",9,0.0,1e-09,True,[],
+U2,M1-0 param=0 vs U1 逐位一致,9,9,9,True,bitwise_equal_windows=9/9 max_rel=0.000e+00,
+U2,M1-80 param=0 vs U1 逐位一致,9,9,9,True,bitwise_equal_windows=9/9 max_rel=0.000e+00,
+U2,M1-90 param=0 vs U1 逐位一致,9,9,9,True,bitwise_equal_windows=9/9 max_rel=0.000e+00,
+U2,M2 param=0 vs U1 逐位一致,9,9,9,True,bitwise_equal_windows=9/9 max_rel=0.000e+00,
+U3,M1-0@2 C 元素闭合（相对）,1,2.1178335599256857e-09,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=1.845106e-11 increment=2.099e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 H 元素闭合（相对）,1,-8.755477611018045e-09,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.630786e-09 increment=-1.339e-08 |incr|<=1e-8:False,True
+U3,M1-0@2 O 元素闭合（相对）,1,1.2033208088038945e-06,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.364075e-06 increment=-3.161e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,2.183083728990826e-11,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 err_W=1.4548e-03 H_cap_W=0.0000e+00 C0_rel=-1.643e-11,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.003178609299816e-09,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=3.023265e-07 increment=-3.003e-07 |incr|<=1e-8:False,True
+U3,M1-0@2 H 元素闭合（相对）,1,-1.0184997987413282e-08,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=9.032759e-08 increment=-1.005e-07 |incr|<=1e-8:False,True
+U3,M1-0@2 O 元素闭合（相对）,1,1.5127407520937342e-05,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=1.169340e-05 increment=3.434e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,-7.592683582743665e-12,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 err_W=-5.4383e-04 H_cap_W=0.0000e+00 C0_rel=7.021e-13,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.2963509199214987e-09,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=4.014842e-06 increment=-4.013e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 H 元素闭合（相对）,1,-1.5738432552560296e-08,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.166366e-09 increment=-2.290e-08 |incr|<=1e-8:False,True
+U3,M1-0@2 O 元素闭合（相对）,1,9.680049088016868e-06,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.912106e-06 increment=1.768e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,1.3689050751481188e-11,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 err_W=9.7279e-04 H_cap_W=0.0000e+00 C0_rel=-5.372e-12,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.167443147772446e-09,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=2.221343e-06 increment=-2.219e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 H 元素闭合（相对）,1,-1.4113183777840875e-08,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=5.131884e-09 increment=-1.925e-08 |incr|<=1e-8:False,True
+U3,M1-0@2 O 元素闭合（相对）,1,2.971322426564735e-06,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=9.621856e-06 increment=-6.651e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,2.4231342705786012e-11,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 err_W=1.7139e-03 H_cap_W=0.0000e+00 C0_rel=-1.741e-11,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.080913373590239e-09,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=-6.015665e-11 increment=2.141e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 H 元素闭合（相对）,1,-9.780581907498866e-09,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=2.258994e-08 increment=-3.237e-08 |incr|<=1e-8:False,True
+U3,M1-0@2 O 元素闭合（相对）,1,1.1491972927152872e-05,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=3.355362e-06 increment=8.137e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,1.2846883099000323e-11,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 err_W=8.7591e-04 H_cap_W=0.0000e+00 C0_rel=-2.088e-11,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.1186056608209405e-09,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=-1.334720e-10 increment=2.252e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 H 元素闭合（相对）,1,-8.725764363337733e-09,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.806423e-09 increment=-1.153e-08 |incr|<=1e-8:False,True
+U3,M1-0@2 O 元素闭合（相对）,1,5.250761662650803e-06,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.450510e-05 increment=-1.925e-05 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,2.4603227742063378e-11,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 err_W=1.7061e-03 H_cap_W=0.0000e+00 C0_rel=-6.371e-12,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.3857906202756945e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=9.217014e-11 increment=2.294e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 H 元素闭合（相对）,1,-1.601124395499811e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=7.304224e-09 increment=-8.905e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 O 元素闭合（相对）,1,1.4002381373775578e-05,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=4.213450e-06 increment=9.789e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,-7.225109306250494e-12,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 err_W=-5.5954e-04 H_cap_W=0.0000e+00 C0_rel=-1.468e-11,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.360239138974099e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=2.069656e-10 increment=2.153e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 H 元素闭合（相对）,1,-2.4199699802942478e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=5.672445e-09 increment=-8.092e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 O 元素闭合（相对）,1,3.6894295606901343e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=1.191057e-05 increment=-8.221e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,7.362787404201166e-12,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 err_W=5.8208e-04 H_cap_W=0.0000e+00 C0_rel=-1.826e-11,True
+U3,M1-0@2 C 元素闭合（相对）,1,2.1684586965896466e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=1.170916e-10 increment=2.051e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 H 元素闭合（相对）,1,-2.776152657697933e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=7.141465e-09 increment=-9.918e-09 |incr|<=1e-8:True,True
+U3,M1-0@2 O 元素闭合（相对）,1,1.0872890095769472e-05,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=8.395342e-06 increment=2.478e-06 |incr|<=1e-8:False,True
+U3,M1-0@2 能量闭合（相对，含截留焓）,1,1.028831411847313e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 err_W=8.0958e-04 H_cap_W=0.0000e+00 C0_rel=-5.692e-13,True
+U3,M1-0@2 C 闭合汇总（9 参照窗）,9,2.3857906202756945e-09,1e-08,True,max|closure|=2.386e-09 max|increment_vs_C0|=4.013e-06 C0 自身 max|closure|=4.015e-06,True
+U3,M1-0@2 H 闭合汇总（9 参照窗）,9,1.5738432552560296e-08,1e-08,False,max|closure|=1.574e-08 max|increment_vs_C0|=1.005e-07 C0 自身 max|closure|=9.033e-08,True
+U3,M1-0@2 O 闭合汇总（9 参照窗）,9,1.5127407520937342e-05,1e-08,False,max|closure|=1.513e-05 max|increment_vs_C0|=1.925e-05 C0 自身 max|closure|=2.451e-05,True
+U3,M1-0@2 能量闭合汇总,9,2.4603227742063378e-11,1e-08,True,max|rel|=2.460e-11 max|increment_vs_C0|=4.164e-11,True
+U3,M1-0@2 碳闭合误差来源（Σ逐格碳残差）,182,2.344675796043284e-09,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 闭合=2.118e-09 Σ逐格碳残差/入炉碳=2.345e-09 max_cell_cost=1.578e-13 n_cell_gt_1e-4=0,
+U3,M1-0@2 碳闭合误差来源（Σ逐格碳残差）,182,2.2215416147189435e-09,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 闭合=2.003e-09 Σ逐格碳残差/入炉碳=2.222e-09 max_cell_cost=6.452e-11 n_cell_gt_1e-4=0,
+U3,M1-0@2 碳闭合误差来源（Σ逐格碳残差）,182,2.547516728465386e-09,,,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 闭合=2.296e-09 Σ逐格碳残差/入炉碳=2.548e-09 max_cell_cost=1.089e-11 n_cell_gt_1e-4=0,
+U3,M1-80@3 C 元素闭合（相对）,1,7.799828120514259e-10,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=1.845106e-11 increment=7.615e-10 |incr|<=1e-8:True,True
+U3,M1-80@3 H 元素闭合（相对）,1,-1.4437014442382206e-09,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.630786e-09 increment=-6.074e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 O 元素闭合（相对）,1,1.7203039371626728e-05,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.364075e-06 increment=1.284e-05 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,-1.2701151171812752e-11,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 err_W=-8.4640e-04 H_cap_W=0.0000e+00 C0_rel=-1.643e-11,True
+U3,M1-80@3 C 元素闭合（相对）,1,2.9461716494116983e-10,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=3.023265e-07 increment=-3.020e-07 |incr|<=1e-8:False,True
+U3,M1-80@3 H 元素闭合（相对）,1,1.2865207957833227e-08,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=9.032759e-08 increment=-7.746e-08 |incr|<=1e-8:False,True
+U3,M1-80@3 O 元素闭合（相对）,1,1.699775506198692e-05,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=1.169340e-05 increment=5.304e-06 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,-1.0524196744855704e-11,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 err_W=-7.5381e-04 H_cap_W=0.0000e+00 C0_rel=7.021e-13,True
+U3,M1-80@3 C 元素闭合（相对）,1,2.1764566243246172e-10,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=4.014842e-06 increment=-4.015e-06 |incr|<=1e-8:False,True
+U3,M1-80@3 H 元素闭合（相对）,1,1.993354868119216e-08,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.166366e-09 increment=1.277e-08 |incr|<=1e-8:False,True
+U3,M1-80@3 O 元素闭合（相对）,1,1.626207233188748e-05,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.912106e-06 increment=8.350e-06 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,-4.674486968773946e-11,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 err_W=-3.3219e-03 H_cap_W=0.0000e+00 C0_rel=-5.372e-12,True
+U3,M1-80@3 C 元素闭合（相对）,1,2.435985484820829e-10,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=2.221343e-06 increment=-2.221e-06 |incr|<=1e-8:False,True
+U3,M1-80@3 H 元素闭合（相对）,1,1.7793157373576817e-08,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=5.131884e-09 increment=1.266e-08 |incr|<=1e-8:False,True
+U3,M1-80@3 O 元素闭合（相对）,1,8.783441557619894e-06,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=9.621856e-06 increment=-8.384e-07 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,-2.114651861939462e-11,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 err_W=-1.4957e-03 H_cap_W=0.0000e+00 C0_rel=-1.741e-11,True
+U3,M1-80@3 C 元素闭合（相对）,1,4.2046967876217707e-10,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=-6.015665e-11 increment=4.806e-10 |incr|<=1e-8:True,True
+U3,M1-80@3 H 元素闭合（相对）,1,9.16928551664357e-09,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=2.258994e-08 increment=-1.342e-08 |incr|<=1e-8:False,True
+U3,M1-80@3 O 元素闭合（相对）,1,1.3943691055993195e-05,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=3.355362e-06 increment=1.059e-05 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,3.3648732105988156e-12,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 err_W=2.2942e-04 H_cap_W=0.0000e+00 C0_rel=-2.088e-11,True
+U3,M1-80@3 C 元素闭合（相对）,1,6.570182646720269e-10,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=-1.334720e-10 increment=7.905e-10 |incr|<=1e-8:True,True
+U3,M1-80@3 H 元素闭合（相对）,1,7.3217937043224874e-09,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.806423e-09 increment=4.515e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 O 元素闭合（相对）,1,1.1144021533339287e-05,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.450510e-05 increment=-1.336e-05 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,3.89055608875702e-12,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 err_W=2.6979e-04 H_cap_W=0.0000e+00 C0_rel=-6.371e-12,True
+U3,M1-80@3 C 元素闭合（相对）,1,1.4069433937348447e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=9.217014e-11 increment=1.315e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 H 元素闭合（相对）,1,3.677892048922699e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=7.304224e-09 increment=-3.626e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 O 元素闭合（相对）,1,5.121338735043378e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=4.213450e-06 increment=9.079e-07 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,-4.880941352108023e-12,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 err_W=-3.7800e-04 H_cap_W=0.0000e+00 C0_rel=-1.468e-11,True
+U3,M1-80@3 C 元素闭合（相对）,1,1.3075548720079634e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=2.069656e-10 increment=1.101e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 H 元素闭合（相对）,1,2.426543793633775e-10,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=5.672445e-09 increment=-5.430e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 O 元素闭合（相对）,1,7.785805089504414e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=1.191057e-05 increment=-4.125e-06 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,1.5678743174965197e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 err_W=1.2395e-03 H_cap_W=0.0000e+00 C0_rel=-1.826e-11,True
+U3,M1-80@3 C 元素闭合（相对）,1,1.4810917738837026e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=1.170916e-10 increment=1.364e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 H 元素闭合（相对）,1,5.618645042657134e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=7.141465e-09 increment=-7.085e-09 |incr|<=1e-8:True,True
+U3,M1-80@3 O 元素闭合（相对）,1,5.768178599206525e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=8.395342e-06 increment=-2.627e-06 |incr|<=1e-8:False,True
+U3,M1-80@3 能量闭合（相对，含截留焓）,1,1.2331585043161609e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 err_W=9.7036e-04 H_cap_W=0.0000e+00 C0_rel=-5.692e-13,True
+U3,M1-80@3 C 闭合汇总（9 参照窗）,9,1.4810917738837026e-09,1e-08,True,max|closure|=1.481e-09 max|increment_vs_C0|=4.015e-06 C0 自身 max|closure|=4.015e-06,True
+U3,M1-80@3 H 闭合汇总（9 参照窗）,9,1.993354868119216e-08,1e-08,False,max|closure|=1.993e-08 max|increment_vs_C0|=7.746e-08 C0 自身 max|closure|=9.033e-08,True
+U3,M1-80@3 O 闭合汇总（9 参照窗）,9,1.7203039371626728e-05,1e-08,False,max|closure|=1.720e-05 max|increment_vs_C0|=1.336e-05 C0 自身 max|closure|=2.451e-05,True
+U3,M1-80@3 能量闭合汇总,9,4.674486968773946e-11,1e-08,True,max|rel|=4.674e-11 max|increment_vs_C0|=4.137e-11,True
+U3,M1-80@3 碳闭合误差来源（Σ逐格碳残差）,182,8.635293681416878e-10,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 闭合=7.800e-10 Σ逐格碳残差/入炉碳=8.635e-10 max_cell_cost=2.288e-11 n_cell_gt_1e-4=0,
+U3,M1-80@3 碳闭合误差来源（Σ逐格碳残差）,182,3.267348514914359e-10,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 闭合=2.946e-10 Σ逐格碳残差/入炉碳=3.267e-10 max_cell_cost=4.008e-11 n_cell_gt_1e-4=0,
+U3,M1-80@3 碳闭合误差来源（Σ逐格碳残差）,182,2.4145094132104717e-10,,,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 闭合=2.176e-10 Σ逐格碳残差/入炉碳=2.415e-10 max_cell_cost=4.513e-11 n_cell_gt_1e-4=0,
+U3,M1-90@4 C 元素闭合（相对）,1,1.8579248675878705e-09,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=1.845106e-11 increment=1.839e-09 |incr|<=1e-8:True,True
+U3,M1-90@4 H 元素闭合（相对）,1,3.4206614465344005e-08,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.630786e-09 increment=2.958e-08 |incr|<=1e-8:False,True
+U3,M1-90@4 O 元素闭合（相对）,1,9.036174732014666e-06,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.364075e-06 increment=4.672e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,-1.7727856306270785e-11,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 err_W=-1.1814e-03 H_cap_W=0.0000e+00 C0_rel=-1.643e-11,True
+U3,M1-90@4 C 元素闭合（相对）,1,1.707578400543575e-10,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=3.023265e-07 increment=-3.022e-07 |incr|<=1e-8:False,True
+U3,M1-90@4 H 元素闭合（相对）,1,3.915527720242438e-08,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=9.032759e-08 increment=-5.117e-08 |incr|<=1e-8:False,True
+U3,M1-90@4 O 元素闭合（相对）,1,6.747148622962717e-06,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=1.169340e-05 increment=-4.946e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,-4.058890198907521e-12,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 err_W=-2.9072e-04 H_cap_W=0.0000e+00 C0_rel=7.021e-13,True
+U3,M1-90@4 C 元素闭合（相对）,1,-4.250586064915839e-11,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=4.014842e-06 increment=-4.015e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 H 元素闭合（相对）,1,7.97241381038967e-09,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.166366e-09 increment=8.060e-10 |incr|<=1e-8:True,True
+U3,M1-90@4 O 元素闭合（相对）,1,1.0913049846481948e-06,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.912106e-06 increment=-6.821e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,-1.2984080259523408e-11,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 err_W=-9.2269e-04 H_cap_W=0.0000e+00 C0_rel=-5.372e-12,True
+U3,M1-90@4 C 元素闭合（相对）,1,9.318117526494918e-11,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=2.221343e-06 increment=-2.221e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 H 元素闭合（相对）,1,9.873259820776486e-09,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=5.131884e-09 increment=4.741e-09 |incr|<=1e-8:True,True
+U3,M1-90@4 O 元素闭合（相对）,1,2.8778427953636305e-06,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=9.621856e-06 increment=-6.744e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,-9.345270536933842e-13,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 err_W=-6.6102e-05 H_cap_W=0.0000e+00 C0_rel=-1.741e-11,True
+U3,M1-90@4 C 元素闭合（相对）,1,8.019329858912307e-11,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=-6.015665e-11 increment=1.403e-10 |incr|<=1e-8:True,True
+U3,M1-90@4 H 元素闭合（相对）,1,6.396480700082674e-08,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=2.258994e-08 increment=4.137e-08 |incr|<=1e-8:False,True
+U3,M1-90@4 O 元素闭合（相对）,1,1.3340155071613461e-05,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=3.355362e-06 increment=9.985e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,-2.9446793138271035e-11,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 err_W=-2.0077e-03 H_cap_W=0.0000e+00 C0_rel=-2.088e-11,True
+U3,M1-90@4 C 元素闭合（相对）,1,2.1886509854109453e-10,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=-1.334720e-10 increment=3.523e-10 |incr|<=1e-8:True,True
+U3,M1-90@4 H 元素闭合（相对）,1,-3.255739568157589e-10,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.806423e-09 increment=-3.132e-09 |incr|<=1e-8:True,True
+U3,M1-90@4 O 元素闭合（相对）,1,3.0448666881449342e-06,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.450510e-05 increment=-2.146e-05 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,-7.451258347288024e-12,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 err_W=-5.1670e-04 H_cap_W=0.0000e+00 C0_rel=-6.371e-12,True
+U3,M1-90@4 C 元素闭合（相对）,1,9.983162356816214e-10,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=9.217014e-11 increment=9.061e-10 |incr|<=1e-8:True,True
+U3,M1-90@4 H 元素闭合（相对）,1,3.0683141135388673e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=7.304224e-09 increment=-4.236e-09 |incr|<=1e-8:True,True
+U3,M1-90@4 O 元素闭合（相对）,1,8.784382696497662e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=4.213450e-06 increment=4.571e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,4.380667472048069e-12,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 err_W=3.3925e-04 H_cap_W=0.0000e+00 C0_rel=-1.468e-11,True
+U3,M1-90@4 C 元素闭合（相对）,1,4.752231435349357e-10,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=2.069656e-10 increment=2.683e-10 |incr|<=1e-8:True,True
+U3,M1-90@4 H 元素闭合（相对）,1,1.3145291151054949e-08,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=5.672445e-09 increment=7.473e-09 |incr|<=1e-8:True,True
+U3,M1-90@4 O 元素闭合（相对）,1,6.6567406944464175e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=1.191057e-05 increment=-5.254e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,1.2670900423608615e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 err_W=1.0017e-03 H_cap_W=0.0000e+00 C0_rel=-1.826e-11,True
+U3,M1-90@4 C 元素闭合（相对）,1,7.218446780820987e-10,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=1.170916e-10 increment=6.048e-10 |incr|<=1e-8:True,True
+U3,M1-90@4 H 元素闭合（相对）,1,7.74084697091201e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=7.141465e-09 increment=5.994e-10 |incr|<=1e-8:True,True
+U3,M1-90@4 O 元素闭合（相对）,1,6.583823292042977e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=8.395342e-06 increment=-1.812e-06 |incr|<=1e-8:False,True
+U3,M1-90@4 能量闭合（相对，含截留焓）,1,-1.0967952612329196e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 err_W=-8.6306e-04 H_cap_W=0.0000e+00 C0_rel=-5.692e-13,True
+U3,M1-90@4 C 闭合汇总（9 参照窗）,9,1.8579248675878705e-09,1e-08,True,max|closure|=1.858e-09 max|increment_vs_C0|=4.015e-06 C0 自身 max|closure|=4.015e-06,True
+U3,M1-90@4 H 闭合汇总（9 参照窗）,9,6.396480700082674e-08,1e-08,False,max|closure|=6.396e-08 max|increment_vs_C0|=5.117e-08 C0 自身 max|closure|=9.033e-08,True
+U3,M1-90@4 O 闭合汇总（9 参照窗）,9,1.3340155071613461e-05,1e-08,False,max|closure|=1.334e-05 max|increment_vs_C0|=2.146e-05 C0 自身 max|closure|=2.451e-05,True
+U3,M1-90@4 能量闭合汇总,9,2.9446793138271035e-11,1e-08,True,max|rel|=2.945e-11 max|increment_vs_C0|=3.093e-11,True
+U3,M1-90@4 碳闭合误差来源（Σ逐格碳残差）,182,2.0569276653504157e-09,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 闭合=1.858e-09 Σ逐格碳残差/入炉碳=2.057e-09 max_cell_cost=6.818e-12 n_cell_gt_1e-4=0,
+U3,M1-90@4 碳闭合误差来源（Σ逐格碳残差）,182,1.8937081297774523e-10,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 闭合=1.708e-10 Σ逐格碳残差/入炉碳=1.894e-10 max_cell_cost=5.054e-12 n_cell_gt_1e-4=0,
+U3,M1-90@4 碳闭合误差来源（Σ逐格碳残差）,182,-4.715467693929284e-11,,,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 闭合=-4.251e-11 Σ逐格碳残差/入炉碳=-4.715e-11 max_cell_cost=2.281e-13 n_cell_gt_1e-4=0,
+U3,M2@0.3 C 元素闭合（相对）,1,5.7131348274350296e-05,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=1.845106e-11 increment=5.713e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 H 元素闭合（相对）,1,3.507786488096078e-07,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.630786e-09 increment=3.461e-07 |incr|<=1e-8:False,True
+U3,M2@0.3 O 元素闭合（相对）,1,6.195995271988339e-06,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 C0=4.364075e-06 increment=1.832e-06 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-2.9091161534157275e-10,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 err_W=-1.9386e-02 H_cap_W=8.0072e+06 C0_rel=-1.643e-11,True
+U3,M2@0.3 C 元素闭合（相对）,1,7.587370389817632e-05,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=3.023265e-07 increment=7.557e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 H 元素闭合（相对）,1,2.469898629718507e-08,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=9.032759e-08 increment=-6.563e-08 |incr|<=1e-8:False,True
+U3,M2@0.3 O 元素闭合（相对）,1,9.716227008427572e-07,1e-08,False,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 C0=1.169340e-05 increment=-1.072e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-5.307029101093053e-10,1e-08,True,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 err_W=-3.8012e-02 H_cap_W=8.3433e+06 C0_rel=7.021e-13,True
+U3,M2@0.3 C 元素闭合（相对）,1,0.00011963824832136577,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=4.014842e-06 increment=1.156e-04 |incr|<=1e-8:False,False
+U3,M2@0.3 H 元素闭合（相对）,1,1.2358233539786442e-07,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.166366e-09 increment=1.164e-07 |incr|<=1e-8:False,True
+U3,M2@0.3 O 元素闭合（相对）,1,-3.865453577551554e-08,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 C0=7.912106e-06 increment=-7.951e-06 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-1.3417282739640975e-09,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 err_W=-9.5348e-02 H_cap_W=8.0239e+06 C0_rel=-5.372e-12,True
+U3,M2@0.3 C 元素闭合（相对）,1,0.00010332252371572095,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=2.221343e-06 increment=1.011e-04 |incr|<=1e-8:False,False
+U3,M2@0.3 H 元素闭合（相对）,1,7.927236679221075e-08,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=5.131884e-09 increment=7.414e-08 |incr|<=1e-8:False,True
+U3,M2@0.3 O 元素闭合（相对）,1,2.0195641709906617e-06,1e-08,False,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 C0=9.621856e-06 increment=-7.602e-06 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-8.839372448234845e-10,1e-08,True,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03N_013__W001 err_W=-6.2523e-02 H_cap_W=8.2590e+06 C0_rel=-1.741e-11,True
+U3,M2@0.3 C 元素闭合（相对）,1,7.195836749066431e-05,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=-6.015665e-11 increment=7.196e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 H 元素闭合（相对）,1,7.799789540115262e-08,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=2.258994e-08 increment=5.541e-08 |incr|<=1e-8:False,True
+U3,M2@0.3 O 元素闭合（相对）,1,1.7099678146588481e-06,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 C0=3.355362e-06 increment=-1.645e-06 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-2.5236352379965943e-10,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_014__W004 err_W=-1.7206e-02 H_cap_W=8.7404e+06 C0_rel=-2.088e-11,True
+U3,M2@0.3 C 元素闭合（相对）,1,5.970565397929758e-05,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=-1.334720e-10 increment=5.971e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 H 元素闭合（相对）,1,4.769454463676012e-07,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.806423e-09 increment=4.741e-07 |incr|<=1e-8:False,True
+U3,M2@0.3 O 元素闭合（相对）,1,3.8294873224942995e-07,1e-08,False,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 C0=2.450510e-05 increment=-2.412e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-4.488059978371577e-10,1e-08,True,window=R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-09D_015__W001 err_W=-3.1122e-02 H_cap_W=8.8170e+06 C0_rel=-6.371e-12,True
+U3,M2@0.3 C 元素闭合（相对）,1,1.6738773187057258e-05,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=9.217014e-11 increment=1.674e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 H 元素闭合（相对）,1,1.1450917123558818e-08,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=7.304224e-09 increment=4.147e-09 |incr|<=1e-8:True,True
+U3,M2@0.3 O 元素闭合（相对）,1,6.652432750729398e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 C0=4.213450e-06 increment=2.439e-06 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-4.3814563654743174e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_006__W001 err_W=-3.3932e-03 H_cap_W=8.7332e+06 C0_rel=-1.468e-11,True
+U3,M2@0.3 C 元素闭合（相对）,1,1.7657477517157022e-05,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=2.069656e-10 increment=1.766e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 H 元素闭合（相对）,1,1.9398458563665982e-08,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=5.672445e-09 increment=1.373e-08 |incr|<=1e-8:False,True
+U3,M2@0.3 O 元素闭合（相对）,1,3.182308182301451e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 C0=1.191057e-05 increment=-8.728e-06 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-5.8177574620314046e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-11N_009__W002 err_W=-4.5994e-03 H_cap_W=8.7517e+06 C0_rel=-1.826e-11,True
+U3,M2@0.3 C 元素闭合（相对）,1,2.088671889643599e-05,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=1.170916e-10 increment=2.089e-05 |incr|<=1e-8:False,True
+U3,M2@0.3 H 元素闭合（相对）,1,2.5557788313682548e-09,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=7.141465e-09 increment=-4.586e-09 |incr|<=1e-8:True,True
+U3,M2@0.3 O 元素闭合（相对）,1,1.0146466571569145e-06,1e-08,False,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 C0=8.395342e-06 increment=-7.381e-06 |incr|<=1e-8:False,True
+U3,M2@0.3 能量闭合（相对，含截留焓）,1,-2.7839045589377016e-11,1e-08,True,window=R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001 err_W=-2.1906e-03 H_cap_W=8.6391e+06 C0_rel=-5.692e-13,True
+U3,M2@0.3 C 闭合汇总（9 参照窗）,9,0.00011963824832136577,1e-08,False,max|closure|=1.196e-04 max|increment_vs_C0|=1.156e-04 C0 自身 max|closure|=4.015e-06,False
+U3,M2@0.3 H 闭合汇总（9 参照窗）,9,4.769454463676012e-07,1e-08,False,max|closure|=4.769e-07 max|increment_vs_C0|=4.741e-07 C0 自身 max|closure|=9.033e-08,True
+U3,M2@0.3 O 闭合汇总（9 参照窗）,9,6.652432750729398e-06,1e-08,False,max|closure|=6.652e-06 max|increment_vs_C0|=2.412e-05 C0 自身 max|closure|=2.451e-05,True
+U3,M2@0.3 能量闭合汇总,9,1.3417282739640975e-09,1e-08,True,max|rel|=1.342e-09 max|increment_vs_C0|=1.336e-09,True
+U3,M2@0.3 碳闭合误差来源（Σ逐格碳残差）,182,6.325074697612212e-05,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_008__W003 闭合=5.713e-05 Σ逐格碳残差/入炉碳=6.325e-05 max_cell_cost=3.036e-11 n_cell_gt_1e-4=0,
+U3,M2@0.3 碳闭合误差来源（Σ逐格碳残差）,182,8.414454786046878e-05,,,window=R52-C-75__P1__huayi_sy3_phase1_wgs1__shift_morning_handover_2022-09-28__W001 闭合=7.587e-05 Σ逐格碳残差/入炉碳=8.414e-05 max_cell_cost=4.668e-11 n_cell_gt_1e-4=0,
+U3,M2@0.3 碳闭合误差来源（Σ逐格碳残差）,182,0.00013272381535804446,,,window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 闭合=1.196e-04 Σ逐格碳残差/入炉碳=1.327e-04 max_cell_cost=1.132e-10 n_cell_gt_1e-4=0,
+U4,ϑ 连续性/值域 X0=0 n=0,1000,0.0,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=0.000e+00，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0 n=0.5,1000,5.000444502911705e-13,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=5.000e-13，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0 n=1,1000,9.999778782798785e-13,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=1.000e-12，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0 n=2,1000,1.999955756559757e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=2.000e-12，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0 n=3,1000,2.9999336348396355e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=3.000e-12，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0 n=8,1000,7.999823026239028e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=8.000e-12，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.8 n=0,1000,0.0,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=0.000e+00，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.8 n=0.5,1000,2.5000002068509275e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=2.500e-12，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.8 n=1,1000,4.9998893913993925e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=5.000e-12，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.8 n=2,1000,9.999778782798785e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=1.000e-11，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.8 n=3,1000,1.4999668174198177e-11,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=1.500e-11，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.8 n=8,1000,3.999911513119514e-11,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=4.000e-11，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.9 n=0,1000,0.0,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=0.000e+00，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.9 n=0.5,1000,4.9998893913993925e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=5.000e-12，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.9 n=1,1000,9.999778782798785e-12,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=1.000e-11，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.9 n=2,1000,1.999955756559757e-11,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=2.000e-11，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.9 n=3,1000,2.9999336348396355e-11,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=3.000e-11，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,ϑ 连续性/值域 X0=0.9 n=8,1000,7.999823026239028e-11,1e-09,True,"值域在 X∈[0,0.999] 上检查（0<ϑ≤1）；|ϑ(X0+1e-12)-ϑ(X0)|=8.000e-11，真值为 0，跳变随 ε 线性趋零；ϑ(X=1)=0 是极限（该处已无碳）；range_ok=True",
+U4,n 递增 → X_C 单调下降（M1-80，阶段 2 参照窗）,8,-0.2944338218540281,0.0,True,"window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 X_C(n)=[100.0, 99.7056, 98.7042, 97.803, 97.1155, 96.6163, 96.2588, 95.8108]",
+U4,f_s 递增 → X_C 单调下降（M2，阶段 2 参照窗）,8,-0.9294524861704758,0.0,True,"window=R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-03D_011__W001 X_C(f_s)=[100.0, 99.0705, 97.6764, 95.3527, 90.7053, 86.0579, 81.4104, 76.7628]",
+U5,JAX 批量路径 M1-80@3 → NotImplementedError,1,NotImplementedError,NotImplementedError,True,CharLateDecayX0 (P2.0-A M1 late char-reactivity decay) is not implemented on the JAX batch path (GasifierSystem._solve_jax_v4); it would be silently ignored.,
+U5,JAX 批量路径 M2@0.3 → NotImplementedError,1,NotImplementedError,NotImplementedError,True,SlagCaptureFraction (P2.0-A M2 slag capture) is not implemented on the JAX batch path (GasifierSystem._solve_jax_v4); it would be silently ignored.,
