@@ -60,6 +60,23 @@ DZ_DOWN = 0.0515
 L_WSR = 1.0
 HL_NOM = 1.0
 KAPPA = 1.0
+
+# 模型源码的轻量指纹（mtime+size），进缓存键。见 cache_key 的注释。
+def _code_fingerprint() -> str:
+    parts = []
+    for rel in ("src/model/cell.py", "src/model/gasifier_system.py",
+                "src/model/heat_loss.py", "src/model/kinetics.py",
+                "src/model/kinetics_service.py"):
+        f = ROOT / rel
+        try:
+            st = f.stat()
+            parts.append(f"{rel}:{int(st.st_mtime)}:{st.st_size}")
+        except OSError:
+            parts.append(f"{rel}:missing")
+    return "|".join(parts)
+
+
+CODE_FINGERPRINT = _code_fingerprint()
 F_GAS = 1.0
 F_CO2_RATE = 1.0
 HL_GRID = (0.5, 1.0, 2.0)
@@ -228,6 +245,11 @@ def cache_key(wid: str, cand_id: str, param: float, hl: float,
             "f_co2_rate": repr(float(F_CO2_RATE)),
             "L_wsr": repr(float(L_WSR)),
             "dz_down": repr(float(DZ_DOWN)),
+            # 2026-11-16：缓存键必须含代码指纹。此前只含输入参数，所以修正了
+            # M2 的 X_total 分母之后，重跑仍然全量复用旧缓存，产物与修正前逐位相同，
+            # 而这个「没有变化」被误读成「修正无效」。用模型源码的 mtime+size
+            # 作轻量指纹，代价可忽略。
+            "code_fingerprint": CODE_FINGERPRINT,
         },
         ensure_ascii=False, sort_keys=True,
     )

@@ -160,52 +160,52 @@ G0,reachable,phase1,1.0,1.0,True,param=0.0615234 X_C_med=96.9959 目标=97.0130 
 G0,reachable,phase2,1.0,1.0,True,param=0.160156 X_C_med=92.4884 目标=92.5075 nan,M2,False
 G0,reachable,phase3,1.0,1.0,True,param=0.15332 X_C_med=92.3761 目标=92.3910 nan,M2,False
 G0,reachable,phase4,1.0,1.0,True,param=0.179688 X_C_med=90.5738 目标=90.5670 nan,M2,False
-G1,dT_out_per3_K,phase1,100.39671395110582,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
-G1,dT_out_per3_K,phase2,98.38558614188648,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
-G1,dT_out_per3_K,phase3,97.5182212953732,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
-G1,dT_out_per3_K,phase4,95.65775796625411,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
-G1,min_abs_dT_across_phases,all,95.65775796625411,50.0,True,四个阶段的最小 |ΔT_out|；判定要求四个阶段都有斜率且每阶段 ≥50 K（实际有斜率的阶段数 4）,M2,False
-G2,same_sign::CO2_vol_pct::ln_coal,phase1,-0.8776511334133577,-0.2934646315741745,True,模型每+3%=-0.8777 装置=-0.2935,M2,False
-G2,same_sign::CO_vol_pct::ln_coal,phase2,-0.0887438007544736,0.6967429115398697,False,模型每+3%=-0.08874 装置=0.6967,M2,False
-G2,same_sign::CO2_vol_pct::ln_coal,phase2,-0.7704653769217229,-0.7468895902246678,True,模型每+3%=-0.7705 装置=-0.7469,M2,False
-G2,same_sign::CO_vol_pct::ln_coal,phase3,-0.01639966103284857,0.28141784603196895,False,模型每+3%=-0.0164 装置=0.2814,M2,False
-G2,same_sign::CO2_vol_pct::ln_coal,phase3,-0.778778011778293,-0.30941803176586935,True,模型每+3%=-0.7788 装置=-0.3094,M2,False
-G2,same_sign::CO_vol_pct::ln_coal,phase4,-0.1735448818279811,0.5276876360172579,False,模型每+3%=-0.1735 装置=0.5277,M2,False
-G2,same_sign::H2_vol_pct::ln_O2,phase4,-0.752541477224354,-0.48502847508285113,True,模型每+3%=-0.7525 装置=-0.485,M2,False
-G2,same_sign::CO2_vol_pct::ln_coal,phase4,-0.662459309684506,-0.623477273482688,True,模型每+3%=-0.6625 装置=-0.6235,M2,False
+G1,dT_out_per3_K,phase1,100.53080481067018,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
+G1,dT_out_per3_K,phase2,98.37283853284572,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
+G1,dT_out_per3_K,phase3,97.49643017930467,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
+G1,dT_out_per3_K,phase4,95.96665145837922,50.0,True,O2 +3% 双侧有限差分（每 +3%）的出口温度阶段中位,M2,False
+G1,min_abs_dT_across_phases,all,95.96665145837922,50.0,True,四个阶段的最小 |ΔT_out|；判定要求四个阶段都有斜率且每阶段 ≥50 K（实际有斜率的阶段数 4）,M2,False
+G2,same_sign::CO2_vol_pct::ln_coal,phase1,-0.8793522579634621,-0.2934646315741745,True,模型每+3%=-0.8794 装置=-0.2935,M2,False
+G2,same_sign::CO_vol_pct::ln_coal,phase2,-0.08877168369590799,0.6967429115398697,False,模型每+3%=-0.08877 装置=0.6967,M2,False
+G2,same_sign::CO2_vol_pct::ln_coal,phase2,-0.7703255749088085,-0.7468895902246678,True,模型每+3%=-0.7703 装置=-0.7469,M2,False
+G2,same_sign::CO_vol_pct::ln_coal,phase3,-0.016407562809576517,0.28141784603196895,False,模型每+3%=-0.01641 装置=0.2814,M2,False
+G2,same_sign::CO2_vol_pct::ln_coal,phase3,-0.7786014733135334,-0.30941803176586935,True,模型每+3%=-0.7786 装置=-0.3094,M2,False
+G2,same_sign::CO_vol_pct::ln_coal,phase4,-0.1705772531281776,0.5276876360172579,False,模型每+3%=-0.1706 装置=0.5277,M2,False
+G2,same_sign::H2_vol_pct::ln_O2,phase4,-0.7533576000019789,-0.48502847508285113,True,模型每+3%=-0.7534 装置=-0.485,M2,False
+G2,same_sign::CO2_vol_pct::ln_coal,phase4,-0.6660279888665301,-0.623477273482688,True,模型每+3%=-0.666 装置=-0.6235,M2,False
 G2,same_sign_total,all,5,6,False,P1.15-A 的 8 个有符号组合中模型与装置同号个数,M2,False
 G3,phases_with_ecoal_ge_0p3,all,4,3,True,e_煤 = 1 + (ΔX_C/X_C)/ln1.03 ≥ 0.3 的阶段数,M2,False
-G3,e_coal,phase1,0.9022008808982811,"[-0.419,0.199]",False,装置 e_煤=-0.159,M2,False
-G3,e_o2,phase1,0.09979577543708254,"[0.531,1.313]",False,装置 e_氧=0.931,M2,False
-G3,e_coal,phase2,0.8476852592462274,"[0.323,0.621]",False,装置 e_煤=0.491,M2,False
-G3,e_o2,phase2,0.1331285994043707,"[0.131,1.132]",True,装置 e_氧=0.836,M2,False
-G3,e_coal,phase3,0.8556825914113056,"[0.187,0.566]",False,装置 e_煤=0.394,M2,False
-G3,e_o2,phase3,0.12644578654158453,"[-0.102,0.616]",True,装置 e_氧=0.285,M2,False
-G3,e_coal,phase4,0.8145235711917517,"[0.195,0.730]",False,装置 e_煤=0.343,M2,False
-G3,e_o2,phase4,0.1710968513572905,"[1.160,2.064]",False,装置 e_氧=1.598,M2,False
-G4,level_bias::X_C_pp,phase1,-0.3908977834914822,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
-G4,level_bias::X_C_pp,phase2,0.25756688140973694,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
-G4,level_bias::X_C_pp,phase3,0.11245153733736402,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
-G4,level_bias::X_C_pp,phase4,0.006794152643820439,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
-G4,level_bias::CO_vol_pct,phase1,1.6008550974713458,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
-G4,level_bias::CO_vol_pct,phase2,3.450718529790514,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
-G4,level_bias::CO_vol_pct,phase3,1.027789439854594,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
-G4,level_bias::CO_vol_pct,phase4,0.36277928309927177,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
-G4,level_bias::H2_vol_pct,phase1,-1.9830905883860197,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
-G4,level_bias::H2_vol_pct,phase2,-3.5077722092514207,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
-G4,level_bias::H2_vol_pct,phase3,-1.1731609105529692,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
-G4,level_bias::H2_vol_pct,phase4,-0.4817864937113754,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
-G4,level_bias::CO2_vol_pct,phase1,0.3312212502834484,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
-G4,level_bias::CO2_vol_pct,phase2,0.13441731379677435,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
-G4,level_bias::CO2_vol_pct,phase3,0.20785568540868482,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
-G4,level_bias::CO2_vol_pct,phase4,0.3789508147375038,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
-G5,hl_variant_g1_min_abs_dT,HL=0.5,96.53676070705035,50.0,True,可达阶段 4/4；G1 通过阶段 4/4,M2,False
+G3,e_coal,phase1,0.9038737597876456,"[-0.419,0.199]",False,装置 e_煤=-0.159,M2,False
+G3,e_o2,phase1,0.09798372102963882,"[0.531,1.313]",False,装置 e_氧=0.931,M2,False
+G3,e_coal,phase2,0.8476852622007975,"[0.323,0.621]",False,装置 e_煤=0.491,M2,False
+G3,e_o2,phase2,0.13312859530738477,"[0.131,1.132]",True,装置 e_氧=0.836,M2,False
+G3,e_coal,phase3,0.8556825972687374,"[0.187,0.566]",False,装置 e_煤=0.394,M2,False
+G3,e_o2,phase3,0.12644578119498248,"[-0.102,0.616]",True,装置 e_氧=0.285,M2,False
+G3,e_coal,phase4,0.8180605482101058,"[0.195,0.730]",False,装置 e_煤=0.343,M2,False
+G3,e_o2,phase4,0.1669183650390216,"[1.160,2.064]",False,装置 e_氧=1.598,M2,False
+G4,level_bias::X_C_pp,phase1,-0.39089777485078514,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
+G4,level_bias::X_C_pp,phase2,0.2575668550558703,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
+G4,level_bias::X_C_pp,phase3,0.11245152303842332,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
+G4,level_bias::X_C_pp,phase4,0.006794222129656191,-0.1351008811977863,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.1351,M2,False
+G4,level_bias::CO_vol_pct,phase1,1.6015118571389877,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
+G4,level_bias::CO_vol_pct,phase2,3.4522926687684716,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
+G4,level_bias::CO_vol_pct,phase3,1.0296782051057747,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
+G4,level_bias::CO_vol_pct,phase4,0.36445308069630755,-0.30058643100964844,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.3006,M2,False
+G4,level_bias::H2_vol_pct,phase1,-1.9842770538885794,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
+G4,level_bias::H2_vol_pct,phase2,-3.5104977613361026,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
+G4,level_bias::H2_vol_pct,phase3,-1.1765337556703415,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
+G4,level_bias::H2_vol_pct,phase4,-0.4848541597811824,-0.242520389062431,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=-0.2425,M2,False
+G4,level_bias::CO2_vol_pct,phase1,0.3312421955579321,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
+G4,level_bias::CO2_vol_pct,phase2,0.1345575503946499,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
+G4,level_bias::CO2_vol_pct,phase3,0.20777200276062224,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
+G4,level_bias::CO2_vol_pct,phase4,0.3706924587030116,0.0041548338937928975,,模型−装置 142 窗中位；P1.13-A θ̂ 拟合同量=0.0042,M2,False
+G5,hl_variant_g1_min_abs_dT,HL=0.5,96.51225204533887,50.0,True,可达阶段 4/4；G1 通过阶段 4/4,M2,False
 G5,hl_variant_g2_same_sign,HL=0.5,5,6,False,分母 8（参照窗）,M2,False
 G5,hl_variant_g3_phases,HL=0.5,4,3,True,e_煤 ≥ 0.3 的阶段数（参照窗）,M2,False
-G5,hl_variant_g1_min_abs_dT,HL=1,95.65775796625411,50.0,True,可达阶段 4/4；G1 通过阶段 4/4,M2,False
+G5,hl_variant_g1_min_abs_dT,HL=1,95.96665145837922,50.0,True,可达阶段 4/4；G1 通过阶段 4/4,M2,False
 G5,hl_variant_g2_same_sign,HL=1,5,6,False,分母 8（参照窗）,M2,False
 G5,hl_variant_g3_phases,HL=1,4,3,True,e_煤 ≥ 0.3 的阶段数（参照窗）,M2,False
-G5,hl_variant_g1_min_abs_dT,HL=2,80.93848628153529,50.0,True,可达阶段 4/4；G1 通过阶段 4/4,M2,False
+G5,hl_variant_g1_min_abs_dT,HL=2,81.41471460445047,50.0,True,可达阶段 4/4；G1 通过阶段 4/4,M2,False
 G5,hl_variant_g2_same_sign,HL=2,5,6,False,分母 8（参照窗）,M2,False
 G5,hl_variant_g3_phases,HL=2,4,3,True,e_煤 ≥ 0.3 的阶段数（参照窗）,M2,False
 G6,carrier_same_sign,all,3,5,,CO、H2 对载气的 5 个有符号组合（探索性，不计入判定）,M2,True
