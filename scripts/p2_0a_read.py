@@ -1152,17 +1152,26 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
              "「不可达的候选不做第 3 节」，其 G1–G3 无逐窗斜率，G0 直接不通过，"
              "因此不进入入选比较；它们的端点 X_C 已逐阶段报出。")
     L.append("")
+    # 末尾只保留一个换行：L 的最后一项常是空串，直接拼接会得到 \n\n，
+    # 被 git diff --check 报成 "new blank line at EOF"。
+    while L and not str(L[-1]).strip():
+        L.pop()
     return "\n".join(L) + "\n"
 
 
 def _manifest(out_dir: Path) -> None:
-    skip = {"sha256.txt", "perturb_snaps.json", "hl_snaps.json", "profiles.json"}
+    """写 sha256.txt：常规产物 + 三个大 JSON；sha256.txt 自身不列入。
+
+    2026-11-16 更正：此前 ``big`` 用 ``p.name in skip`` 取文件，而 ``skip`` 里含
+    ``sha256.txt``，于是清单把自己的旧内容也列进去，``shasum -c`` 必然失败。
+    现在只列三个大 JSON。
+    """
+    big_names = ("perturb_snaps.json", "hl_snaps.json", "profiles.json")
+    skip = {"sha256.txt", *big_names}
     files = sorted(p for p in out_dir.iterdir() if p.is_file() and p.name not in skip)
     lines = [f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}" for p in files]
+    for name in big_names:
+        p = out_dir / name
+        if p.exists():
+            lines.append(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {name}")
     (out_dir / "sha256.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-    big = sorted(p for p in out_dir.iterdir()
-                 if p.is_file() and p.name in skip)
-    if big:
-        with (out_dir / "sha256.txt").open("a", encoding="utf-8") as fh:
-            for p in big:
-                fh.write(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n")

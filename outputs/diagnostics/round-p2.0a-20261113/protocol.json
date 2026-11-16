@@ -1,7 +1,7 @@
 {
   "round": "P2.0-A / 2026-11-13",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "23c1838",
+  "source_commit": "08729ee",
   "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/model-side-handoff-p2.0a-20261113.md",
   "frozen": {
     "MeshFamily": "wsr_plus_pfr",
