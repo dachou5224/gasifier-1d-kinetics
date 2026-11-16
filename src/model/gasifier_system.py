@@ -716,6 +716,16 @@ class GasifierSystem:
             self.kinetics, self.coal_props, cell_ops,
             sources=sources,
         )
+        # P2.0-A（M2）更正 2026-11-16（审阅 P1 的第二处）：被截留碳必须只在**下游**格
+        # 从 X_total 的分母里扣除，且用**本轮**全混区出口算出的份额。
+        # 之前把份额写进 self.op_conds，那里既不是单元共享的 cell_ops（同轮下游看不到，
+        # 只能等下一轮热损迭代继承上轮的值），也会让全混区本身（cell 0）误用缩小后的分母。
+        # 这里给下游格各自一份 op_conds 副本，cell 0 不注入。
+        if i > 0 and isinstance(getattr(self, "slag_capture", None), dict):
+            cap_frac = float(self.slag_capture.get("carbon_fraction_of_feed", 0.0) or 0.0)
+            if cap_frac > 0.0:
+                cell.op_conds = dict(cell_ops)
+                cell.op_conds["CapturedCarbonFractionOfFeed"] = cap_frac
         cell.coal_flow_dry = self.W_dry
         cell.Cd_total = self.Cd_total
         cell.char_Xc0 = self.char_Xc0
@@ -983,19 +993,19 @@ class GasifierSystem:
         # 2026-11-16 更正（审阅意见 P1）：被截留的碳必须从下游 X_total 的**分母**中扣除。
         # 否则 X_total = 1 - C_local / C_fed_total 会把「截留」直接记成「转化」：
         # 50% 转化下截留 30% 的颗粒，下游 X_total 立刻变成 65%，而这 15 pp
-        # 并非任何反应造成。下游 Cell 通过 op_conds 的 CapturedCarbonFractionOfFeed
-        # 读到这一份额，按 (1 - 该份额) 缩放自己的参考碳量。
+        # 并非任何反应造成。
+        # 份额记在 slag_capture 上，由 `_make_cell` 在构造下游格时注入它自己那份
+        # op_conds；**不**写 self.op_conds —— 那份字典不是单元共享的 cell_ops，
+        # 同轮下游读不到，只能等下一轮热损迭代读到上轮的旧值，且会污染 cell 0。
         c_cap = m_cap * cf
         c_feed = float(self.W_dry) * (self.coal_props.get("Cd", 60.0) / 100.0)
-        self.op_conds["CapturedCarbonFractionOfFeed"] = (
-            float(c_cap) / c_feed if c_feed > 1e-12 else 0.0
-        )
         self.slag_capture = {
             "cell_index": int(i),
             "fraction": float(f_s),
             "solid_mass_kg_s": m_cap,
             "carbon_fraction": cf,
-            "carbon_kg_s": m_cap * cf,
+            "carbon_kg_s": c_cap,
+            "carbon_fraction_of_feed": float(c_cap / c_feed) if c_feed > 1e-12 else 0.0,
             "T_solid_K": T_solid_cap,
             "T_gas_K": float(wsr_outlet.T),
             "cp_char_j_per_kg_k": cp_s,
