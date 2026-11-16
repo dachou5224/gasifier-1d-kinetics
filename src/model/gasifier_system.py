@@ -722,10 +722,10 @@ class GasifierSystem:
         # 只能等下一轮热损迭代继承上轮的值），也会让全混区本身（cell 0）误用缩小后的分母。
         # 这里给下游格各自一份 op_conds 副本，cell 0 不注入。
         if i > 0 and isinstance(getattr(self, "slag_capture", None), dict):
-            cap_frac = float(self.slag_capture.get("carbon_fraction_of_feed", 0.0) or 0.0)
+            cap_frac = float(self.slag_capture.get("particle_fraction_of_feed", 0.0) or 0.0)
             if cap_frac > 0.0:
                 cell.op_conds = dict(cell_ops)
-                cell.op_conds["CapturedCarbonFractionOfFeed"] = cap_frac
+                cell.op_conds["CapturedParticleFractionOfFeed"] = cap_frac
         cell.coal_flow_dry = self.W_dry
         cell.Cd_total = self.Cd_total
         cell.char_Xc0 = self.char_Xc0
@@ -998,14 +998,18 @@ class GasifierSystem:
         # op_conds；**不**写 self.op_conds —— 那份字典不是单元共享的 cell_ops，
         # 同轮下游读不到，只能等下一轮热损迭代读到上轮的旧值，且会污染 cell 0。
         c_cap = m_cap * cf
-        c_feed = float(self.W_dry) * (self.coal_props.get("Cd", 60.0) / 100.0)
         self.slag_capture = {
             "cell_index": int(i),
             "fraction": float(f_s),
             "solid_mass_kg_s": m_cap,
             "carbon_fraction": cf,
             "carbon_kg_s": c_cap,
-            "carbon_fraction_of_feed": float(c_cap / c_feed) if c_feed > 1e-12 else 0.0,
+            # 2026-11-16 第二次更正（审阅意见 P1）：下游 X_total 的基准要按**颗粒份额**
+            # 缩放，而不是按截留颗粒的**剩余碳**份额。两者只在 X=0 时相等：
+            # C_fed=1、WSR 转化 50%、f_s=0.3 时，剩余碳份额 0.15 会把基准压到 0.85，
+            # X 从 50% 抬到 58.8%；而按颗粒份额 0.3，基准是 0.7，X 保持 50%。
+            # 截留的固体质量份额等于颗粒数份额（碳灰同比例），所以这里直接用 f_s。
+            "particle_fraction_of_feed": float(f_s),
             "T_solid_K": T_solid_cap,
             "T_gas_K": float(wsr_outlet.T),
             "cp_char_j_per_kg_k": cp_s,

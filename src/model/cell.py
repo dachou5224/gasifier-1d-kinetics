@@ -67,14 +67,15 @@ class Cell:
         """Calculates physical properties and transport coefficients."""
         # 1. Conversion relative to Original Coal
         #
-        # 2026-11-16 更正（审阅意见 P1）：M2 渣层截留在全混区出口带走一部分颗粒。
-        # 这些颗粒没有发生任何反应，但若仍用**原始入炉碳**作 X_total 的分母，
-        # 「少了的颗粒」会被算成「转化掉的碳」——50% 转化下截留 30% 的颗粒，
-        # X_total 立刻跳到 65%，下游的粒径、比表面积与未反应核半径随之错误收缩，
-        # 动力学轨迹被污染。正确做法是把被截留份额从分母中扣除，使 X_total
-        # 描述**仍在流动的这批颗粒**自身的转化率。
-        # CapturedCarbonFractionOfFeed 由 GasifierSystem 在分流处写入，缺省 0（无 M2）。
-        _cap = float(self.op_conds.get("CapturedCarbonFractionOfFeed", 0.0) or 0.0)
+        # 2026-11-16 第二次更正（审阅意见 P1）：上一次扣错了量。
+        # 分流按**颗粒份额** f_s 进行，被截走的那部分颗粒代表入炉碳的 f_s 份额，
+        # 而不是它们当时**剩余**的碳。用剩余碳去扣会低估基准，把转化率算高：
+        #   C_fed=1、WSR 转化 50%、f_s=0.3 → 剩余碳 0.5，截留颗粒的剩余碳 0.15，
+        #   若 C_ref = 1-0.15 = 0.85，则 X = 1-0.35/0.85 = 58.8%，而分流前是 50%。
+        #   正确基准是「剩余颗粒代表的原始进料份额」= 1×0.7 = 0.7，X 仍为 50%。
+        # 因此基准应按**颗粒份额**缩放：C_ref = C_fed_total × (1 - f_s)。
+        # 份额由 GasifierSystem 注入（CapturedParticleFractionOfFeed），缺省 0。
+        _cap = float(self.op_conds.get("CapturedParticleFractionOfFeed", 0.0) or 0.0)
         C_ref = C_fed_total * (1.0 - min(max(_cap, 0.0), 0.9999))
         C_local = current.solid_mass * current.carbon_fraction
         if C_ref < 1e-9: C_ref = 1e-9

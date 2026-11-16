@@ -611,11 +611,27 @@ def _readings(cp, slopes, elas, levels, hl_verdict, n_fail) -> pd.DataFrame:
 
     for cand in CAND_ORDER:
         sub = cp[cp["candidate"] == cand]
-        n_reach = int(sub["reachable"].sum())
+        # G0 的实质是「比较点能否落在装置值上」。C0 无自由参数可求根，但它照样
+        # 可能离目标很远；以前直接把 C0 记为通过，等于用「无需求根」豁免掉了这条
+        # 闸门（2026-11-16 审阅意见）。这里统一按 |X_C − 目标| ≤ 容差判定，
+        # reachable 列只对非 C0 有意义。
+        tol_pp = float(G0_TOL_PP) if "G0_TOL_PP" in globals() else 0.2
+        def _near(r) -> bool:
+            m = r["X_C_pp_median"]
+            t = r["target_X_C_pp"]
+            if m is None or t is None or str(m) == "nan" or str(t) == "nan":
+                return False
+            return abs(float(m) - float(t)) <= tol_pp
+        n_near = int(sum(bool(_near(r)) for _, r in sub.iterrows()))
+        n_reach = n_near
         add("G0", "reachable_phases", "all", n_reach, len(PHASES),
-            KIND[cand] == "C0" or n_reach == len(PHASES),
+            n_reach == len(PHASES),
             "四个阶段的比较点是否都可达；"
-            + ("C0 为基准对照，无需求根" if KIND[cand] == "C0" else
+            + ("C0 为基准对照，无需求根；按「比较点与装置值之差 ≤ 容差」判定："
+               + "; ".join(f"{r['phase']}:{_f(r['X_C_pp_median']):.2f} 目标 "
+                           f"{_f(r['target_X_C_pp']):.2f} 差 {_f(float(r['X_C_pp_median'])-float(r['target_X_C_pp'])):+.2f} pp"
+                           for _, r in sub.iterrows())
+               if KIND[cand] == "C0" else
                "; ".join(f"{r['phase']}:{bool(r['reachable'])}"
                          + ("" if bool(r["reachable"]) else f"({r['reason']})")
                          for _, r in sub.iterrows())),
