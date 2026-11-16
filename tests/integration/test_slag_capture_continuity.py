@@ -201,3 +201,69 @@ def test_writer_and_reader_agree_on_key():
     assert x_with != pytest.approx(x_without, abs=1e-9), (
         "注入份额没有影响 X_total，读写两侧的键可能不一致"
     )
+
+
+# --------------------------------------------------------------------------
+# 5. 走 GasifierSystem 的真实单元创建路径（审阅 2026-11-16 第三轮 P2）
+# --------------------------------------------------------------------------
+#
+# 上一版的 `downstream` 由测试助手手动传入 fraction 构造，等于模拟了注入，
+# 而没有验证 `_make_cell` 真的会注入、也没验证 cell 0 真的不注入。
+# 这里直接调用生产 `_make_cell`。
+
+def _built_system(f_s: float):
+    """构造一个可调用 `_make_cell` 的真实 GasifierSystem。"""
+    from model.fortran_anchor_20261030 import anchor_cases, build_case_inputs
+    from model.p1_5_round_20261030 import paper_op_conds
+
+    cases, geo = anchor_cases()
+    case = next(c for c in cases if c["case_name"] == "texaco i-1")
+    built = build_case_inputs(case, geometry=geo)
+    op = paper_op_conds(built, extra={"SlagCaptureFraction": f_s})
+    system = GasifierSystem(built["geometry"], built["coal_props"], op)
+    # `_make_cell` 依赖 solve 预处理写入的 tmp_* 与 z_positions。
+    # 跑一次极小的真实 solve（4 格）把它们建好，再拿这个 system 做单元级检查；
+    # 这样测的是真实初始化路径，而不是测试里手搓的状态。
+    system.solve(N_cells=4)
+    return system, built
+
+
+def test_make_cell_injects_only_downstream():
+    """真实 `_make_cell`：cell 0 不带注入，下游带；且份额等于分流记录值。"""
+    system, built = _built_system(0.25)
+    inlet = _state(solid_mass=1.0, carbon_fraction=0.7)
+    dz_list = [0.5, 0.05, 0.05]
+
+    # 先做一次分流，制造 slag_capture
+    wsr_outlet = _state(solid_mass=0.8, carbon_fraction=0.7)
+    system.slag_capture = None
+    retained = GasifierSystem._split_slag_at_wsr_outlet(system, 0, wsr_outlet)
+    frac = float(system.slag_capture["particle_fraction_of_feed"])
+    assert frac == pytest.approx(0.25, abs=1e-15)
+
+    cell_ops = system._cell_ops_for_solve(dz_list)
+    A = 1.0
+    ref_f, ref_e = 1.0, 1.0
+
+    cell0 = system._make_cell(0, dz_list, A, inlet, inlet, cell_ops, ref_f, ref_e)
+    cell1 = system._make_cell(1, dz_list, A, retained, inlet, cell_ops, ref_f, ref_e)
+
+    assert KEY not in cell0.op_conds, (
+        "cell 0 在截留之前，不应被注入；否则它会用缩小后的基准误算自己的转化率"
+    )
+    assert cell1.op_conds.get(KEY) == pytest.approx(frac, abs=1e-15), (
+        "同轮下游必须拿到本轮分流记录的份额"
+    )
+    # 共享 dict 不能被污染
+    assert KEY not in cell_ops
+
+
+def test_make_cell_no_capture_is_clean():
+    """f_s = 0 时下游也不应出现该键。"""
+    system, _ = _built_system(0.0)
+    system.slag_capture = None
+    inlet = _state(solid_mass=1.0, carbon_fraction=0.7)
+    dz_list = [0.5, 0.05]
+    cell_ops = system._cell_ops_for_solve(dz_list)
+    cell1 = system._make_cell(1, dz_list, 1.0, inlet, inlet, cell_ops, 1.0, 1.0)
+    assert KEY not in cell1.op_conds
