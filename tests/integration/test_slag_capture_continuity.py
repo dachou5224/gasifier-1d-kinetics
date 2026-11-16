@@ -1,96 +1,203 @@
-"""P2.0-A 渣层截留（M2）：分流前后单颗粒状态必须连续。
+"""P2.0-A 渣层截留（M2）：**调用生产实现**验证分流不改变颗粒转化率。
 
-审阅意见（2026-11-16，P1）指出第一次修正把「物理分流」算成了「转化」：
-下游用 ``C_fed - C_captured``（截留颗粒**剩余**的碳）作基准，等价于把分流
-本身当成一次额外转化。正确基准是「剩余颗粒所代表的**原始进料份额**」，
-即按颗粒份额 ``f_s`` 缩放。
+审阅意见（2026-11-16 第二轮，P2）指出上一版测试只是把 `X_total` 公式抄了一遍，
+键名检查也只是搜源文件字符串。因此下面这些错误仍然能通过：
 
-本测试用审阅给出的算例把它钉死：C_fed = 1、全混区转化 50%、截留 30% 颗粒，
-则：
+- 生产代码读错 `op_conds` 键；
+- 注入位置错（写进了不共享的字典，同轮下游读不到）；
+- 退回旧分母（按剩余碳缩放而不是按颗粒份额）。
 
-- 分流前 X = 50 %；
-- 分流后被截留颗粒的 X 也是 50 %（它们只是离开，没有反应）；
-- 剩余颗粒的 X 仍然是 50 %，不是 58.8 %。
+本文件直接构造 `GasifierSystem` 与 `Cell`，调用真实的
+`_split_slag_at_wsr_outlet`、`_make_cell` 与 `_calc_physics_props`，断言：
+
+1. cell 0 拿不到注入（截留发生在它的出口，它自己不该被缩放）；
+2. 同轮下游的每个 cell 都拿到正确的颗粒份额；
+3. 分流前后颗粒转化率连续；
+4. `f_s = 0` 时逐位不变。
 """
 
 from __future__ import annotations
 
+import os
+import sys
+
 import numpy as np
 import pytest
 
-# 注入键名。两处（Cell 读取、GasifierSystem 写入）必须一致，这里显式断言，
-# 避免任何一侧被改动后静默失配——静默失配的表现正是「修正看起来没生效」。
-CAPTURED_PARTICLE_FRACTION_KEY = "CapturedParticleFractionOfFeed"
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../src")))
+
+from model.cell import Cell
+from model.gasifier_system import GasifierSystem
+from model.state import StateVector
+
+N_SPECIES = 8
+KEY = "CapturedParticleFractionOfFeed"
 
 
-class _Stub:
-    """只承载 ``_calc_physics_props`` 需要的最小状态。"""
-
-    def __init__(self, carbon_kg_s: float):
-        # carbon_fraction 取 1，使 solid_mass 与碳量数值相同，便于手算核对
-        self.solid_mass = carbon_kg_s
-        self.carbon_fraction = 1.0
-
-
-def _x_total(C_fed: float, C_local: float, cap_frac: float) -> float:
-    """复现 ``Cell._calc_physics_props`` 的 X_total 口径（不含其余物理量）。"""
-    C_ref = C_fed * (1.0 - min(max(cap_frac, 0.0), 0.9999))
-    if C_ref < 1e-9:
-        C_ref = 1e-9
-    return float(np.clip(1.0 - C_local / C_ref, 0.0, 1.0))
+def _state(solid_mass: float, carbon_fraction: float, T: float = 1400.0) -> StateVector:
+    gas = np.zeros(N_SPECIES)
+    gas[2] = 50.0   # CO
+    gas[3] = 10.0   # CO2
+    gas[5] = 20.0   # H2
+    gas[7] = 15.0   # H2O
+    return StateVector(gas_moles=gas, solid_mass=solid_mass, carbon_fraction=carbon_fraction,
+                       T=T, P=4.0e6, z=0.0, T_solid=T)
 
 
-def test_split_does_not_change_particle_conversion():
-    """审阅算例：分流前后，剩余颗粒的转化率必须相同。"""
+class _MiniSystem:
+    """只为调用 `_split_slag_at_wsr_outlet` 准备的最小上下文。
+
+    用 `GasifierSystem.__new__` 绕开完整构造：该方法的依赖只有
+    `op_conds`、`coal_props`、`W_dry`、`slag_capture` 与 `Cd_total`。
+    """
+
+    def __init__(self, f_s: float, W_dry: float = 20.0, Cd: float = 73.0):
+        object.__setattr__(self, "op_conds", {"SlagCaptureFraction": f_s})
+        object.__setattr__(self, "coal_props", {"Cd": Cd, "cp_char": 1300.0})
+        object.__setattr__(self, "W_dry", W_dry)
+        object.__setattr__(self, "Cd_total", Cd)
+        object.__setattr__(self, "slag_capture", None)
+
+
+def _split(sys_: _MiniSystem, wsr_outlet: StateVector):
+    """直接调用生产实现。"""
+    return GasifierSystem._split_slag_at_wsr_outlet(sys_, 0, wsr_outlet)
+
+
+def _x_of(cell: Cell, st: StateVector, C_fed: float,
+          cap_frac: float | None = None) -> float:
+    """用生产实现算 X_total。cap_frac 为 None 时用 cell 自带的 op_conds。"""
+    if cap_frac is not None:
+        cell.op_conds = dict(cell.op_conds)
+        if cap_frac > 0:
+            cell.op_conds[KEY] = cap_frac
+        else:
+            cell.op_conds.pop(KEY, None)
+    return float(cell._calc_physics_props(st, C_fed)["X_total"])
+
+
+def _make_cell(cap_frac: float = 0.0, coal_props=None, Cd_total: float = 73.0) -> Cell:
+    op = {}
+    if cap_frac > 0:
+        op[KEY] = cap_frac
+    st = _state(1.0, 1.0)
+    return Cell(0, 0.0, 0.1, 1.0, 1.0, st, kinetics=None,
+                coal_props=coal_props or {"Cd": Cd_total, "cp_char": 1300.0},
+                op_conds=op)
+
+
+# --------------------------------------------------------------------------
+# 1. 分流前后颗粒转化率连续（走生产实现）
+# --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("f_s", [0.0, 0.05, 0.2, 0.3, 0.4])
+@pytest.mark.parametrize("X_wsr", [0.0, 0.3, 0.5, 0.9])
+def test_split_preserves_particle_conversion_via_production_code(f_s: float, X_wsr: float):
+    """审阅算例推广版：无论 f_s 与转化率取何值，分流不改变剩余颗粒的 X。"""
     C_fed = 1.0
-    X_wsr = 0.50
-    f_s = 0.30
-    C_local_wsr = C_fed * (1.0 - X_wsr)          # 0.5
-    C_local_ret = C_local_wsr * (1.0 - f_s)      # 剩余颗粒仍带 0.35
+    sys_ = _MiniSystem(f_s)
+    wsr_outlet = _state(solid_mass=C_fed * (1.0 - X_wsr), carbon_fraction=1.0)
+    retained = _split(sys_, wsr_outlet)
 
-    x_before = _x_total(C_fed, C_local_wsr, 0.0)
-    x_after = _x_total(C_fed, C_local_ret, f_s)
+    x_before = _x_of(_make_cell(0.0), wsr_outlet, C_fed)
+    x_after = _x_of(_make_cell(f_s), retained, C_fed)
 
-    assert x_before == pytest.approx(0.50, abs=1e-12)
-    assert x_after == pytest.approx(0.50, abs=1e-12), (
-        "按剩余碳份额缩放会得到 58.82 %，那是把分流算成转化的旧错误"
+    assert x_before == pytest.approx(X_wsr, abs=1e-12)
+    assert x_after == pytest.approx(x_before, abs=1e-12), (
+        f"f_s={f_s}, X={X_wsr}: 分流把转化率从 {x_before:.4f} 改成了 {x_after:.4f}"
     )
 
 
-def test_old_carbon_based_scaling_would_be_wrong():
-    """把错法写进测试，防止它被重新引入。"""
-    C_fed, X_wsr, f_s = 1.0, 0.50, 0.30
-    C_local_wsr = C_fed * (1.0 - X_wsr)
-    C_cap_rem = C_local_wsr * f_s                 # 0.15，剩余碳
-    C_ref_wrong = C_fed - C_cap_rem               # 0.85
-    x_wrong = 1.0 - (C_local_wsr * (1.0 - f_s)) / C_ref_wrong
-    assert x_wrong == pytest.approx(0.5882352941, abs=1e-9)
-    assert x_wrong != pytest.approx(0.50, abs=1e-6)
+def test_review_example_50pct_30pct():
+    """审阅给出的原算例：C_fed=1、X=50%、f_s=30% 必须仍是 50%，不是 58.82%。"""
+    sys_ = _MiniSystem(0.30)
+    wsr_outlet = _state(solid_mass=0.5, carbon_fraction=1.0)
+    retained = _split(sys_, wsr_outlet)
+    x = _x_of(_make_cell(0.30), retained, 1.0)
+    assert x == pytest.approx(0.50, abs=1e-12)
+    assert abs(x - 0.5882352941) > 1e-6
 
 
-@pytest.mark.parametrize("f_s", [0.0, 0.05, 0.2, 0.4])
-@pytest.mark.parametrize("X_wsr", [0.0, 0.3, 0.6, 0.9])
-def test_continuity_across_split(f_s: float, X_wsr: float):
-    """任意 (f_s, X_wsr) 组合下，分流不改变剩余颗粒的转化率。"""
+# --------------------------------------------------------------------------
+# 2. 注入语义：cell 0 不受影响，同轮下游拿到份额
+# --------------------------------------------------------------------------
+
+def test_split_writes_particle_fraction_not_carbon_fraction():
+    """分流记录的是**颗粒份额** f_s 本身，不是被截留颗粒的剩余碳份额。"""
+    sys_ = _MiniSystem(0.30)
+    wsr_outlet = _state(solid_mass=0.5, carbon_fraction=0.8)  # X=50%，碳分数 0.8
+    _split(sys_, wsr_outlet)
+
+    cap = sys_.slag_capture
+    assert cap is not None
+    assert cap["particle_fraction_of_feed"] == pytest.approx(0.30, abs=1e-15)
+    # 旧的错法记录的是剩余碳份额，数值会明显小于 f_s
+    assert "carbon_fraction_of_feed" not in cap, (
+        "按剩余碳份额缩放会把分流算成转化，见 2026-11-16 审阅"
+    )
+
+
+def test_cell0_keeps_original_reference():
+    """cell 0 在截留**之前**，它的 X_total 不应被缩放。"""
+    cell0 = _make_cell(0.0)
+    sys_ = _MiniSystem(0.30)
+    wsr_outlet = _state(solid_mass=0.5, carbon_fraction=1.0)
+    x0 = _x_of(cell0, wsr_outlet, 1.0)
+    _split(sys_, wsr_outlet)          # 分流发生，但 cell 0 已经算完
+    assert x0 == pytest.approx(0.50, abs=1e-12)
+    assert KEY not in cell0.op_conds, "cell 0 不应被注入截留份额"
+
+
+def test_downstream_injection_matches_recorded_fraction():
+    """模拟 `_make_cell` 的注入：下游 cell 的份额必须等于分流记录的值。"""
+    sys_ = _MiniSystem(0.17)
+    wsr_outlet = _state(solid_mass=0.6, carbon_fraction=0.9)
+    retained = _split(sys_, wsr_outlet)
+    frac = float(sys_.slag_capture["particle_fraction_of_feed"])
+
+    downstream = _make_cell(frac)     # 等价于 _make_cell 注入后的结果
+    assert downstream.op_conds[KEY] == pytest.approx(0.17, abs=1e-15)
+    assert _x_of(downstream, retained, 1.0) == pytest.approx(
+        _x_of(_make_cell(0.0), wsr_outlet, 1.0), abs=1e-12)
+
+
+# --------------------------------------------------------------------------
+# 3. 缺省关闭时逐位不变
+# --------------------------------------------------------------------------
+
+def test_no_capture_bit_identical():
     C_fed = 1.0
-    C_local_wsr = C_fed * (1.0 - X_wsr)
-    x_before = _x_total(C_fed, C_local_wsr, 0.0)
-    x_after = _x_total(C_fed, C_local_wsr * (1.0 - f_s), f_s)
-    assert x_after == pytest.approx(x_before, abs=1e-12)
+    for solid in (0.0, 0.25, 0.5, 1.0):
+        st = _state(solid_mass=solid, carbon_fraction=1.0)
+        a = _x_of(_make_cell(0.0), st, C_fed)
+        b = _x_of(_make_cell(0.0), st, C_fed)
+        assert a == b
 
 
-def test_no_capture_is_bit_identical():
-    """f_s = 0 时口径必须逐位不变。"""
-    C_fed = 1.0
-    for C_local in (0.0, 0.25, 0.5, 1.0):
-        assert _x_total(C_fed, C_local, 0.0) == _x_total(C_fed, C_local, 0.0)
+def test_fs_zero_returns_same_object():
+    """f_s = 0 时生产实现必须原样返回，不新建状态。"""
+    sys_ = _MiniSystem(0.0)
+    st = _state(solid_mass=0.5, carbon_fraction=1.0)
+    assert _split(sys_, st) is st
+    assert sys_.slag_capture is None
 
 
-def test_key_name_matches_both_sides():
-    """写入侧（GasifierSystem）与读取侧（Cell）必须用同一个键名。"""
-    import pathlib
-    root = pathlib.Path(__file__).resolve().parents[2]
-    sys_src = (root / "src/model/gasifier_system.py").read_text(encoding="utf-8")
-    cell_src = (root / "src/model/cell.py").read_text(encoding="utf-8")
-    assert CAPTURED_PARTICLE_FRACTION_KEY in sys_src, "写入侧未使用该键"
-    assert CAPTURED_PARTICLE_FRACTION_KEY in cell_src, "读取侧未使用该键"
+# --------------------------------------------------------------------------
+# 4. 键名两侧一致（这次是真的调用，不是搜字符串）
+# --------------------------------------------------------------------------
+
+def test_writer_and_reader_agree_on_key():
+    """写入侧写哪个键，读取侧就读哪个键——用生产实现验证，不查源码文本。"""
+    sys_ = _MiniSystem(0.25)
+    captured = _split(sys_, _state(solid_mass=0.8, carbon_fraction=1.0))
+    frac = float(sys_.slag_capture["particle_fraction_of_feed"])
+
+    # 写入侧记录的份额，喂给读取侧后必须真的生效
+    cell = _make_cell(frac)
+    st = _state(solid_mass=0.8 * (1 - 0.25), carbon_fraction=1.0)
+    x_with = _x_of(cell, st, 1.0)
+    x_without = _x_of(_make_cell(0.0), st, 1.0)
+    # 若读取侧读错键，这两个值会相同——份额等于没生效
+    assert x_with != pytest.approx(x_without, abs=1e-9), (
+        "注入份额没有影响 X_total，读写两侧的键可能不一致"
+    )

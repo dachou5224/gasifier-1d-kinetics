@@ -92,7 +92,7 @@
   "contract_unchanged": true,
   "generating_scripts": {
     "scripts/generate_p2_0a_20261113.py": "9cb39547b0c6e84f136e3ca561fde7805d74c60065ee2a6785f3af027f65096c",
-    "scripts/p2_0a_read.py": "9e5fdf87aefff4d9157cf19380fda832da42824c882f82f25a38ffa6c8286143",
+    "scripts/p2_0a_read.py": "71cf8ccec924cb28b4ec724530890cdd2eb9749f3897f993ab834e9308430e9f",
     "note": "model code 的提交为 source_commit；生成本轮产物的脚本另有其 sha256，因为读法层在 model code 冻结之后仍会修报告口径"
   },
   "source_csv": {
