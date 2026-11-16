@@ -66,9 +66,20 @@ class Cell:
     def _calc_physics_props(self, current, C_fed_total):
         """Calculates physical properties and transport coefficients."""
         # 1. Conversion relative to Original Coal
+        #
+        # 2026-11-16 第二次更正（审阅意见 P1）：上一次扣错了量。
+        # 分流按**颗粒份额** f_s 进行，被截走的那部分颗粒代表入炉碳的 f_s 份额，
+        # 而不是它们当时**剩余**的碳。用剩余碳去扣会低估基准，把转化率算高：
+        #   C_fed=1、WSR 转化 50%、f_s=0.3 → 剩余碳 0.5，截留颗粒的剩余碳 0.15，
+        #   若 C_ref = 1-0.15 = 0.85，则 X = 1-0.35/0.85 = 58.8%，而分流前是 50%。
+        #   正确基准是「剩余颗粒代表的原始进料份额」= 1×0.7 = 0.7，X 仍为 50%。
+        # 因此基准应按**颗粒份额**缩放：C_ref = C_fed_total × (1 - f_s)。
+        # 份额由 GasifierSystem 注入（CapturedParticleFractionOfFeed），缺省 0。
+        _cap = float(self.op_conds.get("CapturedParticleFractionOfFeed", 0.0) or 0.0)
+        C_ref = C_fed_total * (1.0 - min(max(_cap, 0.0), 0.9999))
         C_local = current.solid_mass * current.carbon_fraction
-        if C_fed_total < 1e-9: C_fed_total = 1e-9
-        X_total = np.clip(1.0 - (C_local / C_fed_total), 0.0, 1.0)
+        if C_ref < 1e-9: C_ref = 1e-9
+        X_total = np.clip(1.0 - (C_local / C_ref), 0.0, 1.0)
         
         # 2. Particle size model（P1.5-A，2026-10-30）
         #   shrinking_legacy : d_p 随转化收缩，颗粒密度恒定（现行诊断行为）
@@ -302,6 +313,30 @@ class Cell:
         r_H2 = min(H2, max(remaining_O2, 0.0) / dem_H2)
         return r_CH4, r_CO, r_H2
 
+    def char_late_decay_factor(self, X_total: float) -> float:
+        """P2.0-A（M1）：C+H2O 与 C+CO2 的后期反应性衰减倍数 ϑ(X)。
+
+        ``CharLateDecayX0``（缺省 ``None`` = 关闭）。X ≤ X0 时 ϑ = 1；
+        X > X0 时 ϑ = ((1 − X)/(1 − X0))^n，``CharLateDecayExponent`` 缺省 0。
+
+        X 取 ``_calc_physics_props`` 的 ``X_total``（相对入炉煤碳，含热解释放的碳）。
+        n = 0 时 ``ratio ** 0 == 1.0``，故与关闭态逐位一致（U2）。
+        """
+        x0_raw = self.op_conds.get('CharLateDecayX0')
+        if x0_raw is None:
+            return 1.0
+        x0 = float(x0_raw)
+        if not (0.0 <= x0 < 1.0):
+            raise ValueError(f"CharLateDecayX0 必须落在 [0, 1)，得到 {x0_raw!r}")
+        n = float(self.op_conds.get('CharLateDecayExponent', 0.0))
+        if not (0.0 <= n <= 64.0):
+            raise ValueError(f"CharLateDecayExponent 必须落在 [0, 64]，得到 {n!r}")
+        X = float(X_total)
+        if X <= x0:
+            return 1.0
+        ratio = max((1.0 - X) / (1.0 - x0), 0.0)
+        return float(ratio ** n)
+
     def _calc_rates(self, current, phys, gas_src, Ts_avg: float = None, collect_limits: bool = False):
         """Calculates Heterogeneous and Homogeneous reaction rates.
         Ts_avg: 颗粒平均温度，用于异相反应；None 时用 current.T（向后兼容）
@@ -327,6 +362,12 @@ class Cell:
             char_co2_rate_factor=f_char_co2,
         )
         phi = r_het.pop('phi', 1.0)
+        # P2.0-A（M1）后期反应性衰减：只乘 C+H2O 与 C+CO2，C+O2 与 C+H2 不变。
+        # 缺省 CharLateDecayX0=None → 因子恒 1.0，不进入下面的分支，逐位不变。
+        late_decay = self.char_late_decay_factor(phys['X_total'])
+        if late_decay != 1.0:
+            r_het['C+H2O'] = r_het['C+H2O'] * late_decay
+            r_het['C+CO2'] = r_het['C+CO2'] * late_decay
         wgs_rat = self.op_conds.get('WGS_RatFactor', False)
         msr_tmin = self.op_conds.get('MSR_Tmin_K', 1000.0)
         wgs_cat = self.op_conds.get('WGS_CatalyticFactor')  # None 时用默认 0.2

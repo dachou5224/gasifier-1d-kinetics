@@ -160,6 +160,11 @@ results/
 # P1.15-A 求解缓存与运行日志不入库
 outputs/diagnostics/round-p1.15a-20261108/cache/
 outputs/diagnostics/round-p1.15a-20261108/run.log
+# P2.0-A 求解缓存与中间快照（体积大、可由脚本重建，不入库）
+outputs/diagnostics/round-p2.0a-20261113/cache/
+outputs/diagnostics/round-p2.0a-20261113/perturb_snaps.json
+outputs/diagnostics/round-p2.0a-20261113/hl_snaps.json
+outputs/diagnostics/round-p2.0a-20261113/profiles.json
 # P1.14-A 只读输入（P1.14-D windows_142 副本）
 !outputs/diagnostics/p1.14d-20261107/
 !outputs/diagnostics/p1.14d-20261107/*.csv
