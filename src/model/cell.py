@@ -66,9 +66,19 @@ class Cell:
     def _calc_physics_props(self, current, C_fed_total):
         """Calculates physical properties and transport coefficients."""
         # 1. Conversion relative to Original Coal
+        #
+        # 2026-11-16 更正（审阅意见 P1）：M2 渣层截留在全混区出口带走一部分颗粒。
+        # 这些颗粒没有发生任何反应，但若仍用**原始入炉碳**作 X_total 的分母，
+        # 「少了的颗粒」会被算成「转化掉的碳」——50% 转化下截留 30% 的颗粒，
+        # X_total 立刻跳到 65%，下游的粒径、比表面积与未反应核半径随之错误收缩，
+        # 动力学轨迹被污染。正确做法是把被截留份额从分母中扣除，使 X_total
+        # 描述**仍在流动的这批颗粒**自身的转化率。
+        # CapturedCarbonFractionOfFeed 由 GasifierSystem 在分流处写入，缺省 0（无 M2）。
+        _cap = float(self.op_conds.get("CapturedCarbonFractionOfFeed", 0.0) or 0.0)
+        C_ref = C_fed_total * (1.0 - min(max(_cap, 0.0), 0.9999))
         C_local = current.solid_mass * current.carbon_fraction
-        if C_fed_total < 1e-9: C_fed_total = 1e-9
-        X_total = np.clip(1.0 - (C_local / C_fed_total), 0.0, 1.0)
+        if C_ref < 1e-9: C_ref = 1e-9
+        X_total = np.clip(1.0 - (C_local / C_ref), 0.0, 1.0)
         
         # 2. Particle size model（P1.5-A，2026-10-30）
         #   shrinking_legacy : d_p 随转化收缩，颗粒密度恒定（现行诊断行为）

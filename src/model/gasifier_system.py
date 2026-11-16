@@ -980,6 +980,16 @@ class GasifierSystem:
         cf = float(wsr_outlet.carbon_fraction)
         T_solid_cap = float(wsr_outlet.T_solid_or_gas)
         cp_s = float(self.coal_props.get("cp_char", 1300.0))
+        # 2026-11-16 更正（审阅意见 P1）：被截留的碳必须从下游 X_total 的**分母**中扣除。
+        # 否则 X_total = 1 - C_local / C_fed_total 会把「截留」直接记成「转化」：
+        # 50% 转化下截留 30% 的颗粒，下游 X_total 立刻变成 65%，而这 15 pp
+        # 并非任何反应造成。下游 Cell 通过 op_conds 的 CapturedCarbonFractionOfFeed
+        # 读到这一份额，按 (1 - 该份额) 缩放自己的参考碳量。
+        c_cap = m_cap * cf
+        c_feed = float(self.W_dry) * (self.coal_props.get("Cd", 60.0) / 100.0)
+        self.op_conds["CapturedCarbonFractionOfFeed"] = (
+            float(c_cap) / c_feed if c_feed > 1e-12 else 0.0
+        )
         self.slag_capture = {
             "cell_index": int(i),
             "fraction": float(f_s),

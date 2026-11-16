@@ -421,7 +421,14 @@ def _snapshot(wid: str, cand_id: str, param: float, hl: float,
         prof = []
         for i, (cell, st) in enumerate(zip(system.cells, system.results)):
             c_local = float(st.solid_mass) * float(st.carbon_fraction)
-            xc = 1.0 - c_local / max(c_in, 1e-12)
+            # 2026-11-16 更正（审阅意见 P2）：M2 下游剖面必须把被截留碳算作**未转化**，
+            # 否则 c_local 里没有它、分母仍是原始入炉碳，剖面会显示 100% 出口转化，
+            # 与 comparison_points.csv 的 90.6–97.0% 自相矛盾。
+            # 截留发生在全混区出口，故 cell 0 本身不减，其下游才减。
+            _cap = 0.0
+            if i > 0 and getattr(system, "slag_capture", None):
+                _cap = float(system.slag_capture.get("carbon_kg_s", 0.0) or 0.0)
+            xc = 1.0 - (c_local + _cap) / max(c_in, 1e-12)
             prof.append({
                 "i": int(i), "z_m": float(st.z), "dz_m": float(cell.dz),
                 "X_C_frac": float(xc), "T_gas_K": float(st.T),
