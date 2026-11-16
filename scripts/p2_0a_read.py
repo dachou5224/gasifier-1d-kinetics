@@ -655,6 +655,16 @@ def _readings(cp, slopes, elas, levels, hl_verdict, n_fail) -> pd.DataFrame:
                 f"装置={_f(h.iloc[0]['plant_per3']):.4g}", cand)
         add("G2", "same_sign_total", "all", n_same, G2_MIN, n_same >= G2_MIN,
             "P1.15-A 的 8 个有符号组合中模型与装置同号个数", cand)
+        bad = []
+        for (ph, obs, inp) in G2_COMBOS:
+            h = slopes[(slopes["candidate"] == cand) & (slopes["phase"] == ph)
+                       & (slopes["obs"] == obs) & (slopes["input"] == inp)]
+            if len(h) and not bool(h.iloc[0]["same_sign"]):
+                bad.append(f"{ph}/{obs}←{inp}（模型 {_fmt(h.iloc[0]['model_per3_median'], 3)}"
+                           f" vs 装置 {_fmt(h.iloc[0]['plant_per3'], 3)}）")
+        if bad:
+            add("G2", "mismatch_detail", "all", len(bad), "", None,
+                "；".join(bad), cand)
 
         n_ge = int((e["e_coal_model"] >= G3_MIN_ECOAL).sum()) if len(e) else 0
         add("G3", "phases_with_ecoal_ge_0p3", "all", n_ge, G3_MIN_PHASES,
@@ -859,6 +869,13 @@ def _protocol(out_dir: Path, cp, readings, hl_verdict, src_commit) -> dict:
         "adopted_parameters": False,
         "no_recirculation": True,
         "contract_unchanged": True,
+        "generating_scripts": {
+            "scripts/generate_p2_0a_20261113.py": _sha(
+                ROOT / "scripts" / "generate_p2_0a_20261113.py"),
+            "scripts/p2_0a_read.py": _sha(ROOT / "scripts" / "p2_0a_read.py"),
+            "note": ("model code 的提交为 source_commit；生成本轮产物的脚本另有其 sha256，"
+                     "因为读法层在 model code 冻结之后仍会修报告口径"),
+        },
         "source_csv": {
             k: {"relative_path": p, "sha256": _sha(f) if f.exists() else "",
                 "exists": bool(f.exists())}
@@ -947,6 +964,31 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
     L.append("")
     L.append("X_C 为百分点。M2 的截留碳占入炉碳按中位窗报告（%），截留焓占干煤 HHV 同。")
     L.append("")
+    # ξ 的符号：单参数闭合在哪些阶段要求逆向变换
+    neg = cp[(cp["xi_mol_s"].notna()) & (cp["xi_mol_s"] < 0.0)]
+    if len(neg):
+        bits = "，".join(f"{r['phase']}/{r['candidate']}（ξ={_fmt(r['xi_mol_s'], 4)}）"
+                         for _, r in neg.iterrows())
+        L.append(f"- **ξ 为负的阶段 × 候选**：{bits}。"
+                 "ξ<0 表示单参数闭合要求**逆向**变换（CO2 降、CO 与 H2 升），"
+                 "即模型出口的 CO2 已经高于装置值。按卡面 ξ 只是比较点的闭合常数、"
+                 "不是被检验的物理量，但它说明这些点上「模型 CO2 偏高」不能靠正变换修掉。")
+    else:
+        L.append("- ξ 在所有可达的比较点上为正。")
+    # M2 的代数恒等式
+    m2 = cp[(cp["kind"] == "M2") & cp["reachable"].astype(bool)]
+    if len(m2):
+        worst = float(np.max(np.abs(m2["X_C_pp_median"]
+                                   - 100.0 * (1.0 - m2["capture_carbon_frac_inlet_med"]))))
+        L.append(
+            f"- **M2 的 X_C 是截留份额的代数恒等式**：逐阶段核对 "
+            "`X_C = 100·(1 − 被截留碳/入炉碳)`，最大偏差 "
+            f"{worst:.2e} pp。原因是夹带碳在下游仍然完全转化（剖面见下节：M2 的 X_C "
+            "在 2 m 处已到出口值），所以 M2 在本结构里等价于给碳转化率加一个天花板 "
+            "`1 − f_s·(C_wsr/C_feed)`，其弹性全部来自该份额随输入的变化。"
+            "文献综述对「截留份额近似为常数 → e_煤≈1、e_氧≈0」的预期在数值上成立"
+            "（M2 的 e_煤 0.82–0.90、e_氧 0.10–0.17）。")
+    L.append("")
     L.append("## 第 3 节 斜率与弹性")
     L.append("")
     L.append("`model_slopes.csv` 给双侧每 +3% 与两个单侧斜率；`elasticities.csv` 给 e_煤、e_氧。")
@@ -974,6 +1016,11 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
         for _, r in sub.iterrows():
             L.append(f"- {r['candidate']}：{_fmt(r['value'], 4)}（阈值 {r['threshold']}）"
                      f"**{'通过' if _is_true(r['pass']) else '不通过'}**。{r['note']}")
+        if reading == "G2":
+            det = readings[(readings["reading"] == "G2")
+                           & (readings["metric"] == "mismatch_detail")]
+            for _, r in det.iterrows():
+                L.append(f"  - {r['candidate']} 不同号的组合：{r['note']}")
         L.append("")
     L.append("### G4 水平（ξ 闭合后，142 窗阶段中位偏差，模型−装置）")
     L.append("")
