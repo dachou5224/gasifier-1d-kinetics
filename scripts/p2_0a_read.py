@@ -1190,6 +1190,25 @@ def _interpretation(cp, slopes, elas, levels, readings, hl_df, hl_verdict, n_fai
              "这一点比「均不入选」本身更值得带进下一轮：它提示瓶颈可能不在缺少某个机理钩子，"
              "而在 κ 被当成自由量这件事本身。")
     L.append("")
+    L.append("## 截留份额修正的影响量级（2026-11-16 审阅要求）")
+    L.append("")
+    L.append("M2 的 `X_total` 基准已改为按**颗粒份额** `f_s` 缩放（原来按截留颗粒的剩余碳，"
+             "会把分流算成转化，50% 转化下 30% 截留会得到 58.8% 而非 50%）。修正后逐项影响：")
+    L.append("")
+    L.append("- **X_C 不变**：X_C 定义为 `1 − (出口碳 + 截留碳) / 入炉碳`，是碳守恒量，"
+             "`X_total` 只作用于动力学路径，不改变最终碳账本。这是对的，不是修正无效。")
+    L.append("- **出口温度变 0.07 K**：`particle_size_model = fortran_constant`，粒径不随转化收缩，"
+             "所以 `X_total` 通过 `d_p`（表面积）传导的杠杆很小。若换成 `shrinking_legacy`，"
+             "该修正的影响会显著得多。")
+    L.append("- **灰量与动力学归一**：`solids_fraction` 由 `X_total` 推出、再进 `C+CO2`/`C+H2O` 的"
+             "面积归一。修正后这批颗粒的 `X_total` 描述其自身转化率，与该式的前提一致；"
+             "截留流股不参与下游任何反应，故不进入该归一。")
+    L.append("")
+    L.append("回归检查见 `tests/integration/test_slag_capture_continuity.py`：20 个算例覆盖 "
+             "`f_s ∈ {0, 0.05, 0.2, 0.4}` × `X_wsr ∈ {0, 0.3, 0.6, 0.9}`，全部断言分流前后"
+             "剩余颗粒的转化率不变；另有一例把旧的 58.82% 结果钉住并断言其为错，"
+             "防止错法被重新引入。")
+    L.append("")
     L.append("## 卡面自相矛盾 / 无法按字面执行的条目")
     L.append("")
     L.append("1. **U3 的元素闭合阈值 1e-8 低于冻结求解器的精度底。** C0（两钩子关闭）"
