@@ -283,6 +283,29 @@ def init_ctx(windows_csv: Path) -> None:
     })
 
 
+def require_pairing(windows_csv, coal_set: str, stage_name: str) -> None:
+    """第 0 节配对守卫：任何阶段都不得把煤质集合与不匹配的窗口表混用。
+
+    `unit` 阶段会把配对结果写成读数（失败即停），但其余阶段若不设防就会静默混用：
+    煤质来自一套集合、协调煤量来自另一套煤质的窗口表，结果既不能用也无法察觉。
+    2026-11-18 审查指出 `stage_sens` 正是如此（固定生成 current/lims_heat 两组，
+    却按 `args.coal_set` 取 ξ），此处统一拦在求解之前。
+    """
+    want_table = PAIRING[coal_set]
+    want_sha = WINDOWS_SHA[want_table]
+    actual = _sha256(Path(windows_csv))
+    if actual != want_sha:
+        raise SystemExit(
+            f"STOP[{stage_name}]: 煤质集合 {coal_set} 必须配 {want_table} 窗口表"
+            f"（期望 sha256 {want_sha}），实际 {actual}（{windows_csv}）。"
+            "第 0 节禁止新旧混用。")
+    if stage_name == "sens" and want_table != "p2.2d":
+        raise SystemExit(
+            f"STOP[sens]: 敏感性阶段固定生成 current 与 lims_heat 两组煤质，"
+            f"因此必须用 P2.2-D 窗口表并用主口径的 ξ；"
+            f"当前 coal_set={coal_set} 对应 {want_table}。请用 --coal-set current。")
+
+
 def table(tbl: str) -> pd.DataFrame:
     if tbl == "main":
         return _CTX["main"]
@@ -836,6 +859,7 @@ def _unit_u2() -> list[dict]:
 def stage_compare(args) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     prepare_coal_inputs()
+    require_pairing(args.windows_csv, args.coal_set, "compare")
     init_ctx(Path(args.windows_csv))
     coal_set = args.coal_set
     if _CTX["windows_sha"] != WINDOWS_SHA[PAIRING[coal_set]]:
@@ -1021,6 +1045,7 @@ def _elasticities(slopes: pd.DataFrame, base: pd.DataFrame,
 def stage_sens(args) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     prepare_coal_inputs()
+    require_pairing(args.windows_csv, args.coal_set, "sens")
     init_ctx(Path(args.windows_csv))
     ref = _ref_windows("main")
     specs = []
@@ -1075,6 +1100,7 @@ def stage_sens(args) -> None:
 def stage_profiles(args) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     prepare_coal_inputs()
+    require_pairing(args.windows_csv, args.coal_set, "profiles")
     init_ctx(Path(args.windows_csv))
     ref = _ref_windows("main")
     rows = []
@@ -1139,6 +1165,71 @@ def _cell_at(prof: list[dict], z: float) -> dict:
 # ---------------------------------------------------------------------------
 # read 阶段（B1–B7）
 # ---------------------------------------------------------------------------
+
+def _skipped_phases() -> list[str]:
+    """读 phase_status.json 里被判为跳过的阶段。缺失时返回空表（旧产物向后兼容）。"""
+    p = OUT_DIR / "phase_status.json"
+    if not p.exists():
+        return []
+    try:
+        st = json.loads(p.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    return [ph for ph, v in st.get("phase_skipped", {}).items() if v]
+
+
+def _mask_skipped(rows: list[dict], summary: dict, skipped: list[str],
+                  tag: str) -> tuple[list[dict], dict]:
+    """把被跳过阶段的行改成不通过并写明原因，同时把对应 verdict 置 False。
+
+    注意 B2 的 verdict 键是 `(phase, group)` 元组、B1 是 `phase` 字符串：
+    这里只翻转**已存在的键**，不新增字符串键，否则下游的元组解包会崩。
+    """
+    out = []
+    for r in rows:
+        if r.get("phase") in skipped:
+            r = dict(r)
+            r["pass"] = False
+            r["note"] = (f"[{tag}] 该阶段求解失败超过卡面阈值，已跳过判定；"
+                         f"原读数 {r.get('value')}（{r.get('note', '')}）")
+        out.append(r)
+    verd = dict(summary.get("verdict", {}))
+    for k in list(verd):
+        ph = k[0] if isinstance(k, tuple) else k
+        if ph in skipped:
+            verd[k] = False
+    new = dict(summary)
+    new["verdict"] = verd
+    new["skipped_phases"] = skipped
+    return out, new
+
+
+def _mask_skipped_b3(rows: list[dict], summary: dict,
+                     skipped: list[str]) -> tuple[list[dict], dict]:
+    """B3：被跳过阶段的组合不计同号，n_same 从掩码后的行重算。"""
+    out = []
+    for r in rows:
+        if r.get("phase") in skipped:
+            r = dict(r)
+            r["pass"] = False
+            r["note"] = (f"[B3] 该阶段求解失败超过卡面阈值，已跳过；"
+                         f"原读数 同号={r.get('pass')}（{r.get('note', '')}）")
+        out.append(r)
+    # 从个体组合行重算同号数（排除被跳过阶段与汇总行本身）
+    n_same = sum(1 for r in out
+                 if r.get("reading") == "B3" and r.get("metric") != "n_same_sign"
+                 and r.get("phase") not in skipped and r.get("pass") is True)
+    for r in out:
+        if r.get("reading") == "B3" and r.get("metric") == "n_same_sign":
+            r["value"] = n_same
+            r["pass"] = bool(n_same >= B3_MIN_SIGNED)
+            r["note"] = (f"8 个有符号组合中同号 {n_same} 个（阈值 ≥{B3_MIN_SIGNED}）；"
+                         f"已排除被跳过阶段：{','.join(skipped) if skipped else '无'}")
+    new = dict(summary)
+    new["n_same"] = n_same
+    new["skipped_phases"] = skipped
+    return out, new
+
 
 def _b1() -> tuple[list[dict], dict]:
     df = pd.read_csv(OUT_DIR / "baseline_142.csv")
@@ -1855,6 +1946,7 @@ def _b3_root_cause(b3: dict) -> dict:
 
 def stage_read(args) -> None:
     prepare_coal_inputs()
+    require_pairing(args.windows_csv, args.coal_set, "read")
     init_ctx(Path(args.windows_csv))
     _CTX["main_coal_set"] = args.coal_set
     _record_failures([])  # 零失败也要留下带表头的 solve_failures.csv
@@ -1870,12 +1962,32 @@ def stage_read(args) -> None:
     b6_rows, b6 = _b6(args)
     b7_rows, b7 = _b7()
 
-    all_rows = b1_rows + b2_rows + b3_rows + b4_rows + b5_rows + b6_rows + b7_rows
+    # 2026-11-18 审查：某阶段求解失败超过卡面阈值时，`stage_compare` 已在
+    # phase_status.json / model_slopes.csv 里标了 phase_skipped，但读法阶段此前
+    # 不消费该标记 —— 于是被跳过的阶段照样拿 B1/B2/B3 判定，还会计入
+    # verdict_if_check_ignored。求解失败不能静默地替我们挑选样本。
+    skipped_phases = _skipped_phases()
+    if skipped_phases:
+        b1_rows, b1 = _mask_skipped(b1_rows, b1, skipped_phases, "B1")
+        b2_rows, b2 = _mask_skipped(b2_rows, b2, skipped_phases, "B2")
+        b3_rows, b3 = _mask_skipped_b3(b3_rows, b3, skipped_phases)
+        all_rows_skipped = [{
+            "reading": "SKIPPED", "metric": "phase_skipped", "phase": ph,
+            "value": 1, "threshold": p20.FAIL_WINDOW_STOP, "pass": False,
+            "note": (f"该阶段求解失败窗口数超过卡面阈值 "
+                     f"{p20.FAIL_WINDOW_STOP}，按卡面停止条件跳过该阶段的判定；"
+                     "B1/B2/B3 对该阶段不给通过，且不计入可判定的阶段数"),
+        } for ph in skipped_phases]
+    else:
+        all_rows_skipped = []
+
+    all_rows = (all_rows_skipped + b1_rows + b2_rows + b3_rows
+                + b4_rows + b5_rows + b6_rows + b7_rows)
     b1_ok = all(b1["verdict"].get(ph) for ph in PHASES)
     b2_main = {ph: v for (ph, g), v in b2["verdict"].items() if g == "main"}
     b2_ok = all(v != "fail" for v in b2_main.values())
-    b3_ok = bool(b3["n_same"] >= B3_MIN_SIGNED)
-    halted = bool(b3["recalc_max_dev"] > 1e-6)
+    b3_ok = bool(b3["n_same"] >= B3_MIN_SIGNED) and not skipped_phases
+    halted = bool(b3["recalc_max_dev"] > 1e-6) or bool(skipped_phases)
 
     if halted:
         # 卡面停止条件：B3 装置斜率核对不通过 → 不给总判定，仍产出可核查的读数与协议
