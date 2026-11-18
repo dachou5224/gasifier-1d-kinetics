@@ -1,0 +1,180 @@
+reading,metric,phase,value,threshold,pass,note
+B1,z_vs_FINAL,phase1,,97.0,True,模型 142 窗全窗中位 X_C=100.0000%；阶段 1 的 FINAL 行 verdict=descriptive_not_d6_validated（6/6 组合不可行），不得当目标，故按卡面用「模型 ≥ 97% 即通过」判定；FINAL 描述值=99.501
+B1,z_vs_FINAL,phase2,1.4850690694650024,1.5,True,模型阶段中位=100.0000%（142 窗全窗中位）；FINAL/target_midpoint_pct=94.5957% ± 3.6391 pp
+B1,z_vs_FINAL,phase3,1.8754890095969596,1.5,False,模型阶段中位=100.0000%（142 窗全窗中位）；FINAL/target_midpoint_pct=93.3362% ± 3.5531 pp
+B1,z_vs_FINAL,phase4,2.3932777146998445,1.5,False,模型阶段中位=99.1509%（142 窗全窗中位）；FINAL/target_midpoint_pct=90.7684% ± 3.5025 pp
+B2,T_out_vs_FT,phase1,1279.8137855109417,1280.0,True,主口径参照窗中位 T_out=1279.81 °C；FT=1280.0 °C，T25=1346.4 °C；判定=marginal（≥FT 通过、FT−50 K ≤ T < FT 边缘）
+B2,T_out_vs_FT,phase2,1411.7691138210457,1290.0,True,主口径参照窗中位 T_out=1411.77 °C；FT=1290.0 °C，T25=1327.5 °C；判定=pass（≥FT 通过、FT−50 K ≤ T < FT 边缘）
+B2,T_out_vs_FT,phase3,1266.6506126087297,1270.0,True,主口径参照窗中位 T_out=1266.65 °C；FT=1270.0 °C，T25=1282.4 °C；判定=marginal（≥FT 通过、FT−50 K ≤ T < FT 边缘）
+B2,T_out_vs_FT,phase4,1142.521220817544,1250.0,False,主口径参照窗中位 T_out=1142.52 °C；FT=1250.0 °C，T25=1277.0 °C；判定=fail（≥FT 通过、FT−50 K ≤ T < FT 边缘）
+B2,T_out_vs_FT_sens,phase1,1352.6293524916096,1280.0,True,current 热值 28179 kJ/kg、热损 0.5%、载气 C-J：T_out=1352.63 °C，FT=1280.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase2,1488.0002496195098,1290.0,True,current 热值 28440 kJ/kg、热损 0.5%、载气 C-J：T_out=1488.00 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1339.7116370801323,1270.0,True,current 热值 28579 kJ/kg、热损 0.5%、载气 C-J：T_out=1339.71 °C，FT=1270.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase4,1202.1178755937867,1250.0,True,current 热值 28588 kJ/kg、热损 0.5%、载气 C-J：T_out=1202.12 °C，FT=1250.0 °C，判定=marginal
+B2,T_out_vs_FT_sens,phase1,1321.8384889234426,1280.0,True,current 热值 28179 kJ/kg、热损 0.5%、载气 C-m：T_out=1321.84 °C，FT=1280.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase2,1453.5096907714365,1290.0,True,current 热值 28440 kJ/kg、热损 0.5%、载气 C-m：T_out=1453.51 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1309.6299351705848,1270.0,True,current 热值 28579 kJ/kg、热损 0.5%、载气 C-m：T_out=1309.63 °C，FT=1270.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase4,1170.6351358317102,1250.0,False,current 热值 28588 kJ/kg、热损 0.5%、载气 C-m：T_out=1170.64 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1309.9357762804807,1280.0,True,current 热值 28179 kJ/kg、热损 1%、载气 C-J：T_out=1309.94 °C，FT=1280.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase2,1445.5482506643561,1290.0,True,current 热值 28440 kJ/kg、热损 1%、载气 C-J：T_out=1445.55 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1296.0463427587647,1270.0,True,current 热值 28579 kJ/kg、热损 1%、载气 C-J：T_out=1296.05 °C，FT=1270.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase4,1172.463007329126,1250.0,False,current 热值 28588 kJ/kg、热损 1%、载气 C-J：T_out=1172.46 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1279.8137855109417,1280.0,True,current 热值 28179 kJ/kg、热损 1%、载气 C-m：T_out=1279.81 °C，FT=1280.0 °C，判定=marginal
+B2,T_out_vs_FT_sens,phase2,1411.7691138210457,1290.0,True,current 热值 28440 kJ/kg、热损 1%、载气 C-m：T_out=1411.77 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1266.6506126087297,1270.0,True,current 热值 28579 kJ/kg、热损 1%、载气 C-m：T_out=1266.65 °C，FT=1270.0 °C，判定=marginal
+B2,T_out_vs_FT_sens,phase4,1142.521220817544,1250.0,False,current 热值 28588 kJ/kg、热损 1%、载气 C-m：T_out=1142.52 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1224.0305403629131,1280.0,False,current 热值 28179 kJ/kg、热损 2%、载气 C-J：T_out=1224.03 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1360.2262443896225,1290.0,True,current 热值 28440 kJ/kg、热损 2%、载气 C-J：T_out=1360.23 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1208.763173106424,1270.0,False,current 热值 28579 kJ/kg、热损 2%、载气 C-J：T_out=1208.76 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1120.7604721149642,1250.0,False,current 热值 28588 kJ/kg、热损 2%、载气 C-J：T_out=1120.76 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1195.4689868193304,1280.0,False,current 热值 28179 kJ/kg、热损 2%、载气 C-m：T_out=1195.47 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1327.8750730736601,1290.0,True,current 热值 28440 kJ/kg、热损 2%、载气 C-m：T_out=1327.88 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1180.6572807471694,1270.0,False,current 热值 28579 kJ/kg、热损 2%、载气 C-m：T_out=1180.66 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1095.681478155112,1250.0,False,current 热值 28588 kJ/kg、热损 2%、载气 C-m：T_out=1095.68 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1218.9429308437652,1280.0,False,lims_heat 热值 27720 kJ/kg、热损 0.5%、载气 C-J：T_out=1218.94 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1353.7900031094832,1290.0,True,lims_heat 热值 27976 kJ/kg、热损 0.5%、载气 C-J：T_out=1353.79 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1202.7887102106315,1270.0,False,lims_heat 热值 28094 kJ/kg、热损 0.5%、载气 C-J：T_out=1202.79 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1130.831138035479,1250.0,False,lims_heat 热值 28103 kJ/kg、热损 0.5%、载气 C-J：T_out=1130.83 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1190.5707084695214,1280.0,False,lims_heat 热值 27720 kJ/kg、热损 0.5%、载气 C-m：T_out=1190.57 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1321.5254212613986,1290.0,True,lims_heat 热值 27976 kJ/kg、热损 0.5%、载气 C-m：T_out=1321.53 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1174.4899190571132,1270.0,False,lims_heat 热值 28094 kJ/kg、热损 0.5%、载气 C-m：T_out=1174.49 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1105.8454492079968,1250.0,False,lims_heat 热值 28103 kJ/kg、热损 0.5%、载气 C-m：T_out=1105.85 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1180.487913055546,1280.0,False,lims_heat 热值 27720 kJ/kg、热损 1%、载气 C-J：T_out=1180.49 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1311.4034224632387,1290.0,True,lims_heat 热值 27976 kJ/kg、热损 1%、载气 C-J：T_out=1311.40 °C，FT=1290.0 °C，判定=pass
+B2,T_out_vs_FT_sens,phase3,1170.6349576978077,1270.0,False,lims_heat 热值 28094 kJ/kg、热损 1%、载气 C-J：T_out=1170.63 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1110.3876026932821,1250.0,False,lims_heat 热值 28103 kJ/kg、热损 1%、载气 C-J：T_out=1110.39 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1153.3977710942495,1280.0,False,lims_heat 热值 27720 kJ/kg、热损 1%、载气 C-m：T_out=1153.40 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1279.911418181171,1290.0,True,lims_heat 热值 27976 kJ/kg、热损 1%、载气 C-m：T_out=1279.91 °C，FT=1290.0 °C，判定=marginal
+B2,T_out_vs_FT_sens,phase3,1143.481977922689,1270.0,False,lims_heat 热值 28094 kJ/kg、热损 1%、载气 C-m：T_out=1143.48 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1087.2442194251166,1250.0,False,lims_heat 热值 28103 kJ/kg、热损 1%、载气 C-m：T_out=1087.24 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1116.0131184189004,1280.0,False,lims_heat 热值 27720 kJ/kg、热损 2%、载气 C-J：T_out=1116.01 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1226.042636176628,1290.0,False,lims_heat 热值 27976 kJ/kg、热损 2%、载气 C-J：T_out=1226.04 °C，FT=1290.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase3,1118.4343675391692,1270.0,False,lims_heat 热值 28094 kJ/kg、热损 2%、载气 C-J：T_out=1118.43 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1069.1506853767482,1250.0,False,lims_heat 热值 28103 kJ/kg、热损 2%、载气 C-J：T_out=1069.15 °C，FT=1250.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase1,1092.5633056891133,1280.0,False,lims_heat 热值 27720 kJ/kg、热损 2%、载气 C-m：T_out=1092.56 °C，FT=1280.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase2,1196.2585145395205,1290.0,False,lims_heat 热值 27976 kJ/kg、热损 2%、载气 C-m：T_out=1196.26 °C，FT=1290.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase3,1095.1436637231914,1270.0,False,lims_heat 热值 28094 kJ/kg、热损 2%、载气 C-m：T_out=1095.14 °C，FT=1270.0 °C，判定=fail
+B2,T_out_vs_FT_sens,phase4,1048.3561302889389,1250.0,False,lims_heat 热值 28103 kJ/kg、热损 2%、载气 C-m：T_out=1048.36 °C，FT=1250.0 °C，判定=fail
+B3,CO2_vol_pct<->ln_coal,phase1,-1.0095476535367007,-0.2934646315741745,True,模型阶段中位 per3=-1.0095，装置 per3=-0.2935，同号=True
+B3,CO_vol_pct<->ln_coal,phase2,0.3209271282716146,0.6967429115398697,True,模型阶段中位 per3=0.3209，装置 per3=0.6967，同号=True
+B3,CO2_vol_pct<->ln_coal,phase2,-0.9694823119618341,-0.7468895902246678,True,模型阶段中位 per3=-0.9695，装置 per3=-0.7469，同号=True
+B3,CO_vol_pct<->ln_coal,phase3,0.4169701502854064,0.28141784603196895,True,模型阶段中位 per3=0.4170，装置 per3=0.2814，同号=True
+B3,CO2_vol_pct<->ln_coal,phase3,-0.9945758374381142,-0.30941803176586935,True,模型阶段中位 per3=-0.9946，装置 per3=-0.3094，同号=True
+B3,CO_vol_pct<->ln_coal,phase4,-0.17817639447545092,0.5276876360172579,False,模型阶段中位 per3=-0.1782，装置 per3=0.5277，同号=False
+B3,H2_vol_pct<->ln_O2,phase4,-0.3553900549057592,-0.48502847508285113,True,模型阶段中位 per3=-0.3554，装置 per3=-0.4850，同号=True
+B3,CO2_vol_pct<->ln_coal,phase4,-0.26241776613259676,-0.623477273482688,True,模型阶段中位 per3=-0.2624，装置 per3=-0.6235，同号=True
+B3,n_same_sign,all,7.0,6,True,8 个有符号组合中同号 7 个（阈值 ≥6）
+B3-CHECK,phase2_plant_slope_recalc_max_abs_dev,phase2,0.49074034837558145,1e-06,False,用新窗口表重算 phase2 装置斜率（with_carrier），与 round-p1.15a-20261108/plant_slopes.csv 的 beta_ln 比；同一函数用旧窗口表重算时最大偏差 0.000e+00（用于确认调用本身没走偏）；逐系数见 b3_check_detail.csv
+B4,CO_bias_xi_vs_plant,phase1,0.4887841246910938,,,ξ 闭合后 142 窗中位偏差（模型−装置），CO；只报告
+B4,H2_bias_xi_vs_plant,phase1,-0.7812793141717869,,,ξ 闭合后 142 窗中位偏差（模型−装置），H2；只报告
+B4,CH4_bias_xi_vs_plant,phase1,0.1138006486738537,,,ξ 闭合后 142 窗中位偏差（模型−装置），CH4；只报告
+B4,CO_bias_xi_vs_plant,phase2,0.07743961956445133,,,ξ 闭合后 142 窗中位偏差（模型−装置），CO；只报告
+B4,H2_bias_xi_vs_plant,phase2,-0.08709846897038354,,,ξ 闭合后 142 窗中位偏差（模型−装置），H2；只报告
+B4,CH4_bias_xi_vs_plant,phase2,0.09661656133786836,,,ξ 闭合后 142 窗中位偏差（模型−装置），CH4；只报告
+B4,CO_bias_xi_vs_plant,phase3,-1.6417958692210028,,,ξ 闭合后 142 窗中位偏差（模型−装置），CO；只报告
+B4,H2_bias_xi_vs_plant,phase3,1.4695941242633879,,,ξ 闭合后 142 窗中位偏差（模型−装置），H2；只报告
+B4,CH4_bias_xi_vs_plant,phase3,0.13992020404089278,,,ξ 闭合后 142 窗中位偏差（模型−装置），CH4；只报告
+B4,CO_bias_xi_vs_plant,phase4,-2.734871910580914,,,ξ 闭合后 142 窗中位偏差（模型−装置），CO；只报告
+B4,H2_bias_xi_vs_plant,phase4,2.430714118237006,,,ξ 闭合后 142 窗中位偏差（模型−装置），H2；只报告
+B4,CH4_bias_xi_vs_plant,phase4,0.24711435532996562,,,ξ 闭合后 142 窗中位偏差（模型−装置），CH4；只报告
+B5,e_coal,phase1,0.9961532316715009,"[-0.4192, 0.1991]",,"模型 e_coal=0.9962；P2.0-A 装置 e_coal=-0.1593，95% 区间 [-0.4192, 0.1991]；落在区间外（只报告）"
+B5,e_o2,phase1,0.006048556593615088,"[0.5307, 1.3132]",,"模型 e_o2=0.0060；P2.0-A 装置 e_o2=0.9312，95% 区间 [0.5307, 1.3132]；落在区间外（只报告）"
+B5,e_coal,phase2,0.9999999999996649,"[0.3232, 0.6210]",,"模型 e_coal=1.0000；P2.0-A 装置 e_coal=0.4905，95% 区间 [0.3232, 0.6210]；落在区间外（只报告）"
+B5,e_o2,phase2,3.468775831242615e-13,"[0.1314, 1.1323]",,"模型 e_o2=0.0000；P2.0-A 装置 e_o2=0.8363，95% 区间 [0.1314, 1.1323]；落在区间外（只报告）"
+B5,e_coal,phase3,0.9996577520904124,"[0.1867, 0.5663]",,"模型 e_coal=0.9997；P2.0-A 装置 e_coal=0.3940，95% 区间 [0.1867, 0.5663]；落在区间外（只报告）"
+B5,e_o2,phase3,0.0007134741473655244,"[-0.1019, 0.6162]",,"模型 e_o2=0.0007；P2.0-A 装置 e_o2=0.2852，95% 区间 [-0.1019, 0.6162]；落在区间内（只报告）"
+B5,e_coal,phase4,0.3965832881183394,"[0.1954, 0.7304]",,"模型 e_coal=0.3966；P2.0-A 装置 e_coal=0.3427，95% 区间 [0.1954, 0.7304]；落在区间内（只报告）"
+B5,e_o2,phase4,0.6175190264294496,"[1.1601, 2.0636]",,"模型 e_o2=0.6175；P2.0-A 装置 e_o2=1.5979，95% 区间 [1.1601, 2.0636]；落在区间外（只报告）"
+B6,frac_X_C_ge_99.9_nom,phase1,0.918918918918919,,,基准点 142 窗中 X_C ≥ 99.9% 的比例；阶段中位 X_C=100.0000%
+B6,frac_X_C_ge_99.9_any_pert,phase1,1.0,,,基准 + 任一扰动点（6 个 ±3% 扰动）中 X_C ≥ 99.9% 的比例
+B6,o2_multiplier_for_99pct,phase1,1.0,99.0,,阶段中位 X_C=100.0000% ≥ 99%，无需加氧；按「无需倍数」记 1.0（未做一维求根）
+B6,frac_X_C_ge_99.9_nom,phase2,1.0,,,基准点 142 窗中 X_C ≥ 99.9% 的比例；阶段中位 X_C=100.0000%
+B6,frac_X_C_ge_99.9_any_pert,phase2,1.0,,,基准 + 任一扰动点（6 个 ±3% 扰动）中 X_C ≥ 99.9% 的比例
+B6,o2_multiplier_for_99pct,phase2,1.0,99.0,,阶段中位 X_C=100.0000% ≥ 99%，无需加氧；按「无需倍数」记 1.0（未做一维求根）
+B6,frac_X_C_ge_99.9_nom,phase3,0.9772727272727273,,,基准点 142 窗中 X_C ≥ 99.9% 的比例；阶段中位 X_C=100.0000%
+B6,frac_X_C_ge_99.9_any_pert,phase3,1.0,,,基准 + 任一扰动点（6 个 ±3% 扰动）中 X_C ≥ 99.9% 的比例
+B6,o2_multiplier_for_99pct,phase3,1.0,99.0,,阶段中位 X_C=100.0000% ≥ 99%，无需加氧；按「无需倍数」记 1.0（未做一维求根）
+B6,frac_X_C_ge_99.9_nom,phase4,0.11764705882352941,,,基准点 142 窗中 X_C ≥ 99.9% 的比例；阶段中位 X_C=99.1509%
+B6,frac_X_C_ge_99.9_any_pert,phase4,0.8823529411764706,,,基准 + 任一扰动点（6 个 ±3% 扰动）中 X_C ≥ 99.9% 的比例
+B6,o2_multiplier_for_99pct,phase4,1.0,99.0,,阶段中位 X_C=99.1509% ≥ 99%，无需加氧；按「无需倍数」记 1.0（未做一维求根）
+B7,dT_out_K_liu_minus_lims,phase1,126.41601441669218,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 1552.9638 vs 化验表 1426.5478；用于核对论文「约 100–150 K」粗估
+B7,dX_C_pp_liu_minus_lims,phase1,0.14540788362812407,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 100.0000 vs 化验表 99.8546；用于核对论文「约 100–150 K」粗估
+B7,dCO_vol_pct_liu_minus_lims,phase1,0.5276007278330184,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 62.4970 vs 化验表 61.9694；用于核对论文「约 100–150 K」粗估
+B7,dH2_vol_pct_liu_minus_lims,phase1,-0.13905538855378552,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 27.3294 vs 化验表 27.4684；用于核对论文「约 100–150 K」粗估
+B7,dT_out_K_liu_minus_lims,phase2,131.8576956398747,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 1684.9191 vs 化验表 1553.0614；用于核对论文「约 100–150 K」粗估
+B7,dX_C_pp_liu_minus_lims,phase2,4.263256414560601e-13,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 100.0000 vs 化验表 100.0000；用于核对论文「约 100–150 K」粗估
+B7,dCO_vol_pct_liu_minus_lims,phase2,0.44000424348133294,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 63.1563 vs 化验表 62.7163；用于核对论文「约 100–150 K」粗估
+B7,dH2_vol_pct_liu_minus_lims,phase2,-0.16749573933466166,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 27.0105 vs 化验表 27.1780；用于核对论文「约 100–150 K」粗估
+B7,dT_out_K_liu_minus_lims,phase3,123.1686346860406,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 1539.8006 vs 化验表 1416.6320；用于核对论文「约 100–150 K」粗估
+B7,dX_C_pp_liu_minus_lims,phase3,0.5052611898504722,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 100.0000 vs 化验表 99.4947；用于核对论文「约 100–150 K」粗估
+B7,dCO_vol_pct_liu_minus_lims,phase3,0.6030581110271811,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 61.7495 vs 化验表 61.1465；用于核对论文「约 100–150 K」粗估
+B7,dH2_vol_pct_liu_minus_lims,phase3,-0.04301397742472446,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 28.2618 vs 化验表 28.3048；用于核对论文「约 100–150 K」粗估
+B7,dT_out_K_liu_minus_lims,phase4,55.27700139242734,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 1415.6712 vs 化验表 1360.3942；用于核对论文「约 100–150 K」粗估
+B7,dX_C_pp_liu_minus_lims,phase4,3.0276280864705,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 99.1509 vs 化验表 96.1233；用于核对论文「约 100–150 K」粗估
+B7,dCO_vol_pct_liu_minus_lims,phase4,1.632519573023977,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 61.4127 vs 化验表 59.7802；用于核对论文「约 100–150 K」粗估
+B7,dH2_vol_pct_liu_minus_lims,phase4,-0.07458848353810765,,,主口径（新窗口、热损 1%、C-m）参照窗中位：刘文 28.7739 vs 化验表 28.8485；用于核对论文「约 100–150 K」粗估
+B7,dX_C_pp_total_U1_to_main,phase1,0.14540788362812407,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_total_U1_to_main,phase1,126.41601441669218,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dCO_vol_pct_total_U1_to_main,phase1,0.5276007278330184,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dH2_vol_pct_total_U1_to_main,phase1,-0.13905538855378552,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_coal_swap_U1_to_main,phase1,0.14540788362812407,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_hv_only_U1_to_main,phase1,-0.14540788362812407,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_drycoal_const_U1_to_main,phase1,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_coal_swap_U1_to_main,phase1,126.41601441669218,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_hv_only_U1_to_main,phase1,-126.41601441669218,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_drycoal_const_U1_to_main,phase1,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dCO_vol_pct_hv_only_U1_to_main,phase1,-0.5276007278330184,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dH2_vol_pct_hv_only_U1_to_main,phase1,0.13905538855378552,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_swap_hv_part_U1_to_main,phase1,126.41601441669218,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_swap_composition_part_U1_to_main,phase1,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_swap_hv_part_U1_to_main,phase1,0.14540788362812407,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_swap_composition_part_U1_to_main,phase1,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_total_U1_to_main,phase2,3.836930773104541e-13,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_total_U1_to_main,phase2,162.4338535913423,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dCO_vol_pct_total_U1_to_main,phase2,0.24226751445755923,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dH2_vol_pct_total_U1_to_main,phase2,0.08495916153601613,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_coal_swap_U1_to_main,phase2,5.258016244624741e-13,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_hv_only_U1_to_main,phase2,-2.8421709430404007e-13,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_drycoal_const_U1_to_main,phase2,-1.4210854715202004e-13,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_coal_swap_U1_to_main,phase2,191.5559915494714,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_hv_only_U1_to_main,phase2,-130.90293229326585,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_drycoal_const_U1_to_main,phase2,-29.122137958129088,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dCO_vol_pct_hv_only_U1_to_main,phase2,-0.44892272177261106,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dH2_vol_pct_hv_only_U1_to_main,phase2,0.1672533917520056,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_swap_hv_part_U1_to_main,phase2,130.90293229326585,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_swap_composition_part_U1_to_main,phase2,60.65305925620555,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_swap_hv_part_U1_to_main,phase2,2.8421709430404007e-13,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_swap_composition_part_U1_to_main,phase2,2.4158453015843406e-13,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_total_U1_to_main,phase3,0.1275153051671225,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_total_U1_to_main,phase3,103.01201168636908,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dCO_vol_pct_total_U1_to_main,phase3,0.6816527920938569,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dH2_vol_pct_total_U1_to_main,phase3,-0.35268351385524355,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_coal_swap_U1_to_main,phase3,0.12751530516536036,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_hv_only_U1_to_main,phase3,-1.1864790662908717,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_drycoal_const_U1_to_main,phase3,1.7621459846850485e-12,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_coal_swap_U1_to_main,phase3,74.02760758269733,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_hv_only_U1_to_main,phase3,-103.65172283514403,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_drycoal_const_U1_to_main,phase3,28.98440410367175,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dCO_vol_pct_hv_only_U1_to_main,phase3,-0.8432323973661795,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dH2_vol_pct_hv_only_U1_to_main,phase3,-0.016736385681284105,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_swap_hv_part_U1_to_main,phase3,103.65172283514403,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dT_out_K_swap_composition_part_U1_to_main,phase3,-29.6241152524467,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_swap_hv_part_U1_to_main,phase3,1.1864790662908717,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_swap_composition_part_U1_to_main,phase3,-1.0589637611255114,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数
+B7,dX_C_pp_total_U1_to_main,phase4,3.0276280864705,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_total_U1_to_main,phase4,55.27700139242734,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dCO_vol_pct_total_U1_to_main,phase4,1.632519573023977,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dH2_vol_pct_total_U1_to_main,phase4,-0.07458848353810765,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_coal_swap_U1_to_main,phase4,3.0276280864705,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_hv_only_U1_to_main,phase4,-3.0276280864705,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_drycoal_const_U1_to_main,phase4,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_coal_swap_U1_to_main,phase4,55.27700139242734,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_hv_only_U1_to_main,phase4,-55.27700139242734,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_drycoal_const_U1_to_main,phase4,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dCO_vol_pct_hv_only_U1_to_main,phase4,-1.632519573023977,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dH2_vol_pct_hv_only_U1_to_main,phase4,0.07458848353810765,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_swap_hv_part_U1_to_main,phase4,55.27700139242734,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dT_out_K_swap_composition_part_U1_to_main,phase4,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_swap_hv_part_U1_to_main,phase4,3.0276280864705,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+B7,dX_C_pp_swap_composition_part_U1_to_main,phase4,0.0,,,拆分口径：A=legacy+旧窗（U1）→ B=current+旧窗（煤质互换，含热值）→ C=lims_heat+旧窗（只换热值）→ D=current+新窗（主口径）；各差值按该步替换前后之差，参照窗中位，ξ 沿用主口径各阶段常数；注意：本阶段煤质成分未变，A→B 与 B→C 是同一热值效应的两半
+HALT,stop_condition,phase2,0.49074034837558145,1e-06,False,B3 装置斜率核对不通过：phase2 用新窗口表重算的最大 |Δbeta_ln| = 4.907403e-01 > 1e-6（同一函数用旧窗口表重算时为 0.000e+00）；按卡面停止条件不给总判定，B1–B7 数值照常列出

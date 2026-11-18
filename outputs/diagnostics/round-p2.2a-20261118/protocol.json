@@ -1,0 +1,1119 @@
+{
+  "round": "P2.2-A-20261118",
+  "card_version": "第 2 版（2026-11-18，P2.2-D 合并后修订）",
+  "source_commit": "db56ebe",
+  "baseline_commit": "db56ebe",
+  "coal_set": "current",
+  "coal_set_files": {
+    "v0_baseline_coal_assumption": "outputs/diagnostics/round-p2.2a-20261118/coal_inputs/current/coal_assumption_v0.yaml",
+    "huayi_p2_sy3sy2_coal_assumption": "outputs/diagnostics/round-p2.2a-20261118/coal_inputs/current/coal_assumption_huayi_p2.yaml",
+    "huayi_p3_sy3sy2_coal_assumption": "outputs/diagnostics/round-p2.2a-20261118/coal_inputs/current/coal_assumption_huayi_p3.yaml",
+    "huayi_p4_sy3sy2_coal_assumption": "outputs/diagnostics/round-p2.2a-20261118/coal_inputs/current/coal_assumption_huayi_p4.yaml"
+  },
+  "coal_set_digest": "058d23c4df243098fbdb8fff82a716dbb2ad927de48d71c0fb8f2f199b5089ad",
+  "coal_heating_value_dry_kj_kg": {
+    "phase1": 28179.0,
+    "phase2": 28440.0,
+    "phase3": 28579.0,
+    "phase4": 28588.0
+  },
+  "windows_csv": "outputs/diagnostics/p2.2d-20261118/windows_142.csv",
+  "windows_sha256": "a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119",
+  "expected_windows_table": "p2.2d",
+  "expected_windows_sha256": "a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119",
+  "p22d_readings_ref": "papers/jax-gasifier-cascade-hybrid/revision-evidence-20261118/P2.2-D/readings.csv",
+  "p22d_readings_sha256": "fcc6b2dce4974c38f5d3bbbddba92deafc45f445e9e2623d23b46c00d06ddbc7",
+  "frozen": {
+    "o2_flow_scale": 1.0,
+    "GasificationRateFactor": 1.0,
+    "CharCO2RateFactor": 1.0,
+    "hooks": "P2.0-A 两钩子关闭",
+    "MeshFamily": "wsr_plus_pfr",
+    "WSRLength_m": 1.0,
+    "PFRCellLength_m": 0.0515,
+    "n_cells": 182,
+    "HeatLossModel": "total_percent",
+    "HeatLossPercentTotal": 1.0,
+    "carrier": "实测载气 C-m",
+    "coal_flow": "逐窗协调干煤量",
+    "kinetics": "Wen 1979 常数",
+    "particle_size_model": "fortran_constant",
+    "OxygenMixingModel": "instant"
+  },
+  "definitions": {
+    "perturbation": "±3%（ln 中心差分，D_LN = ln1.03 − ln0.97）",
+    "beta_ln": "per3 / LN_P，LN_P = ln(1.03)",
+    "per3": "p20.fd_stats 的 d2（该输入 +3% 的观测量变化）",
+    "e_coal": "1 + (per3_coal / X_C_level) / LN_P（p20.elasticities）",
+    "e_o2": "(per3_O2 / X_C_level) / LN_P",
+    "X_C_level": "该阶段 142 窗全窗中位 X_C",
+    "xi": "每阶段一个常数，使主口径参照窗 CO2 中位 = 装置中位；扰动与敏感性沿用",
+    "B1_model_level": "该阶段 142 窗全窗中位 X_C",
+    "B1_P1_rule": "阶段 1 的 FINAL verdict=descriptive_not_d6_validated，改判模型 ≥ 97.0%",
+    "B2_rule": "T_out ≥ FT 通过；FT−50 K ≤ T_out < FT 边缘；其余不通过",
+    "B3_rule": "8 个有符号组合中同号 ≥ 6 通过",
+    "B3_check": "阶段 2 新窗口表重算装置斜率，任一 beta_ln 偏差 > 1e-6 停止",
+    "B6_o2_multiplier": "阶段中位 X_C < 99% 时，参照窗中位 X_C=99% 的 o2_flow_scale 倍数",
+    "B7_decomposition": "逐项替换 A→B→C，B→D；D 为主口径；T_out/X_C 与 ξ 无关，组成用主口径 ξ"
+  },
+  "thresholds": {
+    "U1_rel": 1e-09,
+    "U2_ratio": 10.0,
+    "B1_z": 1.5,
+    "B1_P1_min_pct": 97.0,
+    "B2_margin_K": 50.0,
+    "B3_min_signed": 6,
+    "B6_ceil_pp": 99.9,
+    "B6_target_pp": 99.0,
+    "main_phase_fail_stop": 5
+  },
+  "liu_reference": {
+    "FT_C": {
+      "phase1": 1280.0,
+      "phase2": 1290.0,
+      "phase3": 1270.0,
+      "phase4": 1250.0
+    },
+    "T25_C": {
+      "phase1": 1346.4,
+      "phase2": 1327.5,
+      "phase3": 1282.4,
+      "phase4": 1277.0
+    }
+  },
+  "stage": "read",
+  "n_workers": 13,
+  "b1": {
+    "phases": {
+      "phase1": {
+        "model_median_pct": 99.9999999999985,
+        "n_windows": 37
+      },
+      "phase2": {
+        "model_median_pct": 99.99999999999939,
+        "n_windows": 44,
+        "target_midpoint_pct": 94.5957,
+        "target_uncertainty_pct": 3.63909,
+        "z": 1.4850690694650024
+      },
+      "phase3": {
+        "model_median_pct": 99.99999999999896,
+        "n_windows": 44,
+        "target_midpoint_pct": 93.3362,
+        "target_uncertainty_pct": 3.5531,
+        "z": 1.8754890095969596
+      },
+      "phase4": {
+        "model_median_pct": 99.15087912851335,
+        "n_windows": 17,
+        "target_midpoint_pct": 90.7684,
+        "target_uncertainty_pct": 3.50251,
+        "z": 2.3932777146998445
+      }
+    },
+    "verdict": {
+      "phase1": true,
+      "phase2": true,
+      "phase3": false,
+      "phase4": false
+    }
+  },
+  "b2": {
+    "detail": {
+      "phase1": {
+        "T_out_C_median": 1279.8137855109417,
+        "FT_C": 1280.0,
+        "T25_C": 1346.4,
+        "verdict": "marginal"
+      },
+      "phase2": {
+        "T_out_C_median": 1411.7691138210457,
+        "FT_C": 1290.0,
+        "T25_C": 1327.5,
+        "verdict": "pass"
+      },
+      "phase3": {
+        "T_out_C_median": 1266.6506126087297,
+        "FT_C": 1270.0,
+        "T25_C": 1282.4,
+        "verdict": "marginal"
+      },
+      "phase4": {
+        "T_out_C_median": 1142.521220817544,
+        "FT_C": 1250.0,
+        "T25_C": 1277.0,
+        "verdict": "fail"
+      }
+    },
+    "verdict_main": {
+      "phase1": "marginal",
+      "phase2": "pass",
+      "phase3": "marginal",
+      "phase4": "fail"
+    },
+    "verdict_all": {
+      "phase1|main": "marginal",
+      "phase2|main": "pass",
+      "phase3|main": "marginal",
+      "phase4|main": "fail",
+      "phase1|current|hl0.5|C-J": "pass",
+      "phase2|current|hl0.5|C-J": "pass",
+      "phase3|current|hl0.5|C-J": "pass",
+      "phase4|current|hl0.5|C-J": "marginal",
+      "phase1|current|hl0.5|C-m": "pass",
+      "phase2|current|hl0.5|C-m": "pass",
+      "phase3|current|hl0.5|C-m": "pass",
+      "phase4|current|hl0.5|C-m": "fail",
+      "phase1|current|hl1|C-J": "pass",
+      "phase2|current|hl1|C-J": "pass",
+      "phase3|current|hl1|C-J": "pass",
+      "phase4|current|hl1|C-J": "fail",
+      "phase1|current|hl1|C-m": "marginal",
+      "phase2|current|hl1|C-m": "pass",
+      "phase3|current|hl1|C-m": "marginal",
+      "phase4|current|hl1|C-m": "fail",
+      "phase1|current|hl2|C-J": "fail",
+      "phase2|current|hl2|C-J": "pass",
+      "phase3|current|hl2|C-J": "fail",
+      "phase4|current|hl2|C-J": "fail",
+      "phase1|current|hl2|C-m": "fail",
+      "phase2|current|hl2|C-m": "pass",
+      "phase3|current|hl2|C-m": "fail",
+      "phase4|current|hl2|C-m": "fail",
+      "phase1|lims_heat|hl0.5|C-J": "fail",
+      "phase2|lims_heat|hl0.5|C-J": "pass",
+      "phase3|lims_heat|hl0.5|C-J": "fail",
+      "phase4|lims_heat|hl0.5|C-J": "fail",
+      "phase1|lims_heat|hl0.5|C-m": "fail",
+      "phase2|lims_heat|hl0.5|C-m": "pass",
+      "phase3|lims_heat|hl0.5|C-m": "fail",
+      "phase4|lims_heat|hl0.5|C-m": "fail",
+      "phase1|lims_heat|hl1|C-J": "fail",
+      "phase2|lims_heat|hl1|C-J": "pass",
+      "phase3|lims_heat|hl1|C-J": "fail",
+      "phase4|lims_heat|hl1|C-J": "fail",
+      "phase1|lims_heat|hl1|C-m": "fail",
+      "phase2|lims_heat|hl1|C-m": "marginal",
+      "phase3|lims_heat|hl1|C-m": "fail",
+      "phase4|lims_heat|hl1|C-m": "fail",
+      "phase1|lims_heat|hl2|C-J": "fail",
+      "phase2|lims_heat|hl2|C-J": "fail",
+      "phase3|lims_heat|hl2|C-J": "fail",
+      "phase4|lims_heat|hl2|C-J": "fail",
+      "phase1|lims_heat|hl2|C-m": "fail",
+      "phase2|lims_heat|hl2|C-m": "fail",
+      "phase3|lims_heat|hl2|C-m": "fail",
+      "phase4|lims_heat|hl2|C-m": "fail"
+    }
+  },
+  "b3": {
+    "combos": [
+      {
+        "phase": "phase1",
+        "obs": "CO2_vol_pct",
+        "input": "ln_coal",
+        "model_per3": -1.0095476535367007,
+        "plant_per3": -0.2934646315741745,
+        "same_sign": true
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO_vol_pct",
+        "input": "ln_coal",
+        "model_per3": 0.3209271282716146,
+        "plant_per3": 0.6967429115398697,
+        "same_sign": true
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO2_vol_pct",
+        "input": "ln_coal",
+        "model_per3": -0.9694823119618341,
+        "plant_per3": -0.7468895902246678,
+        "same_sign": true
+      },
+      {
+        "phase": "phase3",
+        "obs": "CO_vol_pct",
+        "input": "ln_coal",
+        "model_per3": 0.4169701502854064,
+        "plant_per3": 0.28141784603196895,
+        "same_sign": true
+      },
+      {
+        "phase": "phase3",
+        "obs": "CO2_vol_pct",
+        "input": "ln_coal",
+        "model_per3": -0.9945758374381142,
+        "plant_per3": -0.30941803176586935,
+        "same_sign": true
+      },
+      {
+        "phase": "phase4",
+        "obs": "CO_vol_pct",
+        "input": "ln_coal",
+        "model_per3": -0.17817639447545092,
+        "plant_per3": 0.5276876360172579,
+        "same_sign": false
+      },
+      {
+        "phase": "phase4",
+        "obs": "H2_vol_pct",
+        "input": "ln_O2",
+        "model_per3": -0.3553900549057592,
+        "plant_per3": -0.48502847508285113,
+        "same_sign": true
+      },
+      {
+        "phase": "phase4",
+        "obs": "CO2_vol_pct",
+        "input": "ln_coal",
+        "model_per3": -0.26241776613259676,
+        "plant_per3": -0.623477273482688,
+        "same_sign": true
+      }
+    ],
+    "n_same": 7,
+    "recalc_max_dev": 0.49074034837558145,
+    "recalc_max_dev_old_table": 0.0,
+    "recalc_outliers": [
+      {
+        "obs": "X_C_pp",
+        "input": "ln_O2",
+        "recalc": 77.18273720826579,
+        "stored": 76.96752064154417,
+        "abs_dev": 0.21521656672162237
+      },
+      {
+        "obs": "X_C_pp",
+        "input": "ln_coal",
+        "recalc": -47.01415482943581,
+        "stored": -46.89025359534968,
+        "abs_dev": 0.12390123408613363
+      },
+      {
+        "obs": "X_C_pp",
+        "input": "ln_carrier",
+        "recalc": 3.682816750677586,
+        "stored": 3.6801787945099713,
+        "abs_dev": 0.0026379561676148633
+      },
+      {
+        "obs": "CO_vol_pct",
+        "input": "ln_O2",
+        "recalc": -5.768345283448239,
+        "stored": -5.770247761173963,
+        "abs_dev": 0.001902477725724161
+      },
+      {
+        "obs": "CO_vol_pct",
+        "input": "ln_coal",
+        "recalc": 23.570783397685304,
+        "stored": 23.571418958262406,
+        "abs_dev": 0.0006355605771020123
+      },
+      {
+        "obs": "CO_vol_pct",
+        "input": "ln_carrier",
+        "recalc": 6.257373854507426,
+        "stored": 6.257236803139552,
+        "abs_dev": 0.00013705136787400818
+      },
+      {
+        "obs": "H2_vol_pct",
+        "input": "ln_O2",
+        "recalc": -7.487796617646269,
+        "stored": -7.486801280111116,
+        "abs_dev": 0.000995337535152352
+      },
+      {
+        "obs": "H2_vol_pct",
+        "input": "ln_coal",
+        "recalc": 0.7537869456138784,
+        "stored": 0.7527652487411604,
+        "abs_dev": 0.0010216968727180253
+      },
+      {
+        "obs": "H2_vol_pct",
+        "input": "ln_carrier",
+        "recalc": -5.233386364876772,
+        "stored": -5.232990949981598,
+        "abs_dev": 0.0003954148951734737
+      },
+      {
+        "obs": "CO2_vol_pct",
+        "input": "ln_O2",
+        "recalc": 13.493427048759498,
+        "stored": 13.494359929214289,
+        "abs_dev": 0.0009328804547905634
+      },
+      {
+        "obs": "CO2_vol_pct",
+        "input": "ln_coal",
+        "recalc": -25.268335179489636,
+        "stored": -25.267924732583595,
+        "abs_dev": 0.00041044690604152834
+      },
+      {
+        "obs": "CO2_vol_pct",
+        "input": "ln_carrier",
+        "recalc": -1.1054030175013874,
+        "stored": -1.1056749845251679,
+        "abs_dev": 0.0002719670237805172
+      },
+      {
+        "obs": "CH4_vol_pct",
+        "input": "ln_O2",
+        "recalc": -0.6460038454382769,
+        "stored": -0.6460281611103836,
+        "abs_dev": 2.4315672106700603e-05
+      },
+      {
+        "obs": "CH4_vol_pct",
+        "input": "ln_coal",
+        "recalc": 1.0798044633330113,
+        "stored": 1.079771582338266,
+        "abs_dev": 3.288099474518802e-05
+      },
+      {
+        "obs": "CH4_vol_pct",
+        "input": "ln_carrier",
+        "recalc": 0.1139127202166136,
+        "stored": 0.11393022833997767,
+        "abs_dev": 1.7508123364068373e-05
+      },
+      {
+        "obs": "dry_per_coal_mol_kg",
+        "input": "ln_O2",
+        "recalc": 56.211951740565446,
+        "stored": 56.70269208894103,
+        "abs_dev": 0.49074034837558145
+      },
+      {
+        "obs": "dry_per_coal_mol_kg",
+        "input": "ln_coal",
+        "recalc": -47.64028588963393,
+        "stored": -48.05806012909023,
+        "abs_dev": 0.41777423945629977
+      },
+      {
+        "obs": "dry_per_coal_mol_kg",
+        "input": "ln_carrier",
+        "recalc": 5.730964651322344,
+        "stored": 5.781577572561233,
+        "abs_dev": 0.05061292123888883
+      }
+    ],
+    "detail": [
+      {
+        "phase": "phase2",
+        "obs": "X_C_pp",
+        "input": "ln_O2",
+        "beta_recalc_new_table": 77.18273720826579,
+        "beta_recalc_old_table": 76.96752064154417,
+        "beta_stored_p115a": 76.96752064154417,
+        "abs_dev_new_vs_stored": 0.21521656672162237,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "X_C_pp",
+        "input": "ln_coal",
+        "beta_recalc_new_table": -47.01415482943581,
+        "beta_recalc_old_table": -46.89025359534968,
+        "beta_stored_p115a": -46.89025359534968,
+        "abs_dev_new_vs_stored": 0.12390123408613363,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "X_C_pp",
+        "input": "ln_carrier",
+        "beta_recalc_new_table": 3.682816750677586,
+        "beta_recalc_old_table": 3.6801787945099713,
+        "beta_stored_p115a": 3.6801787945099713,
+        "abs_dev_new_vs_stored": 0.0026379561676148633,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO_vol_pct",
+        "input": "ln_O2",
+        "beta_recalc_new_table": -5.768345283448239,
+        "beta_recalc_old_table": -5.770247761173963,
+        "beta_stored_p115a": -5.770247761173963,
+        "abs_dev_new_vs_stored": 0.001902477725724161,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO_vol_pct",
+        "input": "ln_coal",
+        "beta_recalc_new_table": 23.570783397685304,
+        "beta_recalc_old_table": 23.571418958262406,
+        "beta_stored_p115a": 23.571418958262406,
+        "abs_dev_new_vs_stored": 0.0006355605771020123,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO_vol_pct",
+        "input": "ln_carrier",
+        "beta_recalc_new_table": 6.257373854507426,
+        "beta_recalc_old_table": 6.257236803139552,
+        "beta_stored_p115a": 6.257236803139552,
+        "abs_dev_new_vs_stored": 0.00013705136787400818,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "H2_vol_pct",
+        "input": "ln_O2",
+        "beta_recalc_new_table": -7.487796617646269,
+        "beta_recalc_old_table": -7.486801280111116,
+        "beta_stored_p115a": -7.486801280111116,
+        "abs_dev_new_vs_stored": 0.000995337535152352,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "H2_vol_pct",
+        "input": "ln_coal",
+        "beta_recalc_new_table": 0.7537869456138784,
+        "beta_recalc_old_table": 0.7527652487411604,
+        "beta_stored_p115a": 0.7527652487411604,
+        "abs_dev_new_vs_stored": 0.0010216968727180253,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "H2_vol_pct",
+        "input": "ln_carrier",
+        "beta_recalc_new_table": -5.233386364876772,
+        "beta_recalc_old_table": -5.232990949981598,
+        "beta_stored_p115a": -5.232990949981598,
+        "abs_dev_new_vs_stored": 0.0003954148951734737,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO2_vol_pct",
+        "input": "ln_O2",
+        "beta_recalc_new_table": 13.493427048759498,
+        "beta_recalc_old_table": 13.494359929214289,
+        "beta_stored_p115a": 13.494359929214289,
+        "abs_dev_new_vs_stored": 0.0009328804547905634,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO2_vol_pct",
+        "input": "ln_coal",
+        "beta_recalc_new_table": -25.268335179489636,
+        "beta_recalc_old_table": -25.267924732583595,
+        "beta_stored_p115a": -25.267924732583595,
+        "abs_dev_new_vs_stored": 0.00041044690604152834,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CO2_vol_pct",
+        "input": "ln_carrier",
+        "beta_recalc_new_table": -1.1054030175013874,
+        "beta_recalc_old_table": -1.1056749845251679,
+        "beta_stored_p115a": -1.1056749845251679,
+        "abs_dev_new_vs_stored": 0.0002719670237805172,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CH4_vol_pct",
+        "input": "ln_O2",
+        "beta_recalc_new_table": -0.6460038454382769,
+        "beta_recalc_old_table": -0.6460281611103836,
+        "beta_stored_p115a": -0.6460281611103836,
+        "abs_dev_new_vs_stored": 2.4315672106700603e-05,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CH4_vol_pct",
+        "input": "ln_coal",
+        "beta_recalc_new_table": 1.0798044633330113,
+        "beta_recalc_old_table": 1.079771582338266,
+        "beta_stored_p115a": 1.079771582338266,
+        "abs_dev_new_vs_stored": 3.288099474518802e-05,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "CH4_vol_pct",
+        "input": "ln_carrier",
+        "beta_recalc_new_table": 0.1139127202166136,
+        "beta_recalc_old_table": 0.11393022833997767,
+        "beta_stored_p115a": 0.11393022833997767,
+        "abs_dev_new_vs_stored": 1.7508123364068373e-05,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "dry_per_coal_mol_kg",
+        "input": "ln_O2",
+        "beta_recalc_new_table": 56.211951740565446,
+        "beta_recalc_old_table": 56.70269208894103,
+        "beta_stored_p115a": 56.70269208894103,
+        "abs_dev_new_vs_stored": 0.49074034837558145,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "dry_per_coal_mol_kg",
+        "input": "ln_coal",
+        "beta_recalc_new_table": -47.64028588963393,
+        "beta_recalc_old_table": -48.05806012909023,
+        "beta_stored_p115a": -48.05806012909023,
+        "abs_dev_new_vs_stored": 0.41777423945629977,
+        "abs_dev_oldtab_vs_stored": 0.0
+      },
+      {
+        "phase": "phase2",
+        "obs": "dry_per_coal_mol_kg",
+        "input": "ln_carrier",
+        "beta_recalc_new_table": 5.730964651322344,
+        "beta_recalc_old_table": 5.781577572561233,
+        "beta_stored_p115a": 5.781577572561233,
+        "abs_dev_new_vs_stored": 0.05061292123888883,
+        "abs_dev_oldtab_vs_stored": 0.0
+      }
+    ]
+  },
+  "b4": {
+    "phase1": {
+      "CO": {
+        "median_bias": 0.4887841246910938,
+        "n": 37
+      },
+      "H2": {
+        "median_bias": -0.7812793141717869,
+        "n": 37
+      },
+      "CH4": {
+        "median_bias": 0.1138006486738537,
+        "n": 37
+      }
+    },
+    "phase2": {
+      "CO": {
+        "median_bias": 0.07743961956445133,
+        "n": 44
+      },
+      "H2": {
+        "median_bias": -0.08709846897038354,
+        "n": 44
+      },
+      "CH4": {
+        "median_bias": 0.09661656133786836,
+        "n": 44
+      }
+    },
+    "phase3": {
+      "CO": {
+        "median_bias": -1.6417958692210028,
+        "n": 44
+      },
+      "H2": {
+        "median_bias": 1.4695941242633879,
+        "n": 44
+      },
+      "CH4": {
+        "median_bias": 0.13992020404089278,
+        "n": 44
+      }
+    },
+    "phase4": {
+      "CO": {
+        "median_bias": -2.734871910580914,
+        "n": 17
+      },
+      "H2": {
+        "median_bias": 2.430714118237006,
+        "n": 17
+      },
+      "CH4": {
+        "median_bias": 0.24711435532996562,
+        "n": 17
+      }
+    }
+  },
+  "b5": {
+    "phase1": {
+      "e_coal": {
+        "model": 0.9961532316715009,
+        "plant": -0.15928676408087838,
+        "lo": -0.4192183409043697,
+        "hi": 0.19913807786411597,
+        "inside": false
+      },
+      "e_o2": {
+        "model": 0.006048556593615088,
+        "plant": 0.9311805762994815,
+        "lo": 0.5306518147551409,
+        "hi": 1.3132195636966826,
+        "inside": false
+      }
+    },
+    "phase2": {
+      "e_coal": {
+        "model": 0.9999999999996649,
+        "plant": 0.4905005476861344,
+        "lo": 0.3232211331017456,
+        "hi": 0.6210022014237702,
+        "inside": false
+      },
+      "e_o2": {
+        "model": 3.468775831242615e-13,
+        "plant": 0.8363125938971679,
+        "lo": 0.13136643058880412,
+        "hi": 1.1323284090872174,
+        "inside": false
+      }
+    },
+    "phase3": {
+      "e_coal": {
+        "model": 0.9996577520904124,
+        "plant": 0.3940360135759049,
+        "lo": 0.1867236713323942,
+        "hi": 0.5663459007989232,
+        "inside": false
+      },
+      "e_o2": {
+        "model": 0.0007134741473655244,
+        "plant": 0.2852470405163787,
+        "lo": -0.10187603027797995,
+        "hi": 0.6161767909805581,
+        "inside": true
+      }
+    },
+    "phase4": {
+      "e_coal": {
+        "model": 0.3965832881183394,
+        "plant": 0.3426803764538461,
+        "lo": 0.19541929147474657,
+        "hi": 0.7304064750032881,
+        "inside": true
+      },
+      "e_o2": {
+        "model": 0.6175190264294496,
+        "plant": 1.5979440547559103,
+        "lo": 1.1600599068724533,
+        "hi": 2.063575414916094,
+        "inside": false
+      }
+    }
+  },
+  "b6": {
+    "phase1": {
+      "frac_ge_99.9_nom": 0.918918918918919,
+      "frac_ge_99.9_any_pert": 1.0,
+      "median_X_C_pp": 99.9999999999985,
+      "o2_multiplier_for_99": 1.0
+    },
+    "phase2": {
+      "frac_ge_99.9_nom": 1.0,
+      "frac_ge_99.9_any_pert": 1.0,
+      "median_X_C_pp": 99.99999999999939,
+      "o2_multiplier_for_99": 1.0
+    },
+    "phase3": {
+      "frac_ge_99.9_nom": 0.9772727272727273,
+      "frac_ge_99.9_any_pert": 1.0,
+      "median_X_C_pp": 99.99999999999896,
+      "o2_multiplier_for_99": 1.0
+    },
+    "phase4": {
+      "frac_ge_99.9_nom": 0.11764705882352941,
+      "frac_ge_99.9_any_pert": 0.8823529411764706,
+      "median_X_C_pp": 99.15087912851335,
+      "o2_multiplier_for_99": 1.0
+    }
+  },
+  "b7": {
+    "hv_effect_main": {
+      "phase1": {
+        "dT_out_K": 126.41601441669218,
+        "dX_C_pp": 0.14540788362812407,
+        "dCO_vol_pct": 0.5276007278330184,
+        "dH2_vol_pct": -0.13905538855378552
+      },
+      "phase2": {
+        "dT_out_K": 131.8576956398747,
+        "dX_C_pp": 4.263256414560601e-13,
+        "dCO_vol_pct": 0.44000424348133294,
+        "dH2_vol_pct": -0.16749573933466166
+      },
+      "phase3": {
+        "dT_out_K": 123.1686346860406,
+        "dX_C_pp": 0.5052611898504722,
+        "dCO_vol_pct": 0.6030581110271811,
+        "dH2_vol_pct": -0.04301397742472446
+      },
+      "phase4": {
+        "dT_out_K": 55.27700139242734,
+        "dX_C_pp": 3.0276280864705,
+        "dCO_vol_pct": 1.632519573023977,
+        "dH2_vol_pct": -0.07458848353810765
+      }
+    },
+    "decomposition": [
+      {
+        "phase": "phase1",
+        "dX_C_pp_total": 0.14540788362812407,
+        "dT_out_K_total": 126.41601441669218,
+        "dCO_vol_pct_total": 0.5276007278330184,
+        "dH2_vol_pct_total": -0.13905538855378552,
+        "dX_C_pp_coal_swap": 0.14540788362812407,
+        "dX_C_pp_hv_only": -0.14540788362812407,
+        "dX_C_pp_drycoal_const": 0.0,
+        "dT_out_K_coal_swap": 126.41601441669218,
+        "dT_out_K_hv_only": -126.41601441669218,
+        "dT_out_K_drycoal_const": 0.0,
+        "dCO_vol_pct_coal_swap": 0.5276007278330184,
+        "dCO_vol_pct_hv_only": -0.5276007278330184,
+        "dCO_vol_pct_drycoal_const": 0.0,
+        "dH2_vol_pct_coal_swap": -0.13905538855378552,
+        "dH2_vol_pct_hv_only": 0.13905538855378552,
+        "dH2_vol_pct_drycoal_const": 0.0,
+        "A_X_C_pp": 99.8545921163701,
+        "B_X_C_pp": 99.99999999999822,
+        "C_X_C_pp": 99.8545921163701,
+        "D_X_C_pp": 99.99999999999822,
+        "A_T_out_K": 1426.5477710942496,
+        "B_T_out_K": 1552.9637855109418,
+        "C_T_out_K": 1426.5477710942496,
+        "D_T_out_K": 1552.9637855109418,
+        "drycoal_stage_constant": 1.0,
+        "dT_out_K_swap_hv_part": 126.41601441669218,
+        "dT_out_K_swap_composition_part": 0.0,
+        "dX_C_pp_swap_hv_part": 0.14540788362812407,
+        "dX_C_pp_swap_composition_part": 0.0,
+        "coal_composition_changed": false,
+        "n_ref_windows": 2
+      },
+      {
+        "phase": "phase2",
+        "dX_C_pp_total": 3.836930773104541e-13,
+        "dT_out_K_total": 162.4338535913423,
+        "dCO_vol_pct_total": 0.24226751445755923,
+        "dH2_vol_pct_total": 0.08495916153601613,
+        "dX_C_pp_coal_swap": 5.258016244624741e-13,
+        "dX_C_pp_hv_only": -2.8421709430404007e-13,
+        "dX_C_pp_drycoal_const": -1.4210854715202004e-13,
+        "dT_out_K_coal_swap": 191.5559915494714,
+        "dT_out_K_hv_only": -130.90293229326585,
+        "dT_out_K_drycoal_const": -29.122137958129088,
+        "dCO_vol_pct_coal_swap": 0.15316023874800777,
+        "dCO_vol_pct_hv_only": -0.44892272177261106,
+        "dCO_vol_pct_drycoal_const": 0.08910727570955146,
+        "dH2_vol_pct_coal_swap": -0.09712894243610393,
+        "dH2_vol_pct_hv_only": 0.1672533917520056,
+        "dH2_vol_pct_drycoal_const": 0.18208810397212005,
+        "A_X_C_pp": 99.99999999999919,
+        "B_X_C_pp": 99.99999999999972,
+        "C_X_C_pp": 99.99999999999943,
+        "D_X_C_pp": 99.99999999999957,
+        "A_T_out_K": 1522.4852602297035,
+        "B_T_out_K": 1714.041251779175,
+        "C_T_out_K": 1583.138319485909,
+        "D_T_out_K": 1684.9191138210458,
+        "drycoal_stage_constant": 1.00875,
+        "dT_out_K_swap_hv_part": 130.90293229326585,
+        "dT_out_K_swap_composition_part": 60.65305925620555,
+        "dX_C_pp_swap_hv_part": 2.8421709430404007e-13,
+        "dX_C_pp_swap_composition_part": 2.4158453015843406e-13,
+        "coal_composition_changed": true,
+        "n_ref_windows": 2
+      },
+      {
+        "phase": "phase3",
+        "dX_C_pp_total": 0.1275153051671225,
+        "dT_out_K_total": 103.01201168636908,
+        "dCO_vol_pct_total": 0.6816527920938569,
+        "dH2_vol_pct_total": -0.35268351385524355,
+        "dX_C_pp_coal_swap": 0.12751530516536036,
+        "dX_C_pp_hv_only": -1.1864790662908717,
+        "dX_C_pp_drycoal_const": 1.7621459846850485e-12,
+        "dT_out_K_coal_swap": 74.02760758269733,
+        "dT_out_K_hv_only": -103.65172283514403,
+        "dT_out_K_drycoal_const": 28.98440410367175,
+        "dCO_vol_pct_coal_swap": 0.8242716818340199,
+        "dCO_vol_pct_hv_only": -0.8432323973661795,
+        "dCO_vol_pct_drycoal_const": -0.142618889740163,
+        "dH2_vol_pct_coal_swap": -0.22539889603587682,
+        "dH2_vol_pct_hv_only": -0.016736385681284105,
+        "dH2_vol_pct_drycoal_const": -0.12728461781936673,
+        "A_X_C_pp": 99.872484694831,
+        "B_X_C_pp": 99.99999999999636,
+        "C_X_C_pp": 98.81352093370549,
+        "D_X_C_pp": 99.99999999999812,
+        "A_T_out_K": 1436.7886009223607,
+        "B_T_out_K": 1510.816208505058,
+        "C_T_out_K": 1407.164485669914,
+        "D_T_out_K": 1539.8006126087298,
+        "drycoal_stage_constant": 0.99132,
+        "dT_out_K_swap_hv_part": 103.65172283514403,
+        "dT_out_K_swap_composition_part": -29.6241152524467,
+        "dX_C_pp_swap_hv_part": 1.1864790662908717,
+        "dX_C_pp_swap_composition_part": -1.0589637611255114,
+        "coal_composition_changed": true,
+        "n_ref_windows": 2
+      },
+      {
+        "phase": "phase4",
+        "dX_C_pp_total": 3.0276280864705,
+        "dT_out_K_total": 55.27700139242734,
+        "dCO_vol_pct_total": 1.632519573023977,
+        "dH2_vol_pct_total": -0.07458848353810765,
+        "dX_C_pp_coal_swap": 3.0276280864705,
+        "dX_C_pp_hv_only": -3.0276280864705,
+        "dX_C_pp_drycoal_const": 0.0,
+        "dT_out_K_coal_swap": 55.27700139242734,
+        "dT_out_K_hv_only": -55.27700139242734,
+        "dT_out_K_drycoal_const": 0.0,
+        "dCO_vol_pct_coal_swap": 1.632519573023977,
+        "dCO_vol_pct_hv_only": -1.632519573023977,
+        "dCO_vol_pct_drycoal_const": 0.0,
+        "dH2_vol_pct_coal_swap": -0.07458848353810765,
+        "dH2_vol_pct_hv_only": 0.07458848353810765,
+        "dH2_vol_pct_drycoal_const": 0.0,
+        "A_X_C_pp": 96.12325104204285,
+        "B_X_C_pp": 99.15087912851335,
+        "C_X_C_pp": 96.12325104204285,
+        "D_X_C_pp": 99.15087912851335,
+        "A_T_out_K": 1360.3942194251165,
+        "B_T_out_K": 1415.6712208175438,
+        "C_T_out_K": 1360.3942194251165,
+        "D_T_out_K": 1415.6712208175438,
+        "drycoal_stage_constant": 1.0,
+        "dT_out_K_swap_hv_part": 55.27700139242734,
+        "dT_out_K_swap_composition_part": 0.0,
+        "dX_C_pp_swap_hv_part": 3.0276280864705,
+        "dX_C_pp_swap_composition_part": 0.0,
+        "coal_composition_changed": false,
+        "n_ref_windows": 3
+      }
+    ],
+    "states": {
+      "A_legacy_old": {
+        "phase1": {
+          "X_C_pp": 99.8545921163701,
+          "T_out_K": 1426.5477710942496,
+          "CO_vol_pct": 61.96943323505056,
+          "H2_vol_pct": 27.468418377731194,
+          "n": 2
+        },
+        "phase2": {
+          "X_C_pp": 99.99999999999919,
+          "T_out_K": 1522.4852602297035,
+          "CO_vol_pct": 62.91399910416804,
+          "H2_vol_pct": 26.92550388077093,
+          "n": 2
+        },
+        "phase3": {
+          "X_C_pp": 99.872484694831,
+          "T_out_K": 1436.7886009223607,
+          "CO_vol_pct": 61.06785607233117,
+          "H2_vol_pct": 28.614483488517678,
+          "n": 2
+        },
+        "phase4": {
+          "X_C_pp": 96.12325104204285,
+          "T_out_K": 1360.3942194251165,
+          "CO_vol_pct": 59.78019166923894,
+          "H2_vol_pct": 28.84848415230926,
+          "n": 3
+        }
+      },
+      "B_current_old": {
+        "phase1": {
+          "X_C_pp": 99.99999999999822,
+          "T_out_K": 1552.9637855109418,
+          "CO_vol_pct": 62.49703396288358,
+          "H2_vol_pct": 27.329362989177408,
+          "n": 2
+        },
+        "phase2": {
+          "X_C_pp": 99.99999999999972,
+          "T_out_K": 1714.041251779175,
+          "CO_vol_pct": 63.06715934291605,
+          "H2_vol_pct": 26.828374938334825,
+          "n": 2
+        },
+        "phase3": {
+          "X_C_pp": 99.99999999999636,
+          "T_out_K": 1510.816208505058,
+          "CO_vol_pct": 61.89212775416519,
+          "H2_vol_pct": 28.3890845924818,
+          "n": 2
+        },
+        "phase4": {
+          "X_C_pp": 99.15087912851335,
+          "T_out_K": 1415.6712208175438,
+          "CO_vol_pct": 61.412711242262915,
+          "H2_vol_pct": 28.773895668771154,
+          "n": 3
+        }
+      },
+      "C_lims_heat_old": {
+        "phase1": {
+          "X_C_pp": 99.8545921163701,
+          "T_out_K": 1426.5477710942496,
+          "CO_vol_pct": 61.96943323505056,
+          "H2_vol_pct": 27.468418377731194,
+          "n": 2
+        },
+        "phase2": {
+          "X_C_pp": 99.99999999999943,
+          "T_out_K": 1583.138319485909,
+          "CO_vol_pct": 62.61823662114344,
+          "H2_vol_pct": 26.99562833008683,
+          "n": 2
+        },
+        "phase3": {
+          "X_C_pp": 98.81352093370549,
+          "T_out_K": 1407.164485669914,
+          "CO_vol_pct": 61.04889535679901,
+          "H2_vol_pct": 28.372348206800517,
+          "n": 2
+        },
+        "phase4": {
+          "X_C_pp": 96.12325104204285,
+          "T_out_K": 1360.3942194251165,
+          "CO_vol_pct": 59.78019166923894,
+          "H2_vol_pct": 28.84848415230926,
+          "n": 3
+        }
+      },
+      "D_current_new_main": {
+        "phase1": {
+          "X_C_pp": 99.99999999999822,
+          "T_out_K": 1552.9637855109418,
+          "CO_vol_pct": 62.49703396288358,
+          "H2_vol_pct": 27.329362989177408,
+          "n": 2
+        },
+        "phase2": {
+          "X_C_pp": 99.99999999999957,
+          "T_out_K": 1684.9191138210458,
+          "CO_vol_pct": 63.1562666186256,
+          "H2_vol_pct": 27.010463042306945,
+          "n": 2
+        },
+        "phase3": {
+          "X_C_pp": 99.99999999999812,
+          "T_out_K": 1539.8006126087298,
+          "CO_vol_pct": 61.749508864425025,
+          "H2_vol_pct": 28.261799974662434,
+          "n": 2
+        },
+        "phase4": {
+          "X_C_pp": 99.15087912851335,
+          "T_out_K": 1415.6712208175438,
+          "CO_vol_pct": 61.412711242262915,
+          "H2_vol_pct": 28.773895668771154,
+          "n": 3
+        }
+      }
+    }
+  },
+  "halted": true,
+  "halt_reason": "B3 装置斜率核对不通过：phase2 用新窗口表重算的最大 |Δbeta_ln| = 4.907403e-01 > 1e-6（同一函数用旧窗口表重算时为 0.000e+00）",
+  "b3_check_max_abs_dev": 0.49074034837558145,
+  "b3_check_max_abs_dev_old_table": 0.0,
+  "b3_root_cause": {
+    "phases": {
+      "phase1": {
+        "n": 37,
+        "coal_ratio_mean": 1.0,
+        "coal_ratio_rel_std": 0.0,
+        "coal_ratio_n_unique": 1,
+        "w_c_old": 0.7301,
+        "w_c_new": 0.7301,
+        "xc_median_old": 97.357,
+        "xc_median_new": 97.357
+      },
+      "phase2": {
+        "n": 44,
+        "coal_ratio_mean": 1.0087563029821214,
+        "coal_ratio_rel_std": 2.38633083827983e-06,
+        "coal_ratio_n_unique": 44,
+        "w_c_old": 0.7356,
+        "w_c_new": 0.7272,
+        "xc_median_old": 92.03200000000001,
+        "xc_median_new": 92.287
+      },
+      "phase3": {
+        "n": 44,
+        "coal_ratio_mean": 0.991319285305381,
+        "coal_ratio_rel_std": 2.1138153317731295e-06,
+        "coal_ratio_n_unique": 44,
+        "w_c_old": 0.7272,
+        "w_c_new": 0.7356,
+        "xc_median_old": 92.29050000000001,
+        "xc_median_new": 92.0355
+      },
+      "phase4": {
+        "n": 17,
+        "coal_ratio_mean": 1.0,
+        "coal_ratio_rel_std": 0.0,
+        "coal_ratio_n_unique": 1,
+        "w_c_old": 0.7389,
+        "w_c_new": 0.7389,
+        "xc_median_old": 90.67,
+        "xc_median_new": 90.67
+      }
+    },
+    "phase2_slope_scale": {
+      "dry_per_coal_mol_kg": {
+        "predicted_multiplier": 0.9913197043168547,
+        "observed_multipliers": [
+          0.9913453783180906,
+          0.9913068850816262,
+          0.9912458285643191
+        ]
+      },
+      "X_C_pp": {
+        "predicted_multiplier": 1.0027705919904817,
+        "observed_multipliers": [
+          1.0027961998116575,
+          1.0026423664746063,
+          1.0007168010889989
+        ]
+      }
+    },
+    "phase2_rounding_only": {
+      "co_vol_pct_mean": {
+        "max_abs_dev_exact_constant": 9.29034627006331e-13,
+        "max_abs_dev_actual_table": 0.001902477725724161
+      },
+      "h2_vol_pct_mean": {
+        "max_abs_dev_exact_constant": 9.636735853746359e-14,
+        "max_abs_dev_actual_table": 0.0010216968727180253
+      },
+      "co2_vol_pct_mean": {
+        "max_abs_dev_exact_constant": 8.917311333789257e-13,
+        "max_abs_dev_actual_table": 0.0009328804547905634
+      },
+      "ch4_vol_pct_mean": {
+        "max_abs_dev_exact_constant": 3.885780586188048e-14,
+        "max_abs_dev_actual_table": 3.288099474518802e-05
+      },
+      "xc_recon_phase_cal_measured_pct": {
+        "max_abs_dev_exact_constant": 1.9610979506978765e-12,
+        "max_abs_dev_actual_table": 0.21521656672162237
+      }
+    }
+  },
+  "verdict_withheld": true,
+  "verdict_if_check_ignored": "不一致",
+  "n_solve_failures": 0
+}

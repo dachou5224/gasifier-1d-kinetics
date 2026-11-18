@@ -1,0 +1,15 @@
+{
+  "n_solve_fail_nom": {
+    "phase1": 0,
+    "phase2": 0,
+    "phase3": 0,
+    "phase4": 0
+  },
+  "phase_skipped": {
+    "phase1": false,
+    "phase2": false,
+    "phase3": false,
+    "phase4": false
+  },
+  "threshold": 5
+}

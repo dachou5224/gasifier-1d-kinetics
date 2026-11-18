@@ -1,0 +1,143 @@
+# 华谊试烧第3阶段煤质（神优3:神优2 = 70%:30%，1# 炉）
+# feature_version: huayi_p3_sy3sy2_coal_assumption_legacy_20261118
+#
+# 来源：第3阶段 10.6-10.10 三文件「原料煤分析结果」sheet（三文件一致）
+# 注意：10.8-10.9 日无运行数据（数据中断）；10.6-10.7 段内 DCS 缺口较多。
+
+feature_version: "huayi_p3_sy3sy2_coal_assumption_legacy_20261118"
+
+provenance:
+  coal_label: "1#气化炉 神优3：神优2=70%:30%"
+  source_file: "10.6-7-1#炉-正推碳转化率.xlsx"
+  source_sheet: "原料煤分析结果"
+  source_file_pattern: "合成气法修正/第3阶段"
+  lims_frequency: low
+  time_varying: false
+  parser: src/ingest/coal_analysis.py#parse_coal_analysis_sheet
+
+coal_grade:
+  name: "神优3:神优2"
+  gasifier: "1#气化炉"
+  blend_ratio: "70%:30%"
+
+ultimate_analysis_dry:
+  carbon:
+    value: 0.7272
+    unit: mass_fraction
+    basis: adb
+    label_zh: 干燥基碳
+    source: { type: lims_table, sheet: "原料煤分析结果", element: C }
+    model_input_role: primary
+  hydrogen:
+    value: 0.0443
+    unit: mass_fraction
+    basis: adb
+    label_zh: 干燥基氢
+    source: { type: lims_table, sheet: "原料煤分析结果", element: H }
+    model_input_role: optional
+  oxygen:
+    value: 0.11989
+    unit: mass_fraction
+    basis: adb
+    label_zh: 干燥基氧
+    source: { type: lims_table, sheet: "原料煤分析结果", element: O }
+    model_input_role: optional
+  nitrogen:
+    value: 0.0094
+    unit: mass_fraction
+    basis: adb
+    label_zh: 干燥基氮
+    source: { type: lims_table, sheet: "原料煤分析结果", element: N }
+    model_input_role: optional
+  sulfur:
+    value: 0.00407
+    unit: mass_fraction
+    basis: adb
+    label_zh: 干燥基硫
+    source: { type: lims_table, sheet: "原料煤分析结果", element: S }
+    model_input_role: optional
+  ash:
+    value: 0.09514
+    unit: mass_fraction
+    basis: adb
+    label_zh: 干燥基灰分
+    source: { type: lims_table, sheet: "原料煤分析结果", element: Ash }
+    model_input_role: optional
+
+carbon_mass_fraction_adb:
+  value: 0.7272
+  unit: mass_fraction
+  basis: adb
+  label_zh: 干燥基碳含量
+  alias_of: ultimate_analysis_dry.carbon
+  source: { type: lims_table, sheet: "原料煤分析结果", element: C }
+  caveat: 第3阶段 70/30 配煤；v0 假设全时段恒定。
+
+heating_value_dry_kj_kg:
+  value: 27976
+  unit: kJ/kg
+  basis: adb
+  label_zh: 干燥基低位发热量
+  source: { type: lims_table, sheet: "原料煤分析结果" }
+  model_input_role: optional
+
+proximate_analysis:
+  moisture_ar:
+    value: 0.159
+    unit: mass_fraction
+    basis: ar
+    label_zh: 收到基水分 Mar
+    source: { type: lims_table, sheet: "原料煤分析结果", field: M_ar }
+    used_in_v0: true
+    notes: B 列称重给煤机原煤流量去水；m_dry = m_ar × (1 - M_ar)
+    model_input_role: feed_dry_basis
+  volatile_matter_d:
+    value: 0.32463
+    unit: mass_fraction
+    basis: db
+    label_zh: 干燥基挥发分 Vd
+    source: { type: lims_table, sheet: "原料煤分析结果", field: V_d }
+    model_input_role: optional
+  fixed_carbon_d:
+    value: 0.58023
+    unit: mass_fraction
+    basis: db
+    label_zh: 干燥基固定碳 FCd
+    source: { type: lims_table, sheet: "原料煤分析结果", field: FC_d }
+    model_input_role: optional
+  ash_d:
+    value: 0.09514
+    unit: mass_fraction
+    basis: db
+    label_zh: 干燥基灰分 Ad
+    source: { type: lims_table, sheet: "原料煤分析结果", field: A_d }
+    model_input_role: optional
+
+moisture_ar:
+  value: 0.159
+  unit: mass_fraction
+  basis: ar
+  alias_of: proximate_analysis.moisture_ar
+  source: { type: lims_table, sheet: "原料煤分析结果", field: M_ar }
+  used_in_v0: true
+
+ultimate_analysis_daf:
+  carbon: { value: 0.7272, unit: mass_fraction, basis: daf, source: { type: lims_table } }
+  hydrogen: { value: 0.0443, unit: mass_fraction, basis: daf, source: { type: lims_table } }
+  oxygen: { value: 0.11989, unit: mass_fraction, basis: daf, source: { type: lims_table } }
+  nitrogen: { value: 0.0094, unit: mass_fraction, basis: daf, source: { type: lims_table } }
+  sulfur: { value: 0.00407, unit: mass_fraction, basis: daf, source: { type: lims_table } }
+  notes: Excel 表中 daf 行与干燥基元素数值相同；未单独重算 daf。
+
+coal_average_molar_mass:
+  value: 8.8665
+  unit: kg/kmol
+  label_zh: 煤平均摩尔质量（由元素组成派生，档案用）
+  source:
+    type: derived
+    formula_id: coal_molar_mass_from_ultimate_v0
+    expression: "M_avg = 1 / sum(w_i / M_i) for C,H,O,N,S"
+    inputs: ultimate_analysis_dry
+    implementation: src/ingest/coal_assumption_tools.py#compute_coal_average_molar_mass_kg_kmol
+  model_input_role: reference
+  used_in_v0: false
