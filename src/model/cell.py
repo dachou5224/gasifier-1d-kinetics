@@ -349,6 +349,17 @@ class Cell:
         het_cutoff = resolve_het_conversion_cutoff(self.op_conds)
         # P1.8-A：C+H2O 与 C+CO2 共用的指前因子倍数（E 不变）。缺省 1.0 → 逐位不变。
         f_gas = float(self.op_conds.get('GasificationRateFactor', 1.0))
+        # P2.3-A（F2）：参考温度下的反应性倍数 + 活化能增量。
+        #   k = k_Wen(T_p) · f_ref · exp[-(ΔE/R)(1/T_p - 1/T_ref)]
+        # 与 F1 共用 f_gas 作为 f_ref，故 ΔE = 0 时乘子恒为 1.0，与 F1 逐位一致（U2）。
+        # 缺省 CharGasActivationIncrement_kJmol = 0 → 整个分支不进入，逐位不变（U1）。
+        _de_kjmol = float(self.op_conds.get('CharGasActivationIncrement_kJmol', 0.0) or 0.0)
+        if _de_kjmol != 0.0:
+            _tref = float(self.op_conds.get('CharGasTref_K', 1600.0) or 1600.0)
+            # ΔE 用 kJ/mol → J/mol；R 用 physics.R_CONST，与 JAX 路径同值。
+            f_gas = f_gas * float(np.exp(
+                -(_de_kjmol * 1000.0 / R_CONST) * (1.0 / T_het - 1.0 / _tref)
+            ))
         # P1.15-A：只缩放 C+CO2。缺省 1.0 → C+CO2 仍为 f_gas，与 C0 逐位一致。
         f_char_co2 = float(self.op_conds.get('CharCO2RateFactor', 1.0))
         r_het = self.kinetics.calc_heterogeneous_rates(

@@ -1,0 +1,7 @@
+check,item,value,threshold,pass,detail
+PAIRING,第 0 节：配对断言 + 四阶段热值,P1=28179;P2=28440;P3=28579;P4=28588,a24b5fe6… / 28179-28440-28579-28588,True,均符合
+U1,全部钩子缺省时与 P2.2-A 主口径 C0 一致,0.0,1e-09,True,9 参照窗 × 4 阶段；最大相对偏差出现在 None
+U2,F2 取 ΔE=0 时与 F1 在 f=0.1 处逐位一致,0.0,0.0,True,F1 X_C=97.94265824281355；F2(ΔE=0) X_C=97.94265824281355
+U2b,F2 乘子在 T_p=T_ref 处为 1（倍数即 f_ref）,1.0,1.0,True,exp[-(ΔE/R)(1/T_ref-1/T_ref)] = 1
+U3,F1 / M1-0 / M2 自由量增大使 X_C 单调下降,"[{""cand"": ""F1"", ""X_C"": [98.9184, 98.4652, 97.9427]}, {""cand"": ""M1-0"", ""X_C"": [98.9184, 94.7953, 91.4252]}, {""cand"": ""M2"", ""X_C"": [98.9184, 94.7152, 89.4304]}]",严格单调下降,True,F1 自由量为 log10 f：0 / -0.5 / -1 → f = 1 / 0.316 / 0.1
+U4,新钩子在 JAX 批量路径报错（与现有守卫同型）,ValueError,ValueError,True,CharGasActivationIncrement_kJmol is not implemented on the JAX batch path (GasifierSystem._solve_jax_v4); it would be silently ignored.

@@ -1,0 +1,58 @@
+reading,metric,phase,value,threshold,pass,note
+H0,n_reachable_phases,F1,2,4,False,未达/不可达：P2: 可解点最小 X_C 中位 97.03% 仍高于目标 94.60%，该参数不足以把转化压到目标；P3: 可解点最小 X_C 中位 94.54% 仍高于目标 93.34%，该参数不足以把转化压到目标
+H0,n_reachable_phases,F2-50,1,4,False,未达/不可达：P2: 可解点最小 X_C 中位 97.76% 仍高于目标 94.60%，该参数不足以把转化压到目标；P3: 可解点最小 X_C 中位 95.41% 仍高于目标 93.34%，该参数不足以把转化压到目标；P4: 可解点最小 X_C 中位 91.56% 仍高于目标 90.77%，该参数不足以把转化压到目标
+H0,n_reachable_phases,F2-100,1,4,False,未达/不可达：P2: 可解点最小 X_C 中位 98.32% 仍高于目标 94.60%，该参数不足以把转化压到目标；P3: 可解点最小 X_C 中位 96.09% 仍高于目标 93.34%，该参数不足以把转化压到目标；P4: 可解点最小 X_C 中位 92.41% 仍高于目标 90.77%，该参数不足以把转化压到目标
+H0,n_reachable_phases,F2-150,1,4,False,未达/不可达：P2: 可解点最小 X_C 中位 98.70% 仍高于目标 94.60%，该参数不足以把转化压到目标；P3: 可解点最小 X_C 中位 96.52% 仍高于目标 93.34%，该参数不足以把转化压到目标；P4: 可解点最小 X_C 中位 92.91% 仍高于目标 90.77%，该参数不足以把转化压到目标
+H0,n_reachable_phases,M1-0,2,4,False,未达/不可达：P2: 可解点最小 X_C 中位 96.21% 仍高于目标 94.60%，该参数不足以把转化压到目标；P3: 可解点最小 X_C 中位 93.63% 仍高于目标 93.34%，该参数不足以把转化压到目标
+H0,n_reachable_phases,M2,4,4,True,四阶段全可达
+H1,n_phases_e_o2_in_interval,F1,0,3,False,P1 e_氧=0.472；P2 不可达；P3 不可达；P4 e_氧=0.784
+H1,n_phases_e_o2_in_interval,F2-100,1,3,False,P1 e_氧=0.531；P2 不可达；P3 不可达；P4 不可达
+H1,n_phases_e_o2_in_interval,F2-150,1,3,False,P1 e_氧=0.552；P2 不可达；P3 不可达；P4 不可达
+H1,n_phases_e_o2_in_interval,F2-50,0,3,False,P1 e_氧=0.495；P2 不可达；P3 不可达；P4 不可达
+H1,n_phases_e_o2_in_interval,M1-0,0,3,False,P1 e_氧=0.334；P2 不可达；P3 不可达；P4 e_氧=0.686
+H1,n_phases_e_o2_in_interval,M2,1,3,False,P1 e_氧=0.031；P2 e_氧=0.095；P3 e_氧=0.108；P4 e_氧=0.150
+H2,n_phases_dry_per_coal_o2_positive,F1,2,3,False,P1=+1.411（装置为正）；P2: 无斜率；P4=+1.750（装置为正）
+H2,n_phases_dry_per_coal_o2_positive,F2-100,1,3,False,P1=+1.595（装置为正）；P2: 无斜率；P4: 无斜率
+H2,n_phases_dry_per_coal_o2_positive,F2-150,1,3,False,P1=+1.655（装置为正）；P2: 无斜率；P4: 无斜率
+H2,n_phases_dry_per_coal_o2_positive,F2-50,1,3,False,P1=+1.492（装置为正）；P2: 无斜率；P4: 无斜率
+H2,n_phases_dry_per_coal_o2_positive,M1-0,2,3,False,P1=+0.440（装置为正）；P2: 无斜率；P4=+1.428（装置为正）
+H2,n_phases_dry_per_coal_o2_positive,M2,0,3,False,P1=-0.727（装置为正）；P2=-0.614（装置为正）；P4=-0.522（装置为正）
+H3,n_same_sign_of_8,F1,1,6,False,P1 CO2_vol_pct←ln_coal: -0.091/-0.293 同号；P2 CO_vol_pct←ln_coal: 缺；P2 CO2_vol_pct←ln_coal: 缺；P3 CO_vol_pct←ln_coal: 缺；P3 CO2_vol_pct←ln_coal: 缺；P4 CO_vol_pct←ln_coal: -0.573/+0.528 反号；P4 H2_vol_pct←ln_O2: +0.247/-0.485 反号；P4 CO2_vol_pct←ln_coal: +0.261/-0.623 反号
+H3,n_same_sign_of_8,F2-100,1,6,False,P1 CO2_vol_pct←ln_coal: -0.036/-0.293 同号；P2 CO_vol_pct←ln_coal: 缺；P2 CO2_vol_pct←ln_coal: 缺；P3 CO_vol_pct←ln_coal: 缺；P3 CO2_vol_pct←ln_coal: 缺；P4 CO_vol_pct←ln_coal: 缺；P4 H2_vol_pct←ln_O2: 缺；P4 CO2_vol_pct←ln_coal: 缺
+H3,n_same_sign_of_8,F2-150,1,6,False,P1 CO2_vol_pct←ln_coal: -0.025/-0.293 同号；P2 CO_vol_pct←ln_coal: 缺；P2 CO2_vol_pct←ln_coal: 缺；P3 CO_vol_pct←ln_coal: 缺；P3 CO2_vol_pct←ln_coal: 缺；P4 CO_vol_pct←ln_coal: 缺；P4 H2_vol_pct←ln_O2: 缺；P4 CO2_vol_pct←ln_coal: 缺
+H3,n_same_sign_of_8,F2-50,1,6,False,P1 CO2_vol_pct←ln_coal: -0.072/-0.293 同号；P2 CO_vol_pct←ln_coal: 缺；P2 CO2_vol_pct←ln_coal: 缺；P3 CO_vol_pct←ln_coal: 缺；P3 CO2_vol_pct←ln_coal: 缺；P4 CO_vol_pct←ln_coal: 缺；P4 H2_vol_pct←ln_O2: 缺；P4 CO2_vol_pct←ln_coal: 缺
+H3,n_same_sign_of_8,M1-0,1,6,False,P1 CO2_vol_pct←ln_coal: -0.512/-0.293 同号；P2 CO_vol_pct←ln_coal: 缺；P2 CO2_vol_pct←ln_coal: 缺；P3 CO_vol_pct←ln_coal: 缺；P3 CO2_vol_pct←ln_coal: 缺；P4 CO_vol_pct←ln_coal: -0.486/+0.528 反号；P4 H2_vol_pct←ln_O2: +0.105/-0.485 反号；P4 CO2_vol_pct←ln_coal: +0.096/-0.623 反号
+H3,n_same_sign_of_8,M2,7,6,True,P1 CO2_vol_pct←ln_coal: -0.966/-0.293 同号；P2 CO_vol_pct←ln_coal: +0.037/+0.697 同号；P2 CO2_vol_pct←ln_coal: -0.827/-0.747 同号；P3 CO_vol_pct←ln_coal: +0.069/+0.281 同号；P3 CO2_vol_pct←ln_coal: -0.821/-0.309 同号；P4 CO_vol_pct←ln_coal: -0.105/+0.528 反号；P4 H2_vol_pct←ln_O2: -0.752/-0.485 同号；P4 CO2_vol_pct←ln_coal: -0.713/-0.623 同号
+H4,T_out_vs_FT,C0,"at_FT=1,margin_ok=3",≥3 at FT 且 4 个 ≥ FT-50K,False,P1=1280°C vs FT 1280（差 -0 K）；P2=1412°C vs FT 1290（差 +122 K）；P3=1267°C vs FT 1270（差 -3 K）；P4=1143°C vs FT 1250（差 -107 K）
+H4,T_out_vs_FT,F1,"at_FT=2,margin_ok=2",≥3 at FT 且 4 个 ≥ FT-50K,False,P1=1455°C vs FT 1280（差 +175 K）；P2: 无温度；P3: 无温度；P4=1585°C vs FT 1250（差 +335 K）
+H4,T_out_vs_FT,F2-100,"at_FT=1,margin_ok=1",≥3 at FT 且 4 个 ≥ FT-50K,False,P1=1434°C vs FT 1280（差 +154 K）；P2: 无温度；P3: 无温度；P4: 无温度
+H4,T_out_vs_FT,F2-150,"at_FT=1,margin_ok=1",≥3 at FT 且 4 个 ≥ FT-50K,False,P1=1417°C vs FT 1280（差 +137 K）；P2: 无温度；P3: 无温度；P4: 无温度
+H4,T_out_vs_FT,F2-50,"at_FT=1,margin_ok=1",≥3 at FT 且 4 个 ≥ FT-50K,False,P1=1439°C vs FT 1280（差 +159 K）；P2: 无温度；P3: 无温度；P4: 无温度
+H4,T_out_vs_FT,M1-0,"at_FT=2,margin_ok=2",≥3 at FT 且 4 个 ≥ FT-50K,False,P1=1423°C vs FT 1280（差 +143 K）；P2: 无温度；P3: 无温度；P4=1588°C vs FT 1250（差 +338 K）
+H4,T_out_vs_FT,M2,"at_FT=4,margin_ok=4",≥3 at FT 且 4 个 ≥ FT-50K,True,P1=1322°C vs FT 1280（差 +42 K）；P2=1533°C vs FT 1290（差 +243 K）；P3=1416°C vs FT 1270（差 +146 K）；P4=1329°C vs FT 1250（差 +79 K）
+H5,max_abs_CO_H2_dev_pp,C0,2.519,2.0,False,P1 CO_vol_pct=+0.84 pp；P1 H2_vol_pct=-0.78 pp；P2 CO_vol_pct=+0.27 pp；P2 H2_vol_pct=-0.20 pp；P3 CO_vol_pct=-1.58 pp；P3 H2_vol_pct=+1.64 pp；P4 CO_vol_pct=-2.52 pp；P4 H2_vol_pct=+2.47 pp
+H5,max_abs_CO_H2_dev_pp,F1,10.551,2.0,False,P1 CO_vol_pct=+4.47 pp；P1 H2_vol_pct=-6.53 pp；P4 CO_vol_pct=+6.31 pp；P4 H2_vol_pct=-10.55 pp
+H5,max_abs_CO_H2_dev_pp,F2-100,5.636,2.0,False,P1 CO_vol_pct=+3.95 pp；P1 H2_vol_pct=-5.64 pp
+H5,max_abs_CO_H2_dev_pp,F2-150,4.997,2.0,False,P1 CO_vol_pct=+3.56 pp；P1 H2_vol_pct=-5.00 pp
+H5,max_abs_CO_H2_dev_pp,F2-50,5.919,2.0,False,P1 CO_vol_pct=+4.09 pp；P1 H2_vol_pct=-5.92 pp
+H5,max_abs_CO_H2_dev_pp,M1-0,10.695,2.0,False,P1 CO_vol_pct=+3.70 pp；P1 H2_vol_pct=-5.25 pp；P4 CO_vol_pct=+6.46 pp；P4 H2_vol_pct=-10.69 pp
+H5,max_abs_CO_H2_dev_pp,M2,2.457,2.0,False,P1 CO_vol_pct=+1.55 pp；P1 H2_vol_pct=-1.48 pp；P2 CO_vol_pct=+2.46 pp；P2 H2_vol_pct=-2.36 pp；P3 CO_vol_pct=+0.91 pp；P3 H2_vol_pct=-0.79 pp；P4 CO_vol_pct=+0.56 pp；P4 H2_vol_pct=-0.49 pp
+H6,n_phases_e_coal_in_interval,F1,1,,,只报告，不进判定
+H6,n_phases_e_coal_in_interval,F2-100,0,,,只报告，不进判定
+H6,n_phases_e_coal_in_interval,F2-150,0,,,只报告，不进判定
+H6,n_phases_e_coal_in_interval,F2-50,0,,,只报告，不进判定
+H6,n_phases_e_coal_in_interval,M1-0,1,,,只报告，不进判定
+H6,n_phases_e_coal_in_interval,M2,0,,,只报告，不进判定
+H7,param_vs_blend,F1,2,,,P1 神优3=100% → f=0.00316228；P4 神优3=70% → f=0.000133352
+H7,param_vs_blend,F2-50,1,,,"P1 神优3=100% → f_ref=0.0025483, ΔE=50 kJ/mol, T_ref=1600 K"
+H7,param_vs_blend,F2-100,1,,,"P1 神优3=100% → f_ref=0.00177828, ΔE=100 kJ/mol, T_ref=1600 K"
+H7,param_vs_blend,F2-150,1,,,"P1 神优3=100% → f_ref=0.00177828, ΔE=150 kJ/mol, T_ref=1600 K"
+H7,param_vs_blend,M1-0,2,,,P1 神优3=100% → n=1.5；P4 神优3=70% → n=5
+H7,param_vs_blend,M2,4,,,P1 神优3=100% → f_s=0.0390625；P2 神优3=70% → f_s=0.117188；P3 神优3=50% → f_s=0.132812；P4 神优3=30% → f_s=0.179688
+VERDICT,candidate_verdict,F1,NOT_SELECTED,H0–H5 全通过,False,"未通过：H0,H1,H2,H3,H4,H5"
+VERDICT,candidate_verdict,F2-50,NOT_SELECTED,H0–H5 全通过,False,"未通过：H0,H1,H2,H3,H4,H5"
+VERDICT,candidate_verdict,F2-100,NOT_SELECTED,H0–H5 全通过,False,"未通过：H0,H1,H2,H3,H4,H5"
+VERDICT,candidate_verdict,F2-150,NOT_SELECTED,H0–H5 全通过,False,"未通过：H0,H1,H2,H3,H4,H5"
+VERDICT,candidate_verdict,M1-0,NOT_SELECTED,H0–H5 全通过,False,"未通过：H0,H1,H2,H3,H4,H5"
+VERDICT,candidate_verdict,M2,NOT_SELECTED,H0–H5 全通过,False,"未通过：H1,H2,H5"
+SELECTED,selected_candidates,all,无,H0–H5,False,无候选入选，逐候选列出未通过项
