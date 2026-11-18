@@ -115,16 +115,38 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     return yaml.safe_load(path.read_text(encoding="utf-8")) or {}
 
 
-def coal_assumption_paths() -> dict[str, Path]:
-    return {
-        "v0_baseline_coal_assumption": DATA_PREP_ROOT / "config" / "coal_assumption_v0.yaml",
-        "huayi_p2_sy3sy2_coal_assumption": DATA_PREP_ROOT / "config" / "coal_assumption_huayi_p2.yaml",
-        "huayi_p3_sy3sy2_coal_assumption": DATA_PREP_ROOT / "config" / "coal_assumption_huayi_p3.yaml",
-        "huayi_p4_sy3sy2_coal_assumption": DATA_PREP_ROOT / "config" / "coal_assumption_huayi_p4.yaml",
-    }
+COAL_SETS: dict[str, dict[str, str]] = {
+    # 2026-11-18（P2.2-A）：煤质集合必须显式选择，不设缺省。
+    # P2.2-D 对调了阶段 2、3 的煤质，旧轮次的产物只有在 legacy 集合下才能复现；
+    # 混用会让「煤质」与「按煤质协调出的干煤量」不自洽。
+    "current": {
+        "v0_baseline_coal_assumption": "coal_assumption_v0.yaml",
+        "huayi_p2_sy3sy2_coal_assumption": "coal_assumption_huayi_p2.yaml",
+        "huayi_p3_sy3sy2_coal_assumption": "coal_assumption_huayi_p3.yaml",
+        "huayi_p4_sy3sy2_coal_assumption": "coal_assumption_huayi_p4.yaml",
+    },
+    "legacy_20261118": {
+        "v0_baseline_coal_assumption": "coal_assumption_v0_legacy_20261118.yaml",
+        "huayi_p2_sy3sy2_coal_assumption": "coal_assumption_huayi_p2_legacy_20261118.yaml",
+        "huayi_p3_sy3sy2_coal_assumption": "coal_assumption_huayi_p3_legacy_20261118.yaml",
+        "huayi_p4_sy3sy2_coal_assumption": "coal_assumption_huayi_p4_legacy_20261118.yaml",
+    },
+}
 
 
-def load_frozen_split() -> tuple[bool, list[dict[str, Any]], pd.DataFrame]:
+def coal_assumption_paths(coal_set: str = "current") -> dict[str, Path]:
+    """按集合名返回四份煤质 YAML 的路径。
+
+    缺省仍是 `current`，既有调用方（P2.0-A 等）行为不变；要复现旧轮次必须显式传
+    `coal_set="legacy_20261118"`。未知集合名直接报错，不做兜底。
+    """
+    if coal_set not in COAL_SETS:
+        raise KeyError(f"unknown coal_set {coal_set!r}; choose from {sorted(COAL_SETS)}")
+    return {key: DATA_PREP_ROOT / "config" / name
+            for key, name in COAL_SETS[coal_set].items()}
+
+
+def load_frozen_split(coal_set: str = "current") -> tuple[bool, list[dict[str, Any]], pd.DataFrame]:
     split_manifest = _read_yaml(ROUND52_DIR / "huayi_round52_split_freeze.yaml")
     inventory = pd.read_csv(ROUND52_DIR / "huayi_round52_window_inventory.csv")
     primary = inventory[inventory["dataset_id"] == DATASET_ID].copy()
@@ -133,11 +155,11 @@ def load_frozen_split() -> tuple[bool, list[dict[str, Any]], pd.DataFrame]:
         set(primary.loc[primary["split_role"] == role, "window_id"]) == ids
         for role, ids in expected.items()
     )
-    return frozen_consumed, model_case_rows(primary), primary
+    return frozen_consumed, model_case_rows(primary, coal_set=coal_set), primary
 
 
-def model_case_rows(primary: pd.DataFrame) -> list[dict[str, Any]]:
-    coal_by_id = {key: _read_yaml(path) for key, path in coal_assumption_paths().items()}
+def model_case_rows(primary: pd.DataFrame, coal_set: str = "current") -> list[dict[str, Any]]:
+    coal_by_id = {key: _read_yaml(path) for key, path in coal_assumption_paths(coal_set).items()}
     rows: list[dict[str, Any]] = []
     for _, row in primary.sort_values(["phase", "start_time", "window_id"]).iterrows():
         coal = coal_by_id[str(row["coal_assumption_id"])]
