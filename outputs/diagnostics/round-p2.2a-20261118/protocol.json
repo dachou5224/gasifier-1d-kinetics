@@ -1,7 +1,7 @@
 {
   "round": "P2.2-A-20261118",
   "card_version": "第 2 版（2026-11-18，P2.2-D 合并后修订）",
-  "source_commit": "db56ebe",
+  "source_commit": "1b328af",
   "baseline_commit": "db56ebe",
   "coal_set": "current",
   "coal_set_files": {
