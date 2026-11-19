@@ -1,0 +1,163 @@
+{
+  "round": "P2.3-A-20261118",
+  "card": "manuscript/model-side-handoff-p2.3a-20261118.md",
+  "repo_commit": "a904db1d5082f6a44f93cd5e0b990d8be55f5e88",
+  "coal_set": "current",
+  "windows_csv": "outputs/diagnostics/p2.2d-20261118/windows_142.csv",
+  "windows_sha256": "a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119",
+  "frozen": {
+    "kappa": 1.0,
+    "mesh": "wsr_plus_pfr",
+    "L_wsr_m": 1.0,
+    "dz_down_m": 0.0515,
+    "HeatLossModel": "total_percent",
+    "HeatLossPercentTotal": 1.0,
+    "carrier": "C-m",
+    "kinetics": "Wen 1979"
+  },
+  "candidates": [
+    {
+      "id": "C0",
+      "kind": "C0",
+      "label": "现有模型（对照）",
+      "u_lo": 0.0,
+      "u_hi": 0.0,
+      "direction": 0,
+      "param_name": "none"
+    },
+    {
+      "id": "F1",
+      "kind": "F1",
+      "label": "整体反应性倍数 f",
+      "u_lo": -4.0,
+      "u_hi": 0.0,
+      "direction": 1,
+      "param_name": "log10_f"
+    },
+    {
+      "id": "F2-50",
+      "kind": "F2",
+      "label": "f_ref + ΔE=50 kJ/mol",
+      "u_lo": -4.0,
+      "u_hi": 1.0,
+      "direction": 1,
+      "param_name": "log10_f_ref",
+      "delta_e": 50.0
+    },
+    {
+      "id": "F2-100",
+      "kind": "F2",
+      "label": "f_ref + ΔE=100 kJ/mol",
+      "u_lo": -4.0,
+      "u_hi": 1.0,
+      "direction": 1,
+      "param_name": "log10_f_ref",
+      "delta_e": 100.0
+    },
+    {
+      "id": "F2-150",
+      "kind": "F2",
+      "label": "f_ref + ΔE=150 kJ/mol",
+      "u_lo": -4.0,
+      "u_hi": 1.0,
+      "direction": 1,
+      "param_name": "log10_f_ref",
+      "delta_e": 150.0
+    },
+    {
+      "id": "M1-0",
+      "kind": "M1",
+      "label": "后期衰减 X0=0",
+      "u_lo": 0.0,
+      "u_hi": 8.0,
+      "direction": -1,
+      "param_name": "n",
+      "x0": 0.0
+    },
+    {
+      "id": "M2",
+      "kind": "M2",
+      "label": "渣层截留 f_s",
+      "u_lo": 0.0,
+      "u_hi": 0.5,
+      "direction": -1,
+      "param_name": "f_s"
+    }
+  ],
+  "root_finding": {
+    "variable": "candidate free parameter (F1/F2 in log10)",
+    "tolerance_pp": 0.2,
+    "bisect_max": 30,
+    "interior_probe": 4,
+    "bracketing": "端点先探；夹不住目标则向内自适应扫描；无解向可解方向收缩",
+    "no_bare_nan": "不可达一律写 reason，value 列留空或给可解界值"
+  },
+  "targets": {
+    "phase2": 94.5957,
+    "phase3": 93.3362,
+    "phase4": 90.7684,
+    "phase1": 98.24
+  },
+  "plant_elasticity_intervals": {
+    "phase1": {
+      "coal": [
+        -0.42,
+        0.2
+      ],
+      "o2": [
+        0.53,
+        1.31
+      ]
+    },
+    "phase2": {
+      "coal": [
+        0.32,
+        0.62
+      ],
+      "o2": [
+        0.13,
+        1.13
+      ]
+    },
+    "phase3": {
+      "coal": [
+        0.19,
+        0.57
+      ],
+      "o2": [
+        -0.1,
+        0.62
+      ]
+    },
+    "phase4": {
+      "coal": [
+        0.2,
+        0.73
+      ],
+      "o2": [
+        1.16,
+        2.06
+      ]
+    }
+  },
+  "liu_FT_C": {
+    "phase1": 1280.0,
+    "phase2": 1290.0,
+    "phase3": 1270.0,
+    "phase4": 1250.0
+  },
+  "thresholds": {
+    "H0_reachable_phases": 4,
+    "H1_min_phases_e_o2_in_interval": 3,
+    "H2_phases": [
+      "phase1",
+      "phase2",
+      "phase4"
+    ],
+    "H3_min_signed": 6,
+    "H4_ft_margin_K": 50.0,
+    "H4_min_at_ft": 3,
+    "H5_max_dev_pp": 2.0
+  },
+  "n_workers": 13
+}

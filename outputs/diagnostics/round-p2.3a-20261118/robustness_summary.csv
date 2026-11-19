@@ -1,0 +1,5 @@
+candidate,hl_pct,at_FT,margin_ok,n_phase,H4_pass,e_o2_in_interval_n,H1_pass
+M1-0,0.5,2,2,4,False,0,False
+M1-0,2.0,3,3,4,False,1,False
+M2,0.5,4,4,4,True,1,False
+M2,2.0,2,4,4,False,1,False

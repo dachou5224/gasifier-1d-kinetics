@@ -1,0 +1,24 @@
+# P2.3-A 产物与输入清单（sha256，相对仓库根）
+
+# products
+8a65cb69b4e09b109443e53d934fd8ba8cb1c78dafd69b86b3d586a88a7fec4e  outputs/diagnostics/round-p2.3a-20261118/unit_checks.csv
+96ae9b990d619ebfe32648b7a70cae06911af1a5e0d388621fb7da758933c0c4  outputs/diagnostics/round-p2.3a-20261118/comparison_points.csv
+49b1344b8e75a757e56fc0e2a5c83d0eaf99f19a93bbeb65c80968bd560d81dc  outputs/diagnostics/round-p2.3a-20261118/model_slopes.csv
+bdcbc57c571c1ea955e8f50dac6fb0ba89ee85261506d5ee9077f5856c9363c8  outputs/diagnostics/round-p2.3a-20261118/elasticities.csv
+6ad859e953011db317b0fb72f7f41ce54c2d076852bb1df5ade363da68864e40  outputs/diagnostics/round-p2.3a-20261118/levels.csv
+20917bdd9dea6dea4923d79e32b27baa0b84a85b03e264f7c5b77db50fd7e7a9  outputs/diagnostics/round-p2.3a-20261118/robustness.csv
+38e25182cee776daee5acfd5b2529ae081f45ad3300457dcc20f5c05f5e97b16  outputs/diagnostics/round-p2.3a-20261118/robustness_summary.csv
+28f181cfbd7a40ffc1758b373bf0be97a99bbe384c6760f0695a2a775b06ee9c  outputs/diagnostics/round-p2.3a-20261118/robustness_selection.json
+7e948437fd34601efe04d372f4e4221fd0cd09d2db8d715df2424730afe9e2be  outputs/diagnostics/round-p2.3a-20261118/profiles.csv
+52c40d66a261df1937c132403a0410e362eb550ff1cc67fe9ef9378ba83c2134  outputs/diagnostics/round-p2.3a-20261118/readings.csv
+abba1d7f599b5173f798cc400c45d07d56b8cb23c4d5d24c2bb0d2c470e69ec6  outputs/diagnostics/round-p2.3a-20261118/protocol.json
+6116044e224c477a180b521e650b680348d037f22461e6e4a732e99e51b76c27  outputs/diagnostics/round-p2.3a-20261118/interpretation.md
+
+# inputs
+a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119  outputs/diagnostics/p2.2d-20261118/windows_142.csv
+fcc6b2dce4974c38f5d3bbbddba92deafc45f445e9e2623d23b46c00d06ddbc7  ../ai-research/papers/jax-gasifier-cascade-hybrid/revision-evidence-20261118/P2.2-D/readings.csv
+272d4fc97feda36741394dfe37f5e04cef51c7c2743e13afd4403f5aef7384e7  outputs/diagnostics/round-p1.15a-20261108/plant_slopes.csv
+c8343d3ba76f66c1c75d850852aa4d3c267f88ada2f283a8755dc5fb03a21cc6  outputs/diagnostics/round-p2.0a-20261113/elasticities.csv
+0c1fa8e2f7d7843295369a75a72c7460db65ecd3a11986bc02e9781dc4247c26  outputs/diagnostics/round-p2.2a-20261118/baseline_142.csv
+fae1cbd12831150aa2b357f835f6c9e40ad8f5afadf45de7f22fa0386c5b103e  src/model/cell.py
+a7247d57068f99f68dc8cb54bce61cef65f2955c3aa19e725245591d319fa358  src/model/gasifier_system.py

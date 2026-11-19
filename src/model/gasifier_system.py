@@ -558,6 +558,12 @@ class GasifierSystem:
                 "CharCO2RateFactor is not implemented on the JAX batch path "
                 "(GasifierSystem._solve_jax_v4); it would be silently ignored."
             )
+        # P2.3-A（F2）：参考温度反应性 + 活化能增量。JAX 路径未实现，必须报错而不是静默忽略。
+        if float(self.op_conds.get("CharGasActivationIncrement_kJmol", 0.0) or 0.0) != 0.0:
+            raise ValueError(
+                "CharGasActivationIncrement_kJmol is not implemented on the JAX batch "
+                "path (GasifierSystem._solve_jax_v4); it would be silently ignored."
+            )
         # P2.0-A（U5）：两个钩子在 JAX 批量路径上没有对应实现——必须报错，不得静默回退。
         if self.op_conds.get("CharLateDecayX0") is not None:
             raise NotImplementedError(
