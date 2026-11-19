@@ -1,0 +1,79 @@
+{
+  "round": "P2.4-A-20261119",
+  "card": "manuscript/model-side-handoff-p2.4a-20261119.md",
+  "coal_set": "current",
+  "windows_csv": "outputs/diagnostics/p2.2d-20261118/windows_142.csv",
+  "windows_sha256": "a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119",
+  "frozen": {
+    "kappa": 1.0,
+    "mesh": "wsr_plus_pfr",
+    "L_wsr_m": 1.0,
+    "dz_down_m": 0.0515,
+    "HeatLossModel": "total_percent",
+    "HeatLossPercentTotal": 1.0,
+    "carrier": "C-m",
+    "kinetics": "Wen 1979"
+  },
+  "config_grid": {
+    "phi": [
+      0.1,
+      0.2,
+      0.3
+    ],
+    "dE_kJ_per_mol": [
+      0.0,
+      50.0,
+      100.0,
+      150.0
+    ]
+  },
+  "fslow_range": {
+    "log10_lo": -4.0,
+    "log10_hi": 2.0,
+    "card_range": [
+      -4.0,
+      2.0
+    ],
+    "deviation_from_card": false
+  },
+  "reachability": {
+    "criterion": "z = (X_C - target)/sigma_target",
+    "sigma_target_pp": {
+      "phase1": 3.5,
+      "phase2": 3.64,
+      "phase3": 3.55,
+      "phase4": 3.5
+    },
+    "z_tol": 0.5
+  },
+  "targets": {
+    "phase2": 94.5957,
+    "phase3": 93.3362,
+    "phase4": 90.7684,
+    "phase1": 98.24
+  },
+  "slow_component": {
+    "rate_factor": "f_slow * exp(-(dE/R)(1/T_p - 1/T_ref)), T_ref=1600 K",
+    "reactions": [
+      "C+H2O",
+      "C+CO2"
+    ],
+    "excluded": [
+      "C+O2 (no O2 downstream)",
+      "C+H2 (upper bound recorded)"
+    ],
+    "area_convention": "S = 6*m*tau/(rho_p*d_p)，d_p/rho_p 取全混区出口值",
+    "residence": "与主流 m_hold 口径一致（tau = dz/v_g）",
+    "heat_sink": "reaction_heat_release_w（模型自身 Shomate 焓）；dT_corr = q/cp_gas，cp_gas 由 get_gas_enthalpy 数值求导"
+  },
+  "thresholds": {
+    "J1_min_phases": 3,
+    "J3_min_signed": 6,
+    "J4_ft_margin_K": 50.0,
+    "J4_min_at_ft": 3,
+    "J5_max_dev_pp": 2.0,
+    "J6_max_dt_corr_K": 50.0,
+    "J6_max_slow_c_share": 0.05
+  },
+  "n_workers": 13
+}
