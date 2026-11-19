@@ -1048,27 +1048,64 @@ def stage_robustness(args) -> None:
     cands = reachable_cands()
     # 卡面第 5 节：只对入选候选；无入选时对「H 通过项最多」的候选（最多两个）。
     # 通过项从 readings.csv 的 H0–H5 逐条计；若有多个并列第一则最多取两个。
+    # 2026-11-19（审阅意见 P2）：卡面第 5 节要「H 通过项最多的两个候选」，是两个位子，
+    # 不是「所有非零通过项」。五个候选并列 0 项时，第二个位子仍然要填。此前只跑 M2
+    # 并把这件事写成「符合卡面」，是错的。
     rd = pd.read_csv(OUT_DIR / "readings.csv", keep_default_na=False)
     n_pass: dict[str, int] = {}
     for _, r in rd[rd["reading"].isin(["H0", "H1", "H2", "H3", "H4", "H5"])].iterrows():
         c = str(r["phase"])
         if str(r["pass"]).strip().lower() == "true":
             n_pass[c] = n_pass.get(c, 0) + 1
-    ranked = sorted((c for c in cands), key=lambda c: -n_pass.get(c, 0))
-    top = n_pass.get(ranked[0], 0) if ranked else 0
-    picks = [c for c in ranked if n_pass.get(c, 0) == top and top > 0][:2] if top else []
-    if not picks:
-        picks = []
-    print(f"[robust] H 通过项计数 {n_pass}；选取 {picks}"
-          f"（无候选有任何 H 通过项时不跑稳健性）", flush=True)
-    if not picks:
-        write_csv(pd.DataFrame([{"candidate": "", "phase": "", "hl_pct": "",
-                                 "note": "无候选通过任何 H 读法，按卡面第 5 节不跑稳健性"}]), 
-                  "robustness.csv")
-        return
+
+    # 并列时的打破规则（预声明、写进 protocol）：基线比较点上「距目标最远的阶段偏差」
+    # 最小者优先——即最接近达标、其基线淘汰最需要稳健性佐证的那个。
+    cp = pd.read_csv(OUT_DIR / "comparison_points.csv", keep_default_na=False)
+
+    def worst_miss(c: str) -> float:
+        """基线比较点上「距目标最远的阶段」的偏差（pp）。
+
+        必须取**全部阶段**，不可达阶段用其最接近目标的可解值
+        （`X_C_pp_median` 对不可达行存的就是该值）。此前只在有可达阶段时
+        只算可达阶段，于是 F2-100 仅凭阶段 1 的 0.024 pp 被选中，
+        漏掉了它在阶段 2 差 3.72 pp——并列打破规则因此选错了第二位。
+        """
+        sub = cp[(cp["candidate"] == c) & (cp["X_C_pp_median"] != "")]
+        if not len(sub):
+            return float("inf")
+        return max(abs(float(r["X_C_pp_median"]) - float(r["target_X_C_pp"]))
+                   for _, r in sub.iterrows())
+
+    ranked = sorted(cands, key=lambda c: (-n_pass.get(c, 0), worst_miss(c)))
+    picks = ranked[:2]
+    print(f"[robust] H 通过项 {n_pass}；worst_miss "
+          f"{ {c: round(worst_miss(c), 3) for c in ranked} }；选取 {picks}", flush=True)
+    (OUT_DIR / "robustness_selection.json").write_text(
+        json.dumps({
+            "rule": ("卡面第 5 节：入选候选；无入选时取 H 通过项最多的两个。"
+                     "并列时按「基线比较点上距目标最远阶段的偏差」升序，"
+                     "即最接近达标者优先；仍并列时按候选编号字典序。"),
+            "n_pass": n_pass,
+            "worst_miss_pp": {c: (None if not math.isfinite(worst_miss(c))
+                                  else round(worst_miss(c), 4)) for c in cands},
+            "selected": picks,
+        }, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     rows: list[dict] = []
     for cand_id in picks:
         for hl in (0.5, 2.0):
+            # _slopes_for 一次算全部阶段：此前把它放在阶段循环内，每个 (候选, 热损)
+            # 会重算 4 遍同样的 994 次求解。先算一次复用。
+            xi_ph: dict[str, float] = {}
+            for _ph in PHASES:
+                _u = _cand_u(cand_id, _ph)
+                if _u is None:
+                    continue
+                _xi, _, _ = solve_xi(cand_id, _ph, ref[_ph],
+                                     coal_set=args.coal_set, u=_u, hl=hl)
+                if math.isfinite(_xi):
+                    xi_ph[_ph] = _xi
+            slopes_hl = _slopes_for(cand_id, coal_set=args.coal_set, hl=hl,
+                                    xi_by_phase=xi_ph)
             for ph in PHASES:
                 r = solve_param(cand_id, ph, ref[ph], tg[ph],
                                 coal_set=args.coal_set, hl=hl)
@@ -1082,17 +1119,6 @@ def stage_robustness(args) -> None:
                 ok = [s for s in snaps if s.get("ok")]
                 t_out = float(np.median([s["T_out_K"] for s in ok])) if ok else None
                 # 参照窗 e_氧（同主口径定义）
-                xi_ph = {}
-                for _ph in PHASES:
-                    _u = _cand_u(cand_id, _ph)
-                    if _u is None:
-                        continue
-                    _xi, _, _ = solve_xi(cand_id, _ph, ref[_ph],
-                                         coal_set=args.coal_set, u=_u, hl=hl)
-                    if math.isfinite(_xi):
-                        xi_ph[_ph] = _xi
-                slopes_hl = _slopes_for(cand_id, coal_set=args.coal_set, hl=hl,
-                                        xi_by_phase=xi_ph)
                 sub = slopes_hl[(slopes_hl["phase"] == ph) & (slopes_hl["obs"] == "X_C_pp")
                                 & (slopes_hl["input"] == "ln_O2")]
                 per3 = None
@@ -1109,15 +1135,45 @@ def stage_robustness(args) -> None:
                     "dX_C_pp": (None if r["X_C_pp_median"] is None
                                 else float(r["X_C_pp_median"] - r["target_X_C_pp"])),
                     "T_out_K": t_out,
+                    "T_out_C": (None if t_out is None else t_out - 273.15),
+                    "FT_C": LIU_FT_C[ph],
+                    "dT_vs_FT_K": (None if t_out is None
+                                   else (t_out - 273.15) - LIU_FT_C[ph]),
                     "e_o2_model": e_o,
                     "e_o2_in_interval": (None if e_o is None
                                          else bool(iv["o2"][0] <= e_o <= iv["o2"][1])),
-                    "H4_ok": (None if t_out is None else bool(
-                        t_out >= LIU_FT_C[ph] - H4_FT_MARGIN_K)),
+                    # 2026-11-19（审阅意见 P2）：此前用 K 与 °C 阈值比较、且只查
+                    # FT-50 K 这一半，于是恒为 True。逐阶段的「是否达 FT」在这里
+                    # 单列；H4 的整体判定在 _robust_h4() 里按与 _h4() 完全相同的
+                    # 两项条件计算（4 个 ≥ FT-50 K 且 ≥3 个达 FT）。
+                    "at_FT": (None if t_out is None else bool(
+                        (t_out - 273.15) >= LIU_FT_C[ph])),
+                    "margin_ok": (None if t_out is None else bool(
+                        (t_out - 273.15) >= LIU_FT_C[ph] - H4_FT_MARGIN_K)),
                     "reason": r["reason"],
                 })
                 print(f"[robust] {cand_id} hl={hl} {ph} 完成", flush=True)
-    write_csv(pd.DataFrame(rows), "robustness.csv")
+    df = pd.DataFrame(rows)
+
+    # 每个 (候选, 热损) 场景单独套用 _h4() 的完整判据：
+    # 4 个阶段都 ≥ FT-50 K，且 ≥3 个阶段达 FT。这两项缺一不可。
+    sums = []
+    for (cand_id, hl), g in df.groupby(["candidate", "hl_pct"], sort=True):
+        at_ft = int(g["at_FT"].astype(str).str.lower().eq("true").sum())
+        margin_ok = int(g["margin_ok"].astype(str).str.lower().eq("true").sum())
+        h4 = bool(margin_ok == len(g) and at_ft >= H4_MIN_AT_FT)
+        sums.append({"candidate": cand_id, "hl_pct": hl,
+                     "at_FT": at_ft, "margin_ok": margin_ok,
+                     "n_phase": len(g), "H4_pass": h4,
+                     "e_o2_in_interval_n": int(
+                         g["e_o2_in_interval"].astype(str).str.lower().eq("true").sum()),
+                     "H1_pass": bool(
+                         g["e_o2_in_interval"].astype(str).str.lower().eq("true").sum()
+                         >= H1_MIN_PHASES)})
+        print(f"[robust] {cand_id} hl={hl}: at_FT={at_ft}/{len(g)} "
+              f"margin_ok={margin_ok}/{len(g)} → H4={'PASS' if h4 else 'FAIL'}", flush=True)
+    write_csv(df, "robustness.csv")
+    write_csv(pd.DataFrame(sums), "robustness_summary.csv")
 
 
 # ---------------------------------------------------------------------------
@@ -1155,15 +1211,28 @@ def stage_profiles(args) -> None:
                     continue
                 cd = float(system.coal_props.get("Cd", 0.0)) / 100.0
                 c_in = float(system.W_dry) * cd
-                z = 0.0
-                for i, cell in enumerate(system.results):
-                    z += float(getattr(cell, "dz", 0.0) or 0.0)
-                    c_out = float(cell.solid_mass) * float(cell.carbon_fraction)
+                cap = getattr(system, "slag_capture", None)
+                # 2026-11-19（审阅意见 P2，两条）：
+                # (a) StateVector 暴露的是 `z` 而不是 `dz`，此前 getattr(cell,"dz",0.0)
+                #     恒取 0，6188 行的 z_m 全是 0，剖面不可用。
+                # (b) M2 下游的 solid_mass 已不含全混区出口被截留的碳，若不加回就是把它
+                #     记成「已转化」，剖面的终点会显示 ~100%，与 comparison_points 的
+                #     90.6–98.1% 自相矛盾。P2.0-A 在 2026-11-16 已修过同一处
+                #     （见 generate_p2_0a_20261113.py 的 prof 段注释），本轮从零重写
+                #     剖面时又引入了它——这次照该实现来。
+                for i, st in enumerate(system.results):
+                    c_local = float(st.solid_mass) * float(st.carbon_fraction)
+                    _cap = 0.0
+                    if i > 0 and isinstance(cap, dict):
+                        _cap = float(cap.get("carbon_kg_s", 0.0) or 0.0)
                     rows.append({
                         "candidate": cand_id, "phase": ph, "window_id": w,
-                        "cell_index": i, "z_m": z,
-                        "X_C_pp": float((1.0 - c_out / max(c_in, 1e-12)) * 100.0),
-                        "T_gas_K": float(cell.T),
+                        "cell_index": i, "z_m": float(getattr(st, "z", 0.0) or 0.0),
+                        "X_C_pp": float((1.0 - (c_local + _cap) / max(c_in, 1e-12))
+                                        * 100.0),
+                        "T_gas_K": float(st.T),
+                        "T_solid_K": float(getattr(st, "T_solid_or_gas", st.T)),
+                        "captured_carbon_kg_s": _cap,
                         "execution_status": rec.get("execution_status"),
                     })
                 rec.pop("_system", None)
@@ -1466,6 +1535,7 @@ def write_manifest() -> None:
     script = Path(__file__).resolve()
     products = ["unit_checks.csv", "comparison_points.csv", "model_slopes.csv",
                 "elasticities.csv", "levels.csv", "robustness.csv",
+                "robustness_summary.csv", "robustness_selection.json",
                 "profiles.csv", "readings.csv", "protocol.json",
                 "interpretation.md"]
     inputs = [p22a.P22D_CSV if hasattr(p22a, "P22D_CSV") else
