@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import os
 import json
 import math
 import sys
@@ -1406,10 +1407,24 @@ def write_csv(df: pd.DataFrame, name: str) -> Path:
 
 
 def _rel(path: Path) -> str:
+    """仓库内路径相对仓库根；仓库外的输入（如论文仓的 P2.2-D readings.csv）
+    记为 `paper-root/...`。
+
+    原实现对仓库外路径回退成**绝对路径**，把本机路径写进了 sha256.txt，
+    违反卡面「不得出现绝对路径」；而当时的自检只 grep 了 csv/md/json，
+    漏了 *.txt，所以没被发现。
+    """
+    p = path.resolve()
     try:
-        return path.resolve().relative_to(ROOT).as_posix()
+        return p.relative_to(ROOT.resolve()).as_posix()
     except ValueError:
-        return path.as_posix()
+        pass
+    # 仓库外输入：用相对仓库根的 `../...` 形式。
+    # 既不含绝对路径，又能让 `shasum -c` 在当前目录直接校验通过。
+    try:
+        return Path(os.path.relpath(p, ROOT.resolve())).as_posix()
+    except ValueError:  # 不同盘符（Windows）时才回退
+        return f"external/{p.name}"
 
 
 def protocol(args) -> dict:
