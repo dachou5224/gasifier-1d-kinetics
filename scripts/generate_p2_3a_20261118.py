@@ -846,16 +846,25 @@ def reachable_cands() -> list[str]:
 
 
 def _slopes_for(cand_id: str, *, coal_set: str, hl: float = MAIN_HL,
-                xi_by_phase: dict[str, float] | None = None) -> pd.DataFrame:
+                xi_by_phase: dict[str, float] | None = None,
+                u_by_phase: dict[str, float] | None = None,
+                windows: list[str] | None = None) -> pd.DataFrame:
+    """逐阶段 per3 斜率。
+
+    `u_by_phase` 与 `windows` 必须由调用方显式给：稳健性要在**该热损自己的比较点
+    参数**与**参照窗集**上重算斜率，若沿用主口径的 `_cand_u`（热损 1% 的参数）与
+    全部 142 窗，算出的 e_氧 会把旧参数/全窗斜率除以新参数/参照窗 X_C——三处不同源
+    （2026-11-19 审阅意见 P1）。
+    """
     df = p22a.table("main")
-    wids = sorted(str(w) for w in df.index)
+    wids = sorted(str(w) for w in df.index) if windows is None else list(windows)
     obs_keys = ("X_C_pp", "CO_vol_pct", "H2_vol_pct", "CO2_vol_pct",
                 "dry_per_coal_mol_kg")
     inputs = {"ln_O2": ("o2_p", "o2_m"), "ln_coal": ("coal_p", "coal_m"),
               "ln_carrier": ("car_p", "car_m")}
     rows: list[dict] = []
     for ph in PHASES:
-        u = _cand_u(cand_id, ph)
+        u = (u_by_phase or {}).get(ph) if u_by_phase is not None else _cand_u(cand_id, ph)
         if u is None:
             continue
         pw = [w for w in wids if p22a._phase_of(w) == ph]
@@ -1093,22 +1102,31 @@ def stage_robustness(args) -> None:
     rows: list[dict] = []
     for cand_id in picks:
         for hl in (0.5, 2.0):
-            # _slopes_for 一次算全部阶段：此前把它放在阶段循环内，每个 (候选, 热损)
-            # 会重算 4 遍同样的 994 次求解。先算一次复用。
+            # 2026-11-19（审阅意见 P1）：先在该热损下**逐个阶段求出比较点参数**，
+            # 再用这些参数 + **同一批参照窗**重算斜率，归一化分母也取同一运行集合的
+            # X_C_pp_median。此前顺序反了：斜率用 _cand_u（热损 1% 的参数）与全部
+            # 142 窗，而分母用新热损参照窗的 X_C——三处不同源，e_氧 不可用。
+            roots: dict[str, dict] = {}
+            for ph in PHASES:
+                roots[ph] = solve_param(cand_id, ph, ref[ph], tg[ph],
+                                        coal_set=args.coal_set, hl=hl)
+            u_by_phase = {ph: float(r["u"]) for ph, r in roots.items()
+                          if r["u"] is not None}
+
+            # ξ 用该热损下**新参数**在参照窗上重算
             xi_ph: dict[str, float] = {}
-            for _ph in PHASES:
-                _u = _cand_u(cand_id, _ph)
-                if _u is None:
-                    continue
-                _xi, _, _ = solve_xi(cand_id, _ph, ref[_ph],
+            for ph, _u in u_by_phase.items():
+                _xi, _, _ = solve_xi(cand_id, ph, ref[ph],
                                      coal_set=args.coal_set, u=_u, hl=hl)
                 if math.isfinite(_xi):
-                    xi_ph[_ph] = _xi
+                    xi_ph[ph] = _xi
+
+            # 斜率：参数取自本热损，窗口集限定为该阶段参照窗
             slopes_hl = _slopes_for(cand_id, coal_set=args.coal_set, hl=hl,
-                                    xi_by_phase=xi_ph)
+                                    xi_by_phase=xi_ph, u_by_phase=u_by_phase,
+                                    windows=[w for ph in PHASES for w in ref[ph]])
             for ph in PHASES:
-                r = solve_param(cand_id, ph, ref[ph], tg[ph],
-                                coal_set=args.coal_set, hl=hl)
+                r = roots[ph]
                 snaps = []
                 if r["u"] is not None:
                     specs_rb = [{"window_id": w, "coal_set": args.coal_set,
@@ -1118,20 +1136,22 @@ def stage_robustness(args) -> None:
                     snaps = batch_solve(specs_rb)
                 ok = [s for s in snaps if s.get("ok")]
                 t_out = float(np.median([s["T_out_K"] for s in ok])) if ok else None
-                # 参照窗 e_氧（同主口径定义）
+                xc_ref = (float(np.median([s["X_C_pp"] for s in ok])) if ok else None)
                 sub = slopes_hl[(slopes_hl["phase"] == ph) & (slopes_hl["obs"] == "X_C_pp")
                                 & (slopes_hl["input"] == "ln_O2")]
                 per3 = None
                 if len(sub) and not pd.isna(sub["per3_median"].iloc[0]):
                     per3 = float(sub["per3_median"].iloc[0])
                 e_o = None
-                if per3 is not None and r["X_C_pp_median"]:
-                    e_o = (per3 / float(r["X_C_pp_median"])) / p20.LN_P
+                if per3 is not None and xc_ref:
+                    # 同一运行集合（本热损、本参数、参照窗）的斜率与水平
+                    e_o = (per3 / xc_ref) / p20.LN_P
                 iv = PLANT_E_INTERVALS[ph]
                 rows.append({
                     "candidate": cand_id, "phase": ph, "hl_pct": hl,
                     "u_root": r["u"], "reachable": bool(r["reachable"]),
                     "X_C_pp_median": r["X_C_pp_median"],
+                    "X_C_pp_ref_median": xc_ref,
                     "dX_C_pp": (None if r["X_C_pp_median"] is None
                                 else float(r["X_C_pp_median"] - r["target_X_C_pp"])),
                     "T_out_K": t_out,
@@ -1139,20 +1159,18 @@ def stage_robustness(args) -> None:
                     "FT_C": LIU_FT_C[ph],
                     "dT_vs_FT_K": (None if t_out is None
                                    else (t_out - 273.15) - LIU_FT_C[ph]),
+                    "per3_XC_O2": per3,
                     "e_o2_model": e_o,
                     "e_o2_in_interval": (None if e_o is None
                                          else bool(iv["o2"][0] <= e_o <= iv["o2"][1])),
-                    # 2026-11-19（审阅意见 P2）：此前用 K 与 °C 阈值比较、且只查
-                    # FT-50 K 这一半，于是恒为 True。逐阶段的「是否达 FT」在这里
-                    # 单列；H4 的整体判定在 _robust_h4() 里按与 _h4() 完全相同的
-                    # 两项条件计算（4 个 ≥ FT-50 K 且 ≥3 个达 FT）。
                     "at_FT": (None if t_out is None else bool(
                         (t_out - 273.15) >= LIU_FT_C[ph])),
                     "margin_ok": (None if t_out is None else bool(
                         (t_out - 273.15) >= LIU_FT_C[ph] - H4_FT_MARGIN_K)),
                     "reason": r["reason"],
                 })
-                print(f"[robust] {cand_id} hl={hl} {ph} 完成", flush=True)
+                print(f"[robust] {cand_id} hl={hl} {ph} 完成 "
+                      f"(u={r['u']}, e_O2={e_o})", flush=True)
     df = pd.DataFrame(rows)
 
     # 每个 (候选, 热损) 场景单独套用 _h4() 的完整判据：
