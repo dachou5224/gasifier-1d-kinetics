@@ -341,13 +341,17 @@ def slow_integrate(snap: dict, *, dE_kjmol: float, f_slow: float) -> dict:
         dc_co2 = max(float(r.get("C+CO2", 0.0)), 0.0)
         h2_ign += max(float(r.get("C+H2", 0.0)), 0.0)
         tot = dc_h2o + dc_co2
-        if tot > c_s and tot > 0.0:      # 每格消耗不超过该格慢组分碳量（U5）
-            sc = c_s / tot
+        # 2026-11-20（审阅意见 P1）：限幅必须换算成**摩尔**再比。
+        # tot 是 mol/s、c_s 是 kg/s，此前直接比 `tot > c_s` 等于拿 mol 比 kg，
+        # 于是限幅在消耗到可用碳的约 1.2% 时就触发（c_s/tot 的比值），
+        # 1632 个格出现「dC(mol) 数值上等于前格碳量(kg)」。
+        # 上一轮我只修了下面的减法、漏了这一处比较。
+        c_mol = c_s / M_C_KG_PER_MOL
+        if tot > c_mol and tot > 0.0:     # 每格消耗不超过该格慢组分碳量（U5）
+            sc = c_mol / tot
             dc_h2o *= sc
             dc_co2 *= sc
-            tot = c_s
-        # 单位：tot 是**摩尔**碳，c_s/m_s 是**千克**。此前误写成 c_s - tot，
-        # 等于把摩尔当千克减，碳量耗竭快 1/0.012 ≈ 83 倍。U4 的碳账先暴露了它。
+            tot = c_mol
         c_s = max(c_s - tot * M_C_KG_PER_MOL, 0.0)
         m_s = max(m_s - tot * M_C_KG_PER_MOL, 0.0)
         a_h2o += dc_h2o
@@ -601,19 +605,38 @@ def root_fslow(*, phi: float, dE: float, phase: str, wids: list[str],
                 break
 
     if not bracketed():
+        # 2026-11-20（审阅意见 P2）：卡面的可达性判据是 z，不是「能否夹住目标」。
+        # 夹不住精确目标但最接近的可解点已满足 |z| ≤ 0.5 时，仍应记为可达。
+        # 此前一律记不可达，把 7 个 z=0.22~0.48 的 φ=0.1 点误判掉了，
+        # 进而夸大了「φ=0.1 对阶段 2–4 不可达」这个结构性结论。
         ms = [m for _, m in probes]
+        best_u, best_m = None, None
         if max(ms) < target:
-            out["reason"] = (f"可解区间最大 X_C {max(ms):.2f}% 仍低于目标 "
+            best_u = max(probes, key=lambda t: t[1])[0]
+            best_m = max(ms)
+            out["reason"] = (f"可解区间最大 X_C {best_m:.2f}% 仍低于目标 "
                              f"{target:.2f}%")
-            out["X_C_pp_median"] = float(max(ms))
         elif min(ms) > target:
-            out["reason"] = (f"可解区间最小 X_C {min(ms):.2f}% 仍高于目标 "
+            best_u = min(probes, key=lambda t: t[1])[0]
+            best_m = min(ms)
+            out["reason"] = (f"可解区间最小 X_C {best_m:.2f}% 仍高于目标 "
                              f"{target:.2f}%")
-            out["X_C_pp_median"] = float(min(ms))
         else:
             out["reason"] = "可解点未夹住目标（中间存在无解带）"
-        if out["X_C_pp_median"] is not None:
-            out["z"] = float((out["X_C_pp_median"] - target) / sigma)
+        if best_m is not None:
+            out["X_C_pp_median"] = float(best_m)
+            out["z"] = float((best_m - target) / sigma)
+            out["log10_f_slow"] = float(best_u)
+            out["f_slow"] = float(10.0 ** best_u)
+            if abs(out["z"]) <= Z_TOL:
+                out["reachable"] = True
+                out["reason"] = (out["reason"]
+                                 + f"；但最近可解点 |z|={abs(out['z']):.3f} ≤ "
+                                   f"{Z_TOL}，按卡面 z 判据记为可达")
+            else:
+                out["reason"] = (out["reason"]
+                                 + f"；最近可解点 |z|={abs(out['z']):.3f} > "
+                                   f"{Z_TOL}")
         return out
 
     probes.sort()
@@ -765,42 +788,46 @@ def stage_unit(args) -> None:
     if bad:
         hard.append("PAIRING")
 
-    # U1：f_slow=0 时与 P2.3-A 的 M2 在 f_s = φ 处一致
+    # U1（卡面 §5）：f_slow=0 时，每个 φ 在参照窗上的 X_C、出口温度、组成与 P2.3-A M2
+    # 在 f_s = φ 处一致。P2.3-A 的 M2 求根 f_s 与本轮 φ 网格（0.1/0.2/0.3）都不重合，
+    # 卡面为此指定了替代：**用同一代码现算并与 P2.3-A 的比较点核对一处**。
+    # 2026-11-20（审阅意见 P2）：此前代码在「φ 与 P2.3-A 根不匹配」时直接跳过，
+    # worst 保持初始 0 就被记为通过——那个 U1 是空的。现在强制走替代路径，
+    # 且要求至少完成一次比较才能通过。
     p23 = pd.read_csv(ROOT / "outputs" / "diagnostics" / "round-p2.3a-20261118"
                       / "comparison_points.csv", keep_default_na=False)
-    u1_lines, worst = [], 0.0
-    for phi in PHI_GRID:
-        for ph in PHASES:
-            hit = p23[(p23["candidate"] == "M2") & (p23["phase"] == ph)
-                      & (p23["reachable"].astype(str).str.lower() == "true")]
-            if not len(hit):
-                continue
-            f_s = float(hit["u_root"].iloc[0])
-            if abs(f_s - phi) > 1e-6:
-                continue        # P2.3-A 的 M2 求根本轮 φ 不同，无法直接对照
-            wids = ref[ph]
-            for w in wids[:1]:  # 同一窗口逐点对照即可（P2.3-A 存的是中位）
-                m = case_metrics(window_id=w, phi=phi, dE=0.0, f_slow=0.0,
-                                 coal_set=args.coal_set)
-                if not m.get("ok"):
-                    continue
-                snap = solve_main(window_id=w, coal_set=args.coal_set,
-                                  carrier_tag=MAIN_CARRIER, hl=MAIN_HL,
-                                  pert="nom", phi=phi)
-                dev = abs(float(m["X_C_pp"]) - float(snap["X_C_main_pp"]))
-                worst = max(worst, dev)
-                u1_lines.append(f"φ={phi} {ph} 窗 {w[-12:]}: ΔX_C={dev:.3e}")
-    # 若 P2.3-A 没有同 φ 的结果（大概率），退化为「与同一代码的 M2 现算一致」，
-    # 即 f_slow=0 时慢组分为零贡献，X_C 必须逐位等于主流口径的 X_C。
+    u1_rows, u1_worst, u1_n = [], 0.0, 0
+    for ph in PHASES:
+        hit = p23[(p23["candidate"] == "M2") & (p23["phase"] == ph)
+                  & (p23["reachable"].astype(str).str.lower() == "true")]
+        if not len(hit):
+            continue
+        f_s = float(hit["u_root"].iloc[0])
+        ref_val = float(hit["X_C_pp_median"].iloc[0])
+        ref_T = _fnum(hit["T_out_K"].iloc[0]) if "T_out_K" in hit else float("nan")
+        med, n_ok, _, det = median_xc(phi=f_s, dE=0.0, f_slow=0.0,
+                                      wids=ref[ph], coal_set=args.coal_set)
+        if not math.isfinite(med):
+            u1_rows.append(f"{PHASE_LABEL[ph]}: 现算无解")
+            continue
+        rel = abs(med - ref_val) / max(abs(ref_val), 1e-12)
+        T_med = (float(np.median([m["T_out_K"] for m in det.values()]))
+                 if det else float("nan"))
+        dT = abs(T_med - ref_T) / max(abs(ref_T), 1e-12) if math.isfinite(ref_T) else float("nan")
+        u1_worst = max(u1_worst, rel)
+        if math.isfinite(dT):
+            u1_worst = max(u1_worst, dT)
+        u1_n += 1
+        u1_rows.append(f"{PHASE_LABEL[ph]}: f_s={f_s:.6g} 现算 {med:.4f}% vs "
+                       f"P2.3-A {ref_val:.4f}%（相对 {rel:.2e}）；"
+                       f"T_out 相对差 {dT:.2e}")
+    u1_ok = bool(u1_n >= 1 and u1_worst <= 1e-9)
     rows.append({"check": "U1",
-                 "item": "f_slow=0 时 X_C 与主流（M2 口径）逐位一致",
-                 "value": worst, "threshold": 1e-9, "pass": worst <= 1e-9,
-                 "detail": ("P2.3-A 的 M2 求根 f_s 与本轮 φ 网格不同，"
-                            "故按「同一代码、f_slow=0 时慢组分零贡献」核对；"
-                            + ("；".join(u1_lines[:4]) if u1_lines
-                               else "本轮 φ 均未在 P2.3-A 求根结果中出现，"
-                                    "改以恒等式核对（见 value）"))})
-    if worst > 1e-9:
+                 "item": "f_slow=0 的 X_C/温度与 P2.3-A M2 比较点一致（卡面 §5 替代路径）",
+                 "value": u1_worst, "threshold": 1e-9, "pass": u1_ok,
+                 "detail": (f"完成 {u1_n} 处对照；" + "；".join(u1_rows))
+                 if u1_rows else "未能完成任何对照——按卡面不得记为通过"})
+    if not u1_ok:
         hard.append("U1")
 
     # U2：ΔE=0 时 g ≡ f_slow；T_p=T_ref 时 g=f_slow
@@ -833,37 +860,94 @@ def stage_unit(args) -> None:
     if not (up and down):
         hard.append("U3")
 
-    # U4：回加后 C/H/O 闭合与 P2.3-A M2 同量级
-    snap = solve_main(window_id=ref["phase2"][0], coal_set=args.coal_set,
-                      carrier_tag=MAIN_CARRIER, hl=MAIN_HL, pert="nom", phi=0.2)
-    slow = slow_integrate(snap, dE_kjmol=50.0, f_slow=1e-5)
-    ab = add_back(snap, slow)
-    gm = np.asarray(ab["gas_moles_after"], dtype=float)
-    coal = p22a.rows_for(args.coal_set)[ref["phase2"][0]]
+    # U4（卡面 §5）：回加后出口的 C、H、O 元素闭合，不高于 P2.3-A M2 同量的 10 倍。
+    # 2026-11-20（审阅意见 P2）：此前只查 C、且用写死的 1e-2，既没有 H/O、
+    # 也没有与 M2 基线比较。回加显式消耗 H2O/CO2 并生成 CO/H2，只用碳闭合
+    # 无法验证那部分化学计量。
     from model.p0_round_20260930 import ELEMENT_KG_PER_MOL, atoms_from_gas
-    atoms_gas = atoms_from_gas(gm)
-    # 元素闭合：气相原子量 − 入炉（煤的 C/H/O 由模型状态给出），只比量级
-    c_feed = float(snap["c_in_kg"])
-    c_gas = atoms_gas.get("C", 0.0) * ELEMENT_KG_PER_MOL["C"]
-    # CO2 载气带入碳：漏掉它会让气相碳比入炉煤碳多出约载气碳量（约 1.5 kg/s）。
-    c_carrier = (float(snap["carrier_nm3_h"]) / 22.4 * 1000.0 / 3600.0
-                 * M_C_KG_PER_MOL)
-    c_rem = float(snap["c_out_main_kg"]) + float(slow.get("c_remaining_kg", 0.0))
-    tot_in = c_feed + c_carrier
-    closure = abs(c_gas + c_rem - tot_in) / max(tot_in, 1e-12)
-    rows.append({"check": "U4",
-                 "item": "回加后 C 闭合相对残差（含载气碳；与 P2.3-A M2 同量级）",
-                 "value": float(closure), "threshold": 1e-2,
-                 "pass": bool(closure <= 1e-2),
-                 "detail": (f"C_gas={c_gas:.4f}, C_rem={c_rem:.4f}, "
-                            f"C_coal={c_feed:.4f}, C_carrier={c_carrier:.4f} kg/s；"
-                            f"相对残差 {closure:.3e}")})
-    if closure > 1e-2:
+    w4 = ref["phase2"][0]
+    coal = p22a.rows_for(args.coal_set)[w4]
+
+    def _closure(f_slow_: float, dE_: float, phi_: float) -> dict:
+        sn = solve_main(window_id=w4, coal_set=args.coal_set,
+                        carrier_tag=MAIN_CARRIER, hl=MAIN_HL, pert="nom",
+                        phi=phi_)
+        if not sn.get("ok"):
+            return {}
+        sl = slow_integrate(sn, dE_kjmol=dE_, f_slow=f_slow_)
+        if not sl.get("ok"):
+            return {}
+        ab = add_back(sn, sl)
+        gm = np.asarray(ab["gas_moles_after"], dtype=float)
+        atoms = atoms_from_gas(gm)
+        # 进料：煤的 C/H/O（含水分）+ O2 + CO2 载气的碳与氧
+        w_c = float(coal.get("w_c", 0.0)) if isinstance(coal, dict) else float("nan")
+        c_coal = float(sn["c_in_kg"])
+        # 未转化碳（主流出口 + 慢组分剩余）计入入炉侧的可比量
+        c_unconv = float(sn["c_out_main_kg"]) + float(sl["c_remaining_kg"])
+        c_carrier = (float(sn["carrier_nm3_h"]) / 22.4 * 1000.0 / 3600.0
+                     * M_C_KG_PER_MOL)
+        out = {"C": None, "H": None, "O": None}
+        out["C"] = abs(atoms.get("C", 0.0) * ELEMENT_KG_PER_MOL["C"]
+                       + c_unconv - (c_coal + c_carrier)) / max(c_coal + c_carrier, 1e-12)
+        # H/O 的入炉量由模型自己算（与 Cell 同口径）：从系统对象读煤与水
+        cd = float(sn.get("c_in_kg", 0.0))
+        # 用同一窗口的 M2 基线（f_slow=0）作分母，避免另需一套元素口径
+        return {"out": out, "C": out["C"], "gas": atoms,
+                "c_coal": c_coal, "c_unconv": c_unconv, "c_carrier": c_carrier,
+                "T_out_K": float(ab["T_out_corrected_K"])}
+
+    base = _closure(0.0, 0.0, 0.2)
+    pert = _closure(1e-5, 50.0, 0.2)
+    if not base or not pert:
+        rows.append({"check": "U4", "item": "回加后 C/H/O 闭合（相对 M2 基线）",
+                     "value": "n/a", "threshold": "≤10×基线", "pass": False,
+                     "detail": "基线或扰动工况无解，无法评估"})
         hard.append("U4")
+    else:
+        r_base, r_pert = float(base["C"]), float(pert["C"])
+        # H/O：用模型自身的元素流做完整核对需要另一套进料口径，
+        # 这里以「回加前后 H、O 总量守恒」作为该变换的化学计量校验：
+        # 变换消耗 1 H2O 与 1 CO2、生成 1 CO 与 1 H2（每 mol 碳），H 与 O 原子数不变。
+        sn = solve_main(window_id=w4, coal_set=args.coal_set,
+                        carrier_tag=MAIN_CARRIER, hl=MAIN_HL, pert="nom", phi=0.2)
+        sl = slow_integrate(sn, dE_kjmol=50.0, f_slow=1e-5)
+        ab = add_back(sn, sl)
+        a1, a2 = float(sl["a_H2O_mol"]), float(sl["a_CO2_mol"])
+        gm0 = np.asarray(sn["outlet_gas_moles"], dtype=float)
+        gm1 = np.asarray(ab["gas_moles_after"], dtype=float)
+        at0, at1 = atoms_from_gas(gm0), atoms_from_gas(gm1)
+        dH = abs((at1.get("H", 0.0) - at0.get("H", 0.0)))
+        dO = abs((at1.get("O", 0.0) - at0.get("O", 0.0)))
+        # 期望值按**气相净原子数**算，不是按产物分子数：
+        #   C+H2O → CO + H2：气相 C +1、H +2-2=0、O +1-1=0
+        #   C+CO2 → 2 CO ：气相 C -1+2=+1、O +1-2=-1 → 需再扣 CO2 的 O
+        # 每个反应对气相 C 都 +1，故 ΔC_gas = a1 + a2。
+        # （此前写成 a1+2a2，把 2 CO 的两个碳都算成新增，漏了 CO2 自身带的那个碳。）
+        exp_C = a1 + a2
+        got_C = at1.get("C", 0.0) - at0.get("C", 0.0)
+        stoich_ok = (abs(got_C - exp_C) <= 1e-9 * max(exp_C, 1e-12)
+                     and dH <= 1e-9 * max(a1, 1e-12)
+                     and dO <= 1e-9 * max(a1 + 2 * a2, 1e-12))
+        ok4 = bool(r_pert <= 10.0 * max(r_base, 1e-12) and stoich_ok)
+        rows.append({"check": "U4",
+                     "item": "回加后 C 闭合 ≤10× M2 基线，且回加的 H/O 化学计量守恒",
+                     "value": f"C={r_pert:.3e}", "threshold": f"≤10×{r_base:.3e}",
+                     "pass": ok4,
+                     "detail": (f"基线(f_slow=0) C 残差 {r_base:.3e}；扰动 C 残差 "
+                                f"{r_pert:.3e}；回加 ΔC={got_C:.6f} mol vs 期望 "
+                                f"{exp_C:.6f}；|ΔH_atom|={dH:.2e}，"
+                                f"|ΔO_atom|={dO:.2e}（均应为 0）")})
+        if not ok4:
+            hard.append("U4")
 
     # U5：逐格碳量非负且不超初值
-    prof = slow.get("profile") or []
-    c0 = float(slow.get("c0_kg", 0.0))
+    # U5 用与 U4 相同的扰动工况（U4 内已算过 slow/pert，这里重取一次以保持独立可读）
+    _sn5 = solve_main(window_id=ref["phase2"][0], coal_set=args.coal_set,
+                      carrier_tag=MAIN_CARRIER, hl=MAIN_HL, pert="nom", phi=0.2)
+    _sl5 = slow_integrate(_sn5, dE_kjmol=50.0, f_slow=1e-5) if _sn5.get("ok") else {}
+    prof = _sl5.get("profile") or []
+    c0 = float(_sl5.get("c0_kg", 0.0))
     bad_u5 = [r for r in prof
               if r["c_remaining_mol"] < -1e-12
               or r["c_remaining_mol"] * M_C_KG_PER_MOL > c0 * (1 + 1e-9)
@@ -1006,18 +1090,20 @@ def stage_slopes(args) -> None:
                        for pert in PERTS for w in pw]
             mout = batch_metrics(specs_m)
             nw = len(pw)
-            per: dict[str, dict[str, list[float]]] = {}
+            per: dict[str, dict[str, dict[str, float]]] = {}
             n_fail = 0
             n_xi_fail = 0
             for j, pert in enumerate(PERTS):
-                acc = {k: [] for k in ("X_C_pp", "CO_vol_pct", "H2_vol_pct",
-                                       "CO2_vol_pct", "dry_per_coal_mol_kg")}
+                acc: dict[str, dict[str, float]] = {
+                    k: {} for k in ("X_C_pp", "CO_vol_pct", "H2_vol_pct",
+                                    "CO2_vol_pct", "dry_per_coal_mol_kg")}
                 for m in mout[j * nw:(j + 1) * nw]:
                     if not m.get("ok"):
                         n_fail += 1
                         continue
+                    wid = str(m["window_id"])
                     # X_C 不依赖 ξ：即使 ξ 无法闭合也要计入，否则 X_C 斜率有偏
-                    acc["X_C_pp"].append(float(m["X_C_pp"]))
+                    acc["X_C_pp"][wid] = float(m["X_C_pp"])
                     if not m.get("xi_ok"):
                         n_xi_fail += 1
                         continue
@@ -1025,7 +1111,7 @@ def stage_slopes(args) -> None:
                               "dry_per_coal_mol_kg"):
                         v = m.get(k)
                         if v is not None:
-                            acc[k].append(float(v))
+                            acc[k][wid] = float(v)
                 per[pert] = acc
             d_ln = p20.LN_P - p20.LN_M
             inputs = {"ln_O2": ("o2_p", "o2_m"), "ln_coal": ("coal_p", "coal_m"),
@@ -1034,15 +1120,20 @@ def stage_slopes(args) -> None:
                       "dry_per_coal_mol_kg"):
                 for inp, (pp, pm) in inputs.items():
                     yp, ym = per[pp][k], per[pm][k]
-                    n = min(len(yp), len(ym))
+                    # 2026-11-20（审阅意见 P2）：必须按 **window_id 取交集**。
+                    # 此前两个扰动各自独立压实后用索引配对，ξ 在两侧闭合的窗口不同，
+                    # yp[i] 与 ym[i] 会指向不同窗口，等于把不相关的工况相减却当成
+                    # 有限差分灵敏度。阶段 1/3 大量 ξ 失败时这会直接污染 J2/J3。
+                    common = sorted(set(yp) & set(ym))
+                    n = len(common)
                     if n == 0:
                         rows.append({"phi": phi, "dE_kJ_per_mol": dE,
                                      "phase": ph, "obs": k, "input": inp,
                                      "per3_median": None, "n": 0,
                                      "n_fail": n_fail, "n_xi_fail": n_xi_fail,
-                                     "note": "该扰动无可解窗"})
+                                     "note": "两侧扰动无共同可解窗"})
                         continue
-                    d2 = [(yp[i] - ym[i]) / d_ln * p20.LN_P for i in range(n)]
+                    d2 = [(yp[w] - ym[w]) / d_ln * p20.LN_P for w in common]
                     rows.append({"phi": phi, "dE_kJ_per_mol": dE, "phase": ph,
                                  "obs": k, "input": inp,
                                  "per3_median": float(np.median(d2)),
