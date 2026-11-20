@@ -1,0 +1,18 @@
+check,phase,n,metric,value,reference,tolerance,abs_deviation_from_card_pct_points,passed,status,note
+U1,phase1,37,window_xi_median_vs_phase_constant_pct,-4.67596027079,-4.68,0.05,0.00403972920508,true,diagnostic_only_not_stop_condition,来源：P2.2-A 在参照窗中位上拟合阶段常数，逐窗中位不必等于中位的逐窗反解
+U1,phase2,44,window_xi_median_vs_phase_constant_pct,-1.80492708293,-1.8,0.05,0.00492708292652,true,diagnostic_only_not_stop_condition,来源：P2.2-A 在参照窗中位上拟合阶段常数，逐窗中位不必等于中位的逐窗反解
+U1,phase3,44,window_xi_median_vs_phase_constant_pct,-4.34976951157,-4.35,0.05,0.000230488428666,true,diagnostic_only_not_stop_condition,来源：P2.2-A 在参照窗中位上拟合阶段常数，逐窗中位不必等于中位的逐窗反解
+U1,phase4,17,window_xi_median_vs_phase_constant_pct,-6.37038094216,-6.37,0.05,0.000380942164266,true,diagnostic_only_not_stop_condition,来源：P2.2-A 在参照窗中位上拟合阶段常数，逐窗中位不必等于中位的逐窗反解
+U2,phase1,1,independent_recompute_abs_diff[R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_007__W001],0,1e-09,1e-09,,true,pass_if_below_tolerance,独立推导：F_CO2 由组成×dry 反算，再由 (F_CO2+ξ)/(dry+ξ)*100=plant_CO2 解 ξ
+U2,phase2,1,independent_recompute_abs_diff[R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-04N_015__W004],0,1e-09,1e-09,,true,pass_if_below_tolerance,独立推导：F_CO2 由组成×dry 反算，再由 (F_CO2+ξ)/(dry+ξ)*100=plant_CO2 解 ξ
+U2,phase4,1,independent_recompute_abs_diff[R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__shift_evening_handover_2022-10-11__W001],1.42108547152e-14,1e-09,1e-09,,true,pass_if_below_tolerance,独立推导：F_CO2 由组成×dry 反算，再由 (F_CO2+ξ)/(dry+ξ)*100=plant_CO2 解 ξ
+U2b,ALL,284,max_abs_dev_xi_hat_over_dry_under_dry_scaling_pm4pct,8.32667268469e-17,1e-09,1e-09,,true,pass_if_below_tolerance,同步缩放 dry 与各 F_i（组成不变）；只报 ξ̂ 绝对量的按比例变化，不做跨量纲比较
+U2b,ALL,284,max_abs_dev_chi2_under_dry_scaling_pm4pct,2.18491891246e-13,1e-09,1e-09,,true,pass_if_below_tolerance,同步缩放 dry 与各 F_i（组成不变）；只报 ξ̂ 绝对量的按比例变化，不做跨量纲比较
+R1_solvable_rate,phase1,37,finite_inversion_fraction,1,0.5,0.5,,true,stop_phase_correlation_if_below_0.5,
+R1_xi_cv,phase1,37,xi_cv,0.0996111798068,0.5,0.5,,true,invalidate_phase_correlation_if_above_0.5,
+R1_solvable_rate,phase2,44,finite_inversion_fraction,1,0.5,0.5,,true,stop_phase_correlation_if_below_0.5,
+R1_xi_cv,phase2,44,xi_cv,0.0378057424653,0.5,0.5,,true,invalidate_phase_correlation_if_above_0.5,
+R1_solvable_rate,phase3,44,finite_inversion_fraction,1,0.5,0.5,,true,stop_phase_correlation_if_below_0.5,
+R1_xi_cv,phase3,44,xi_cv,0.0911519198572,0.5,0.5,,true,invalidate_phase_correlation_if_above_0.5,
+R1_solvable_rate,phase4,17,finite_inversion_fraction,1,0.5,0.5,,true,stop_phase_correlation_if_below_0.5,
+R1_xi_cv,phase4,17,xi_cv,0.0672158913492,0.5,0.5,,true,invalidate_phase_correlation_if_above_0.5,

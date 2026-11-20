@@ -1,0 +1,83 @@
+reading,metric,phase,value,note
+R0,quantities_listed,ALL,10,R0 可辨识性表行数
+R0,available_yes_partial_no,ALL,3/3/4,yes / partial / no；判别 H-A/H-B 的两个量里，入炉水只有 2% 假设（partial），反应器出口 H₂O 没有（no）；唯一的 yes 是洗涤塔出口，位置不对
+R0,decidable_HA_vs_HB,ALL,no,反应器出口水与装置 Q 都不可辨识；洗涤塔出口湿基测量位置不对，不能替代反应器出口水
+R1,xi_median_mol_s,P1,105.334272036,
+R1,xi_q1_mol_s,P1,98.4550236779,
+R1,xi_q3_mol_s,P1,109.181694836,
+R1,xi_cv,P1,0.0996111798068,
+R1,dry_cv,P1,0.0374762391122,
+R1,model_co2_cv,P1,0.141400299406,
+R1,t_out_cv,P1,0.0392669443647,
+R1,xi_cv_over_max_input_cv,P1,0.704462297644,<1 才谈得上「ξ 比输入更稳」；仅作描述，不是判别依据
+R1,xi_median_mol_s,P2,106.137292563,
+R1,xi_q1_mol_s,P2,103.943495312,
+R1,xi_q3_mol_s,P2,108.143897397,
+R1,xi_cv,P2,0.0378057424653,
+R1,dry_cv,P2,0.0188803014615,
+R1,model_co2_cv,P2,0.113723674147,
+R1,t_out_cv,P2,0.0293618979707,
+R1,xi_cv_over_max_input_cv,P2,0.332435112997,<1 才谈得上「ξ 比输入更稳」；仅作描述，不是判别依据
+R1,xi_median_mol_s,P3,123.638874739,
+R1,xi_q1_mol_s,P3,116.363803032,
+R1,xi_q3_mol_s,P3,130.786936826,
+R1,xi_cv,P3,0.0911519198572,
+R1,dry_cv,P3,0.0187430033574,
+R1,model_co2_cv,P3,0.176548591798,
+R1,t_out_cv,P3,0.0367218157652,
+R1,xi_cv_over_max_input_cv,P3,0.516299331128,<1 才谈得上「ξ 比输入更稳」；仅作描述，不是判别依据
+R1,xi_median_mol_s,P4,113.637057067,
+R1,xi_q1_mol_s,P4,111.505135133,
+R1,xi_q3_mol_s,P4,118.212983182,
+R1,xi_cv,P4,0.0672158913492,
+R1,dry_cv,P4,0.00623601284467,
+R1,model_co2_cv,P4,0.0425957425226,
+R1,t_out_cv,P4,0.011942046486,
+R1,xi_cv_over_max_input_cv,P4,1.57799553121,<1 才谈得上「ξ 比输入更稳」；仅作描述，不是判别依据
+R2,n_compatible_of_n,P1,21/37,χ² ≤ 5.99
+R2,chi2_median,P1,4.21748656031,"dof=2, 阈值 5.99"
+R2,xi_hat_median_mol_s,P1,112.891986585,
+R2,xi_hat_over_dry_median,P1,0.0693967967002,
+R2,z_median_abs_CO_CO2_H2,P1,0.70/1.40/1.35,标准化残差绝对值中位；看是哪个量在拖
+R2,xi_hat_at_dry_m4_p4pct_median,P1,108.376/117.408,同步缩放：绝对量按比例变化，xi_hat/dry 与 chi2 不变（见 U2b）
+R2,n_compatible_of_n,P2,44/44,χ² ≤ 5.99
+R2,chi2_median,P2,0.294819217818,"dof=2, 阈值 5.99"
+R2,xi_hat_median_mol_s,P2,107.769410837,
+R2,xi_hat_over_dry_median,P2,0.0617400911521,
+R2,z_median_abs_CO_CO2_H2,P2,0.20/0.37/0.33,标准化残差绝对值中位；看是哪个量在拖
+R2,xi_hat_at_dry_m4_p4pct_median,P2,103.459/112.08,同步缩放：绝对量按比例变化，xi_hat/dry 与 chi2 不变（见 U2b）
+R2,n_compatible_of_n,P3,23/44,χ² ≤ 5.99
+R2,chi2_median,P3,5.86535714185,"dof=2, 阈值 5.99"
+R2,xi_hat_median_mol_s,P3,114.244941179,
+R2,xi_hat_over_dry_median,P3,0.0652391015858,
+R2,z_median_abs_CO_CO2_H2,P3,0.70/1.57/1.70,标准化残差绝对值中位；看是哪个量在拖
+R2,xi_hat_at_dry_m4_p4pct_median,P3,109.675/118.815,同步缩放：绝对量按比例变化，xi_hat/dry 与 chi2 不变（见 U2b）
+R2,n_compatible_of_n,P4,0/17,χ² ≤ 5.99
+R2,chi2_median,P4,18.6053887813,"dof=2, 阈值 5.99"
+R2,xi_hat_median_mol_s,P4,97.1014669126,
+R2,xi_hat_over_dry_median,P4,0.0541594496933,
+R2,z_median_abs_CO_CO2_H2,P4,1.37/2.83/2.98,标准化残差绝对值中位；看是哪个量在拖
+R2,xi_hat_at_dry_m4_p4pct_median,P4,93.2174/100.986,同步缩放：绝对量按比例变化，xi_hat/dry 与 chi2 不变（见 U2b）
+R2,rank_Sigma_comp,ALL,3,"dof=2, 阈值 5.99"
+R3,rho_xi_vs_T_out,P1,-0.645566619251,p=1.6e-05; n=37; missing=0; opposite_to_HA_direction
+R3,rho_xi_over_dry_vs_T_out,P1,-0.354433380749,p=0.0314; n=37; missing=0; opposite_to_HA_direction
+R3,rho_xi_vs_T_out,P2,-0.239182522903,p=0.118; n=44; missing=0; no_directional_signal
+R3,rho_xi_over_dry_vs_T_out,P2,0.200986610289,p=0.191; n=44; missing=0; no_directional_signal
+R3,rho_xi_vs_T_out,P3,-0.739675828048,p=9.69e-09; n=44; missing=0; opposite_to_HA_direction
+R3,rho_xi_over_dry_vs_T_out,P3,-0.649753347428,p=1.82e-06; n=44; missing=0; opposite_to_HA_direction
+R3,rho_xi_vs_T_out,P4,0.671568627451,p=0.00316; n=17; missing=0; consistent_with_HA_direction
+R3,rho_xi_over_dry_vs_T_out,P4,0.65931372549,p=0.00399; n=17; missing=0; consistent_with_HA_direction
+R3,rho_xi_vs_T_out,ALL,-0.400265302573,p=8e-07; n=142; missing=0; opposite_to_HA_direction
+R3,rho_xi_over_dry_vs_T_out,ALL,-0.411652776352,p=3.59e-07; n=142; missing=0; opposite_to_HA_direction
+R4,max_abs_T_eq_drift_K,P1,825.972507982,y_H2O 5/10/15/20%；漂移 -327.9 / +0.0 / +357.0 / +826.0；no_information；只决定 T_eq 可否引用，不支撑 H-A
+R4,max_abs_T_eq_drift_K,P2,965.705364995,y_H2O 5/10/15/20%；漂移 -356.3 / +0.0 / +402.9 / +965.7；no_information；只决定 T_eq 可否引用，不支撑 H-A
+R4,max_abs_T_eq_drift_K,P3,781.023510639,y_H2O 5/10/15/20%；漂移 -317.8 / +0.0 / +341.4 / +781.0；no_information；只决定 T_eq 可否引用，不支撑 H-A
+R4,max_abs_T_eq_drift_K,P4,819.369062464,y_H2O 5/10/15/20%；漂移 -326.4 / +0.0 / +354.7 / +819.4；no_information；只决定 T_eq 可否引用，不支撑 H-A
+U1,max_abs_dev_from_card_pct_points,ALL,0.00492708292652,诊断项，不触发停止；来源=参照窗中位拟合 vs 逐窗中位反解
+U2,max_abs_diff_3_windows,ALL,1.42108547152e-14,容差 1e-9
+U2b,max_abs_dev_xi_over_dry_and_chi2,ALL,8.33e-17/2.18e-13,dry 与 F_i 同步 ±4%；容差 1e-9
+VERDICT,outcome_of_three,ALL,3,分不开：R0 两个关键量不可辨识；R3 在 P1/P3 与 H-A 方向相反，P2 无信号。第 2 种（与 H-A 相容）被排除
+VERDICT,R2_compatible_windows,ALL,P1 21/37；P2 44/44；P3 23/44；P4 0/17,P2 全部相容；P4 全部超阈值（中位 χ² > 5.99）；P1/P3 约一半超阈值
+VERDICT,outcome_1_scope,P4,holds_at_phase_level,P4 阶段中位 χ² 超阈值、全部窗超阈值：单一 WGS 移动解释不了，缺口不止一个成分
+VERDICT,outcome_2,ALL,excluded,R3 方向在 P1/P3 与 H-A 相反（ρ<-0.3 且 p<0.05），不满足「方向一致」
+VERDICT,aggregation_rule_predeclared,ALL,no,卡片只给逐窗阈值与阶段汇总列，未规定「阶段相容」如何由窗计数聚合；本卡按「中位 χ² 与超阈值窗数并报」处理，不自行定义通过/不通过
