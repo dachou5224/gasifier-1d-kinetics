@@ -138,13 +138,26 @@ def check_c0_gap() -> tuple[list[dict], list[dict]]:
 
 
 # ---------------------------------------------------------------------------
-# B：ξ 与慢组分的 H2O 预算
+# B：ξ 的水需求（两个层面必须分开）
 # ---------------------------------------------------------------------------
 def check_xi_budget(coal_set: str) -> list[dict]:
-    """对每个 (φ, ΔE, phase)：慢组分耗汽 + ξ 需求 vs 下游可用 H2O。
+    """对每个 (φ, ΔE, phase)：ξ 与慢组分的水需求，分两个层面报告。
 
-    ξ 的需求按解析式求：CO2 = (F_CO2+ξ)/(dry+ξ) 解 ξ，
-    再加两个不可越过的约束：ξ ≤ F_H2O（否则水变负）、ξ ≤ F_CO（否则 CO 变负）。
+    **层面 1（实现限制）**：P2.4-A 的 `xi_from_gas` 在 H2O 或 CO 变负时返回失败，
+    所以 ξ 实际可用到 `min(F_H2O_after_slow, F_CO)`。需要超过它的窗即「需激冷补水」——
+    这是 P1.13-A 的 P4 口径，是**标记项**，不是可行性判据。
+
+    **层面 2（物理供给）**：P1.13-A 第 23 行明确写 ξ 的「水由激冷水提供，
+    **不受出口 H2O 限制**」。因此「ξ > 出口 H2O」**不是物理不可行**，只说明需要补水；
+    本项目没有激冷水供给量的上界数据，不能据此判不可行。
+
+    2026-11-20 审查更正（三条）：
+    (a) `p24a.add_back()` 已经把 `a_H2O_mol` 从 `gm[7]` 里扣掉了，所以 `gm[7]` 是
+        **慢组分反应之后的剩余水**。此前又把同一份 `a_H2O_mol` 加到需求上，
+        等于双重计算，把 phase 3 从 8/11 错报成 0/11。
+    (b) 因此正确做法是：**ξ 单独**与剩余水比（层面 1），或**总需求**与扣减前的水比。
+        这里两个都给。
+    (c) `xi <= F_H2O` 不能当作物理限制（见层面 2）。
     """
     cp = pd.read_csv(P24A_DIR / "comparison_points.csv", keep_default_na=False)
     cp = cp[cp["reachable"].astype(str).str.lower() == "true"]
@@ -157,7 +170,7 @@ def check_xi_budget(coal_set: str) -> list[dict]:
             if not len(sub):
                 continue
             f = 10.0 ** float(sub["log10_f_slow"].iloc[0])
-            a_h2o, a_co2, avail_h2o, f_co, xi_need = [], [], [], [], []
+            recs = []
             for w in ref[ph]:
                 sn = p24a.solve_main(window_id=w, coal_set=coal_set,
                                      carrier_tag=p24a.MAIN_CARRIER,
@@ -167,31 +180,49 @@ def check_xi_budget(coal_set: str) -> list[dict]:
                 sl = p24a.slow_integrate(sn, dE_kjmol=dE, f_slow=f)
                 if not sl.get("ok"):
                     continue
+                a1 = float(sl["a_H2O_mol"])
+                a2 = float(sl["a_CO2_mol"])
+                h2o_before = float(sn["F_H2O"])          # 慢组分之前
                 ab = p24a.add_back(sn, sl)
                 gm = np.asarray(ab["gas_moles_after"], dtype=float)
+                # gm[7] 已扣掉 a1 → 这是慢组分之后的剩余水
+                h2o_after = float(gm[7])
                 dry = float(sum(gm[:7]))
                 plant_co2 = _f(p24a.p22a.table("main").loc[w, "co2_vol_pct_mean"])
                 k = plant_co2 / 100.0
                 xi = (k * dry - gm[3]) / (1.0 - k) if abs(1.0 - k) > 1e-12 else float("nan")
-                a_h2o.append(float(sl["a_H2O_mol"]))
-                a_co2.append(float(sl["a_CO2_mol"]))
-                avail_h2o.append(float(gm[7]))
-                f_co.append(float(gm[2]))
-                xi_need.append(float(xi))
-            need_h2o = _med(xi_need) + _med(a_h2o)
-            avail = _med(avail_h2o)
+                recs.append(dict(a1=a1, a2=a2, h2o_before=h2o_before,
+                                 h2o_after=h2o_after, f_co=float(gm[2]),
+                                 xi=float(xi)))
+            if not recs:
+                continue
+            med = lambda key: _med([r[key] for r in recs])
+            xi_m = med("xi")
+            after = med("h2o_after")
+            before = med("h2o_before")
+            a1_m = med("a1")
+            fco_m = med("f_co")
+            # 层面 1：ξ 单独 vs 剩余水（正确口径，不再加 a1）
+            needs_quench_h2o = xi_m > after
+            # 层面 1b：总需求 vs 扣减前的水（等价检查）
+            total_ok_before = (xi_m + a1_m) <= before
             rows.append({
                 "phi": phi, "dE_kJ_per_mol": dE, "phase": ph,
-                "slow_a_H2O_mol": _med(a_h2o),
-                "slow_a_CO2_mol": _med(a_co2),
-                "xi_needed_mol": _med(xi_need),
-                "h2o_available_mol": avail,
-                "F_CO_available_mol": _med(f_co),
-                "total_h2o_demand_mol": need_h2o,
-                "h2o_shortfall_mol": need_h2o - avail,
-                "h2o_feasible": bool(need_h2o <= avail),
-                "xi_bounded_by_CO": bool(_med(xi_need) <= _med(f_co)),
-                "n_ref": len(a_h2o),
+                "slow_a_H2O_mol": a1_m,
+                "slow_a_CO2_mol": med("a2"),
+                "xi_needed_mol": xi_m,
+                "h2o_at_outlet_before_slow_mol": before,
+                "h2o_remaining_after_slow_mol": after,
+                "F_CO_available_mol": fco_m,
+                # 层面 1（实现限制）：ξ 是否需要超过剩余水 / CO
+                "xi_exceeds_remaining_h2o": bool(needs_quench_h2o),
+                "xi_exceeds_CO": bool(xi_m > fco_m),
+                "needs_quench_water": bool(needs_quench_h2o),
+                "quench_water_mol": max(xi_m - after, 0.0),
+                # 层面 2（物理）：出口水不够 ≠ 不可行；激冷水供给无上界数据
+                "total_demand_vs_before_ok": bool(total_ok_before),
+                "physically_infeasible": None,   # 无法判定：激冷水供给量未知
+                "n_ref": len(recs),
             })
     return rows
 
@@ -231,19 +262,26 @@ def main() -> None:
                      f"{r['CO2_abs_gap_after_pp']:.2f} pp；"
                      f"ξ 中位 {r['xi_median_mol_s']:.1f} mol/s"),
         })
-    n_infeasible = sum(1 for r in budget if not r["h2o_feasible"])
+    # 层面 1：需要激冷补水的配置数（实现限制，标记项）
     for ph in PHASES:
         sub = [r for r in budget if r["phase"] == ph]
         if not sub:
             continue
-        worst = min(sub, key=lambda r: r["h2o_shortfall_mol"])
+        nq = sum(1 for r in sub if r["needs_quench_water"])
         readings.append({
-            "reading": "B", "metric": "h2o_feasible_configs_of_12", "phase": ph,
-            "value": sum(1 for r in sub if r["h2o_feasible"]),
+            "reading": "B1", "metric": "configs_needing_quench_water", "phase": ph,
+            "value": nq,
+            "note": (f"{nq}/{len(sub)} 个配置的 ξ 超过慢组分之后的剩余水，"
+                     f"需激冷补水（P1.13-A 的 P4 标记项，不是不可行）"),
+        })
+        worst = max(sub, key=lambda r: r["quench_water_mol"])
+        readings.append({
+            "reading": "B2", "metric": "max_quench_water_mol", "phase": ph,
+            "value": worst["quench_water_mol"],
             "note": (f"最紧的配置 φ={worst['phi']} ΔE={worst['dE_kJ_per_mol']:.0f}："
-                     f"需求 {worst['total_h2o_demand_mol']:.1f} vs 可用 "
-                     f"{worst['h2o_available_mol']:.1f} mol/s，"
-                     f"缺口 {worst['h2o_shortfall_mol']:+.1f}"),
+                     f"ξ={worst['xi_needed_mol']:.1f}，剩余水 "
+                     f"{worst['h2o_remaining_after_slow_mol']:.1f}，"
+                     f"需补水 {worst['quench_water_mol']:.1f} mol/s"),
         })
     write_csv(pd.DataFrame(readings), "readings.csv")
 
@@ -259,7 +297,14 @@ def main() -> None:
             "C": "ξ 把 CO2 缺口吸收了多大比例",
         },
         "xi_formula": "CO2 = (F_CO2+xi)/(dry+xi)；解 xi = (k*dry - F_CO2)/(1-k)，k=plant/100",
-        "xi_bounds": "xi <= F_H2O（水不变负）且 xi <= F_CO",
+        "xi_bounds": (
+            "IMPLEMENTATION limit: P2.4-A's xi_from_gas fails when H2O or CO goes "
+            "negative, so usable xi is bounded by the remaining H2O and by F_CO. "
+            "PHYSICAL supply: P1.13-A line 23 states quench water supplies xi and is "
+            "NOT limited by outlet H2O, so xi > outlet H2O is a quench-water "
+            "requirement (P1.13-A P4 marker), not an infeasibility. No upper bound on "
+            "quench supply is available in this project, so physically_infeasible is "
+            "left null rather than asserted."),
         "no_rerun_for_A_C": True,
         "coal_set": args.coal_set,
         "windows_csv": _rel(Path(args.windows_csv)),
@@ -286,11 +331,16 @@ def main() -> None:
     for r in mask:
         print(f"    {PHASE_LABEL[r['phase']]}: {r['fraction_of_gap_absorbed_by_xi']*100:5.1f}%"
               f"（{r['CO2_abs_gap_before_pp']:.2f} → {r['CO2_abs_gap_after_pp']:.2f} pp）")
-    print(f"[B] H2O 预算不可行的 (配置×阶段)：{n_infeasible}/{len(budget)}")
+    nq = sum(1 for r in budget if r["needs_quench_water"])
+    print(f"[B] 需激冷补水的 (配置×阶段)：{nq}/{len(budget)}"
+          f"（这是实现限制的标记项，不是物理不可行——"
+          f"P1.13-A 明确 ξ 的水由激冷水提供）")
     for r in budget:
-        if not r["h2o_feasible"]:
+        if r["needs_quench_water"]:
             print(f"    φ={r['phi']} ΔE={r['dE_kJ_per_mol']:.0f} "
-                  f"{PHASE_LABEL[r['phase']]}: 缺 {r['h2o_shortfall_mol']:+.1f} mol/s")
+                  f"{PHASE_LABEL[r['phase']]}: ξ={r['xi_needed_mol']:.1f} "
+                  f"剩余水={r['h2o_remaining_after_slow_mol']:.1f} "
+                  f"需补水={r['quench_water_mol']:+.1f} mol/s")
     print(f"    清单已写：{_rel(OUT_DIR / 'sha256.txt')}")
 
 

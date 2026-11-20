@@ -15,7 +15,11 @@ C,co2_gap_absorbed_by_xi,phase1,0.9530597373914663,CO2 绝对缺口 5.86 → 0.2
 C,co2_gap_absorbed_by_xi,phase2,0.9848146879780634,CO2 绝对缺口 5.54 → 0.08 pp；ξ 中位 108.1 mol/s
 C,co2_gap_absorbed_by_xi,phase3,0.9555816547315658,CO2 绝对缺口 6.43 → 0.29 pp；ξ 中位 129.3 mol/s
 C,co2_gap_absorbed_by_xi,phase4,0.9301435188528964,CO2 绝对缺口 5.76 → 0.40 pp；ξ 中位 121.4 mol/s
-B,h2o_feasible_configs_of_12,phase1,0.0,最紧的配置 φ=0.1 ΔE=100：需求 118.0 vs 可用 60.0 mol/s，缺口 +58.1
-B,h2o_feasible_configs_of_12,phase2,8.0,最紧的配置 φ=0.1 ΔE=0：需求 75.4 vs 可用 94.3 mol/s，缺口 -18.9
-B,h2o_feasible_configs_of_12,phase3,0.0,最紧的配置 φ=0.2 ΔE=0：需求 103.0 vs 可用 86.7 mol/s，缺口 +16.3
-B,h2o_feasible_configs_of_12,phase4,4.0,最紧的配置 φ=0.2 ΔE=100：需求 68.8 vs 可用 95.5 mol/s，缺口 -26.7
+B1,configs_needing_quench_water,phase1,12.0,12/12 个配置的 ξ 超过慢组分之后的剩余水，需激冷补水（P1.13-A 的 P4 标记项，不是不可行）
+B2,max_quench_water_mol,phase1,42.985766718341466,最紧的配置 φ=0.3 ΔE=50：ξ=107.8，剩余水 64.8，需补水 43.0 mol/s
+B1,configs_needing_quench_water,phase2,0.0,0/12 个配置的 ξ 超过慢组分之后的剩余水，需激冷补水（P1.13-A 的 P4 标记项，不是不可行）
+B2,max_quench_water_mol,phase2,0.0,最紧的配置 φ=0.1 ΔE=0：ξ=74.9，剩余水 94.3，需补水 0.0 mol/s
+B1,configs_needing_quench_water,phase3,3.0,3/11 个配置的 ξ 超过慢组分之后的剩余水，需激冷补水（P1.13-A 的 P4 标记项，不是不可行）
+B2,max_quench_water_mol,phase3,19.481938760915313,最紧的配置 φ=0.1 ΔE=100：ξ=91.6，剩余水 72.1，需补水 19.5 mol/s
+B1,configs_needing_quench_water,phase4,0.0,0/8 个配置的 ξ 超过慢组分之后的剩余水，需激冷补水（P1.13-A 的 P4 标记项，不是不可行）
+B2,max_quench_water_mol,phase4,0.0,最紧的配置 φ=0.2 ΔE=0：ξ=60.8，剩余水 95.3，需补水 0.0 mol/s

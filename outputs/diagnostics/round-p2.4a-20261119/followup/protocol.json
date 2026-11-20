@@ -10,7 +10,7 @@
     "C": "ξ 把 CO2 缺口吸收了多大比例"
   },
   "xi_formula": "CO2 = (F_CO2+xi)/(dry+xi)；解 xi = (k*dry - F_CO2)/(1-k)，k=plant/100",
-  "xi_bounds": "xi <= F_H2O（水不变负）且 xi <= F_CO",
+  "xi_bounds": "IMPLEMENTATION limit: P2.4-A's xi_from_gas fails when H2O or CO goes negative, so usable xi is bounded by the remaining H2O and by F_CO. PHYSICAL supply: P1.13-A line 23 states quench water supplies xi and is NOT limited by outlet H2O, so xi > outlet H2O is a quench-water requirement (P1.13-A P4 marker), not an infeasibility. No upper bound on quench supply is available in this project, so physically_infeasible is left null rather than asserted.",
   "no_rerun_for_A_C": true,
   "coal_set": "current",
   "windows_csv": "outputs/diagnostics/p2.2d-20261118/windows_142.csv"
