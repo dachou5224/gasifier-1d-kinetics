@@ -1,0 +1,21 @@
+reading,metric,phase,value,note
+A,gap_before_xi_CO2,phase1,-5.864905580598237,
+A,gap_before_xi_CO,phase1,11.583806631438073,
+A,gap_before_xi_H2,phase1,-5.747768429659935,
+A,gap_before_xi_CO2,phase2,-5.543625158097801,
+A,gap_before_xi_CO,phase2,10.143349369614668,
+A,gap_before_xi_H2,phase2,-4.534546695336914,
+A,gap_before_xi_CO2,phase3,-6.425158613048787,
+A,gap_before_xi_CO,phase3,10.218339308816205,
+A,gap_before_xi_H2,phase3,-3.830819903364617,
+A,gap_before_xi_CO2,phase4,-5.75829884814906,
+A,gap_before_xi_CO,phase4,8.214780447307575,
+A,gap_before_xi_H2,phase4,-2.3551778669807923,
+C,co2_gap_absorbed_by_xi,phase1,0.9530597373914663,CO2 绝对缺口 5.86 → 0.28 pp；ξ 中位 110.5 mol/s
+C,co2_gap_absorbed_by_xi,phase2,0.9848146879780634,CO2 绝对缺口 5.54 → 0.08 pp；ξ 中位 108.1 mol/s
+C,co2_gap_absorbed_by_xi,phase3,0.9555816547315658,CO2 绝对缺口 6.43 → 0.29 pp；ξ 中位 129.3 mol/s
+C,co2_gap_absorbed_by_xi,phase4,0.9301435188528964,CO2 绝对缺口 5.76 → 0.40 pp；ξ 中位 121.4 mol/s
+B,h2o_feasible_configs_of_12,phase1,0.0,最紧的配置 φ=0.1 ΔE=100：需求 118.0 vs 可用 60.0 mol/s，缺口 +58.1
+B,h2o_feasible_configs_of_12,phase2,8.0,最紧的配置 φ=0.1 ΔE=0：需求 75.4 vs 可用 94.3 mol/s，缺口 -18.9
+B,h2o_feasible_configs_of_12,phase3,0.0,最紧的配置 φ=0.2 ΔE=0：需求 103.0 vs 可用 86.7 mol/s，缺口 +16.3
+B,h2o_feasible_configs_of_12,phase4,4.0,最紧的配置 φ=0.2 ΔE=100：需求 68.8 vs 可用 95.5 mol/s，缺口 -26.7

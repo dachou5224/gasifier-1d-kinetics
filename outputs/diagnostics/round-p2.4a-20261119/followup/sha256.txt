@@ -1,0 +1,12 @@
+# P2.4-A followup 证据清单（sha256，相对仓库根）
+
+5412ec87d996c978e07abc8e97242bdd3b4e0e8b7850f1385d15512bad784053  outputs/diagnostics/round-p2.4a-20261119/followup/c0_gap.csv
+faf8e3fdd6289a1a7437906c1db368351dc27f68f38188dddd2cffcf1a3f6bfd  outputs/diagnostics/round-p2.4a-20261119/followup/xi_masking.csv
+3e6ceba7f45ea8ee7db325fed65a0d70bf212107d56176585a73ec491413d260  outputs/diagnostics/round-p2.4a-20261119/followup/xi_budget.csv
+9dc55dad12cfde2efb174dceb08b5ce3ca83878dc9e896b37f6662edbe920cb8  outputs/diagnostics/round-p2.4a-20261119/followup/readings.csv
+da5fa9a64b03b404a06cc9d192dd55d2796924b640d6ddac24375fe1c1b39369  outputs/diagnostics/round-p2.4a-20261119/followup/protocol.json
+
+# inputs
+0c1fa8e2f7d7843295369a75a72c7460db65ecd3a11986bc02e9781dc4247c26  outputs/diagnostics/round-p2.2a-20261118/baseline_142.csv
+caefc2bef0876e1826459c92eb08a5be4f399c80e380dcf8b131469b8866fffa  outputs/diagnostics/round-p2.4a-20261119/comparison_points.csv
+c45f7a1437cd0685263684b1e5880a522c28d21099b19864d3113c16f2ad4978  outputs/diagnostics/round-p2.4a-20261119/slow_pool_profiles.csv

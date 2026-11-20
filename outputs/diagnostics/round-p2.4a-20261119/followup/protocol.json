@@ -1,0 +1,17 @@
+{
+  "purpose": "P2.4-A 判定的证据固化：为「是否做完全耦合双组分」提供可复核依据",
+  "sources": {
+    "A_C": "outputs/diagnostics/round-p2.2a-20261118/baseline_142.csv",
+    "B": "outputs/diagnostics/round-p2.4a-20261119/comparison_points.csv"
+  },
+  "checks": {
+    "A": "C0（现有基线）的 CO2/CO/H2 缺口，ξ 前与 ξ 后各一份",
+    "B": "ξ 需求 + 慢组分耗汽 vs 下游可用 H2O（ξ 的解析式与两个上界）",
+    "C": "ξ 把 CO2 缺口吸收了多大比例"
+  },
+  "xi_formula": "CO2 = (F_CO2+xi)/(dry+xi)；解 xi = (k*dry - F_CO2)/(1-k)，k=plant/100",
+  "xi_bounds": "xi <= F_H2O（水不变负）且 xi <= F_CO",
+  "no_rerun_for_A_C": true,
+  "coal_set": "current",
+  "windows_csv": "outputs/diagnostics/p2.2d-20261118/windows_142.csv"
+}
