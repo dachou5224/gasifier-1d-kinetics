@@ -1,0 +1,11 @@
+quantity,required_for,available_in_project,source_or_gap,note
+plant_inlet_water_total_mol_s,H-A_vs_H-B,partial,coal moisture fixed at 2% of dry coal (P2.2-D constants); burner steam = not_applicable (user-confirmed 2026-10-31); no quench-water flow tag in the Huayi mapping (the 激冷水入水流量 entry belongs to the Yulin tag file),煤水分是假设常数不是逐窗测量；Huayi 侧无激冷水流量位号；三者相加不等于反应器入口水
+plant_outlet_h2o_fraction_wet_basis,H-A_vs_H-B,yes,"canonical parquet（4 阶段分钟级全时段）：outlet_syngas_wet_washtower_nm3_h 与干基流量、洗涤塔 T/P；P1.6-D 已提取 9 个代表窗校核：P1.6-D window_quench_tags.csv: FR_1015/FR1_1015, y_sat/y_flow 1.027-1.029; y_H2O = 0.4525-0.4646 (9 窗)",湿基数据其实覆盖全部时段（不是没有），但测点在洗涤塔出口 205C/3.6MPa、接近饱和，水由循环洗涤水支配；它不是反应器出口/激冷入口的水，因此不能反推 Q_plant
+plant_reactor_outlet_h2o_fraction,H-A_vs_H-B,no,online analyzer is dry-basis (contract composition_basis: outlet_*_dry_vol_pct); C/H/O 协调的碳平衡无水项,这是 H-A/H-B 不可分的直接原因；需要反应器出口或激冷入口的湿基测量
+plant_wgs_quotient_Q,H-A_vs_H-B,no,Q=CO2*H2/(CO*H2O) 的分母 H2O 不可辨识,干基三组分可算比值但缺 H2O；用洗涤塔出口水会得到与 205C 冻结状态不符的表观温度
+net_reacted_water_nw_after,H-B,partial,P2.2-D S1-C-m reconciled_windows.csv; 阶段中位 71.85 / 19.73 / 9.82 / -25.09,H 平衡反推的净耗水，P4 为负；不是输入水残差，也不能当出口残余水（原 R2/R4 已按卡片撤回）
+quench_and_waste_heat_temperature_residence,H-A,partial,炉膛温度 3 层×2（TI_1025/1026/1027，水冷壁渣层偏置、仅趋势）、洗涤塔出口温度与压力（全时段）；无激冷段入口温度、无停留时间,只有点位温度，没有停留时间与沿程温度剖面；下游若确有变换需要能定位温度窗口的剖面
+plant_dry_gas_flow,R2,yes,canonical 表全时段（minutes）；P1.6-D 提取了 9 个代表窗，FR1_1015 与 canonical 干基流量有两个口径,R2 按卡片固定模型 dry、不把装置 dry 引入拟合；装置 dry 未参与本卡任何判据
+reactor_outlet_temperature_measured,R3,no,Huayi 当前映射无合成气出口温度位号；只有炉膛温度（渣层偏置、仅趋势）与洗涤塔出口温度；原始表未映射位号未核实,R3 按卡片用模型 T_out；本卡没有可与 T_out 对打的独立出口温度
+literature_wet_gas_composition,cross_check,no,project 现有刘文对照表（contract_vs_liu2023_by_phase.csv）只有干基组成,未见湿基数据，无法交叉核对 H2O
+analyzer_basis_dry,R0_root_cause,yes,"contract composition_basis: measurement_basis=online_analyzer, applies_to outlet_*_dry_vol_pct",三个观测量 CO/CO2/H2 全是干基，水项按构造缺席

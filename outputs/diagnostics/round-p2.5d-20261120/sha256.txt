@@ -1,0 +1,23 @@
+# P2.5-D 产物与输入清单（sha256，相对仓库根）
+# self 行：sha256.txt 自身的哈希按「去掉最后一行 self 行后的内容」计算，
+# 校验：sed '$d' sha256.txt | shasum -a 256 应与 self 行一致
+
+# products
+b12a79774e83846180f1e2299556a1acb41022a8ed5ca8e70b21609d9f69729c  outputs/diagnostics/round-p2.5d-20261120/identifiability.csv
+195523f51b51c80a0e0311e82ee36551026fe8d632e059e83aa9e08edae53c99  outputs/diagnostics/round-p2.5d-20261120/unit_checks.csv
+f866491689da6a6712c7e5ad1a18e591c94be1f5a5f4f5cf34094d89ea225364  outputs/diagnostics/round-p2.5d-20261120/xi_window.csv
+48f7238bbac37c6c689a10f4119431141a4ab615acf291735bee0411dd722156  outputs/diagnostics/round-p2.5d-20261120/xi_spread.csv
+018286a6a1879a6c152ec58d2d5ba7fbd3e06b371bcf29dba3a85b8ac3d1d58e  outputs/diagnostics/round-p2.5d-20261120/triplet_span.csv
+5d7416200f65878d36c2f938682caf807710b2c9e9f792b6d7e3cdc2f171e6af  outputs/diagnostics/round-p2.5d-20261120/correlations.csv
+e537874bf20624e47fe284d74d5c76b8ad3b4adad74c633d1498d30e4062f6f1  outputs/diagnostics/round-p2.5d-20261120/teq_sensitivity.csv
+31b639dd561108583a2046debac5163a99ea8b52b6d96abe952ab328c4625821  outputs/diagnostics/round-p2.5d-20261120/readings.csv
+5d6366b808bbdc498eb12b049b76a38efa8e2ed3a734198fa5e18a346de8bb9c  outputs/diagnostics/round-p2.5d-20261120/protocol.json
+7eda7554e9bb347fb1f41f86ce161eed2387a7bab5f02cb0db8bfd5cba50a754  outputs/diagnostics/round-p2.5d-20261120/interpretation.md
+
+# inputs
+0c1fa8e2f7d7843295369a75a72c7460db65ecd3a11986bc02e9781dc4247c26  outputs/diagnostics/round-p2.2a-20261118/baseline_142.csv
+517b13a89798d0d3e70927f3526b927d2b1e2c26ecc67bdc9ee78fb2f412c3e3  ../ai-research/papers/jax-gasifier-cascade-hybrid/revision-evidence-20261118/P2.2-D/reconciled_windows.csv
+57916521be03a66a45f290a66439d814ac1236f467cdae775962ef4214adab06  ../gasifier-data-prep/outputs/diagnostics/p1.6d-20261031/window_quench_tags.csv
+
+# self
+79b0311ae1de03eafaafe5c91543888fd5166e3e91280c5b51ff441d24d3913f  outputs/diagnostics/round-p2.5d-20261120/sha256.txt
