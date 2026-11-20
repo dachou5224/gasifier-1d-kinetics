@@ -1,0 +1,21 @@
+# P2.4-A 产物与输入清单（sha256，相对仓库根）
+
+# products
+7c135ad3fb37022b1b19afc9575d3a1e857784eefb481eb29b9a609b29058176  outputs/diagnostics/round-p2.4a-20261119/unit_checks.csv
+caefc2bef0876e1826459c92eb08a5be4f399c80e380dcf8b131469b8866fffa  outputs/diagnostics/round-p2.4a-20261119/comparison_points.csv
+2706bf1d9125cdcd20ed3ab0097dc41f324ed43453ee40fd1820bbdee3df7ec5  outputs/diagnostics/round-p2.4a-20261119/model_slopes.csv
+8b88a3b1dcd2237de87f7025f81c77be687619de2ae018a42dd5fb731578bc45  outputs/diagnostics/round-p2.4a-20261119/elasticities.csv
+ceadacdb90a0e446292d3fecbde1c9a38cb36de24445d19c9b722b1b7efcbdd6  outputs/diagnostics/round-p2.4a-20261119/levels.csv
+c45f7a1437cd0685263684b1e5880a522c28d21099b19864d3113c16f2ad4978  outputs/diagnostics/round-p2.4a-20261119/slow_pool_profiles.csv
+c1e99a2d5980fcd459a33ae8f9483bbbba862974fe274d68497682b26bd6767c  outputs/diagnostics/round-p2.4a-20261119/readings.csv
+c97c24fbfcd0d219dabd8ee5df4731c78757b3f953c675efb6d75d53237ef40e  outputs/diagnostics/round-p2.4a-20261119/protocol.json
+f58f4457b3c3d3f4c9602f48fcb41e54a063acaa838c52207186079534b90c50  outputs/diagnostics/round-p2.4a-20261119/interpretation.md
+
+# inputs
+a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119  outputs/diagnostics/p2.2d-20261118/windows_142.csv
+fcc6b2dce4974c38f5d3bbbddba92deafc45f445e9e2623d23b46c00d06ddbc7  ../ai-research/papers/jax-gasifier-cascade-hybrid/revision-evidence-20261118/P2.2-D/readings.csv
+272d4fc97feda36741394dfe37f5e04cef51c7c2743e13afd4403f5aef7384e7  outputs/diagnostics/round-p1.15a-20261108/plant_slopes.csv
+fae1cbd12831150aa2b357f835f6c9e40ad8f5afadf45de7f22fa0386c5b103e  src/model/cell.py
+a7247d57068f99f68dc8cb54bce61cef65f2955c3aa19e725245591d319fa358  src/model/gasifier_system.py
+c3c59d4d76247d46b5eaf98e35f34295f4ed3771e1b8f18774c5d8870614801b  src/model/kinetics_service.py
+3ad997d1b1c63fb8190fa4badbfd553c8760d994019a3f21a1d008ddf427c3b6  src/model/heat_loss.py
