@@ -140,7 +140,7 @@ def check_c0_gap() -> tuple[list[dict], list[dict]]:
 # ---------------------------------------------------------------------------
 # B：ξ 的水需求（两个层面必须分开）
 # ---------------------------------------------------------------------------
-def check_xi_budget(coal_set: str) -> list[dict]:
+def check_xi_budget(coal_set: str) -> tuple[list[dict], list[dict]]:
     """对每个 (φ, ΔE, phase)：ξ 与慢组分的水需求，分两个层面报告。
 
     **层面 1（实现限制）**：P2.4-A 的 `xi_from_gas` 在 H2O 或 CO 变负时返回失败，
@@ -163,6 +163,7 @@ def check_xi_budget(coal_set: str) -> list[dict]:
     cp = cp[cp["reachable"].astype(str).str.lower() == "true"]
     ref = p24a.p22a._ref_windows("main")
     rows: list[dict] = []
+    window_rows: list[dict] = []
     for (phi, dE), g in cp.groupby(["phi", "dE_kJ_per_mol"], sort=True):
         phi = float(phi); dE = float(dE)
         for ph in PHASES:
@@ -196,35 +197,65 @@ def check_xi_budget(coal_set: str) -> list[dict]:
                                  xi=float(xi)))
             if not recs:
                 continue
-            med = lambda key: _med([r[key] for r in recs])
-            xi_m = med("xi")
-            after = med("h2o_after")
-            before = med("h2o_before")
-            a1_m = med("a1")
-            fco_m = med("f_co")
-            # 层面 1：ξ 单独 vs 剩余水（正确口径，不再加 a1）
-            needs_quench_h2o = xi_m > after
-            # 层面 1b：总需求 vs 扣减前的水（等价检查）
-            total_ok_before = (xi_m + a1_m) <= before
+
+            # 2026-11-20 第二次审查（P2）：必须**逐窗**算余量再汇总。
+            # 此前先取 median(xi) 与 median(remaining) 再相减取 max(...,0)——
+            # 中位不可加。反例：xi=[1,10,10]、剩余=[2,2,20]，
+            # 中位相减给 10-2=8，而逐窗补水=[0,8,0] 的中位是 0。
+            per_window = []
+            for k, r in enumerate(recs):
+                surplus = r["h2o_after"] - r["xi"]
+                quench = max(-surplus, 0.0)
+                co_margin = r["f_co"] - r["xi"]
+                before_margin = r["h2o_before"] - (r["xi"] + r["a1"])
+                per_window.append({
+                    "phi": phi, "dE_kJ_per_mol": dE, "phase": ph,
+                    "window_index": k,
+                    "slow_a_H2O_mol": r["a1"],
+                    "slow_a_CO2_mol": r["a2"],
+                    "xi_needed_mol": r["xi"],
+                    "h2o_at_outlet_before_slow_mol": r["h2o_before"],
+                    "h2o_remaining_after_slow_mol": r["h2o_after"],
+                    "F_CO_available_mol": r["f_co"],
+                    "h2o_surplus_mol": surplus,
+                    "quench_water_mol": quench,
+                    "window_needs_quench": bool(quench > 1e-9),
+                    "co_margin_mol": co_margin,
+                    "window_co_ok": bool(co_margin >= -1e-9),
+                    "total_demand_vs_before_margin_mol": before_margin,
+                })
+            window_rows.extend(per_window)
+
+            n = len(per_window)
+            n_need = sum(1 for w in per_window if w["window_needs_quench"])
+            qs = [w["quench_water_mol"] for w in per_window]
+            xi_s = [w["xi_needed_mol"] for w in per_window]
+            sur = [w["h2o_surplus_mol"] for w in per_window]
+            co_ok_n = sum(1 for w in per_window if w["window_co_ok"])
+            before_ok_n = sum(
+                1 for w in per_window
+                if w["total_demand_vs_before_margin_mol"] >= -1e-9)
             rows.append({
                 "phi": phi, "dE_kJ_per_mol": dE, "phase": ph,
-                "slow_a_H2O_mol": a1_m,
-                "slow_a_CO2_mol": med("a2"),
-                "xi_needed_mol": xi_m,
-                "h2o_at_outlet_before_slow_mol": before,
-                "h2o_remaining_after_slow_mol": after,
-                "F_CO_available_mol": fco_m,
-                # 层面 1（实现限制）：ξ 是否需要超过剩余水 / CO
-                "xi_exceeds_remaining_h2o": bool(needs_quench_h2o),
-                "xi_exceeds_CO": bool(xi_m > fco_m),
-                "needs_quench_water": bool(needs_quench_h2o),
-                "quench_water_mol": max(xi_m - after, 0.0),
-                # 层面 2（物理）：出口水不够 ≠ 不可行；激冷水供给无上界数据
-                "total_demand_vs_before_ok": bool(total_ok_before),
-                "physically_infeasible": None,   # 无法判定：激冷水供给量未知
-                "n_ref": len(recs),
+                "n_windows": n,
+                "n_windows_need_quench": n_need,
+                "all_windows_need_quench": bool(n_need == n),
+                "any_window_needs_quench": bool(n_need > 0),
+                "median_window_quench_mol": _med(qs),
+                "max_window_quench_mol": float(max(qs)) if qs else 0.0,
+                "median_xi_mol": _med(xi_s),
+                "median_window_surplus_mol": _med(sur),
+                "min_window_surplus_mol": float(min(sur)) if sur else float("nan"),
+                "n_windows_co_ok": co_ok_n,
+                "n_windows_total_demand_ok": before_ok_n,
+                "config_level_rule": (
+                    "all_windows = 全部窗均不需补水；any_window = 任一窗需补水；"
+                    "median_window = 中位窗需补水。三者分列，不合并成单一'可行'"),
+                "all_windows_ok_no_quench": bool(n_need == 0),
+                "median_window_ok_no_quench": bool(_med(qs) <= 1e-9),
+                "physically_infeasible": None,
             })
-    return rows
+    return rows, window_rows
 
 
 # ---------------------------------------------------------------------------
@@ -241,11 +272,12 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
     gap, mask = check_c0_gap()
-    budget = check_xi_budget(args.coal_set)
+    budget, budget_windows = check_xi_budget(args.coal_set)
 
     write_csv(pd.DataFrame(gap), "c0_gap.csv")
     write_csv(pd.DataFrame(mask), "xi_masking.csv")
     write_csv(pd.DataFrame(budget), "xi_budget.csv")
+    write_csv(pd.DataFrame(budget_windows), "xi_budget_windows.csv")
 
     # 汇总读数
     readings: list[dict] = []
@@ -262,26 +294,38 @@ def main() -> None:
                      f"{r['CO2_abs_gap_after_pp']:.2f} pp；"
                      f"ξ 中位 {r['xi_median_mol_s']:.1f} mol/s"),
         })
-    # 层面 1：需要激冷补水的配置数（实现限制，标记项）
+    # 逐窗口径汇总（2026-11-20 第二次审查）：配置级定义显式分三种，不合并
     for ph in PHASES:
         sub = [r for r in budget if r["phase"] == ph]
         if not sub:
             continue
-        nq = sum(1 for r in sub if r["needs_quench_water"])
         readings.append({
-            "reading": "B1", "metric": "configs_needing_quench_water", "phase": ph,
-            "value": nq,
-            "note": (f"{nq}/{len(sub)} 个配置的 ξ 超过慢组分之后的剩余水，"
-                     f"需激冷补水（P1.13-A 的 P4 标记项，不是不可行）"),
+            "reading": "B1", "metric": "configs_all_windows_no_quench", "phase": ph,
+            "value": sum(1 for r in sub if r["all_windows_ok_no_quench"]),
+            "note": (f"{sum(1 for r in sub if r['all_windows_ok_no_quench'])}/{len(sub)} "
+                     f"个配置**全部窗**都不需补水（最严口径）"),
         })
-        worst = max(sub, key=lambda r: r["quench_water_mol"])
         readings.append({
-            "reading": "B2", "metric": "max_quench_water_mol", "phase": ph,
-            "value": worst["quench_water_mol"],
-            "note": (f"最紧的配置 φ={worst['phi']} ΔE={worst['dE_kJ_per_mol']:.0f}："
-                     f"ξ={worst['xi_needed_mol']:.1f}，剩余水 "
-                     f"{worst['h2o_remaining_after_slow_mol']:.1f}，"
-                     f"需补水 {worst['quench_water_mol']:.1f} mol/s"),
+            "reading": "B2", "metric": "configs_any_window_needs_quench", "phase": ph,
+            "value": sum(1 for r in sub if r["any_window_needs_quench"]),
+            "note": (f"{sum(1 for r in sub if r['any_window_needs_quench'])}/{len(sub)} "
+                     f"个配置**至少一窗**需补水（最松口径）"),
+        })
+        readings.append({
+            "reading": "B3", "metric": "configs_median_window_needs_quench", "phase": ph,
+            "value": sum(1 for r in sub if not r["median_window_ok_no_quench"]),
+            "note": (f"{sum(1 for r in sub if not r['median_window_ok_no_quench'])}"
+                     f"/{len(sub)} 个配置的**中位窗**需补水"),
+        })
+        worst = max(sub, key=lambda r: r["max_window_quench_mol"])
+        readings.append({
+            "reading": "B4", "metric": "max_single_window_quench_mol", "phase": ph,
+            "value": worst["max_window_quench_mol"],
+            "note": (f"最大单窗补水量出现在 φ={worst['phi']} "
+                     f"ΔE={worst['dE_kJ_per_mol']:.0f}："
+                     f"{worst['max_window_quench_mol']:.2f} mol/s"
+                     f"（该配置 {worst['n_windows_need_quench']}/"
+                     f"{worst['n_windows']} 窗需补水）"),
         })
     write_csv(pd.DataFrame(readings), "readings.csv")
 
@@ -313,8 +357,8 @@ def main() -> None:
         json.dumps(protocol, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     lines = ["# P2.4-A followup 证据清单（sha256，相对仓库根）", ""]
-    for name in ("c0_gap.csv", "xi_masking.csv", "xi_budget.csv", "readings.csv",
-                 "protocol.json"):
+    for name in ("c0_gap.csv", "xi_masking.csv", "xi_budget.csv",
+                 "xi_budget_windows.csv", "readings.csv", "protocol.json"):
         p = OUT_DIR / name
         lines.append(f"{_sha(p)}  {_rel(p)}")
     lines += ["", "# inputs"]
@@ -331,16 +375,18 @@ def main() -> None:
     for r in mask:
         print(f"    {PHASE_LABEL[r['phase']]}: {r['fraction_of_gap_absorbed_by_xi']*100:5.1f}%"
               f"（{r['CO2_abs_gap_before_pp']:.2f} → {r['CO2_abs_gap_after_pp']:.2f} pp）")
-    nq = sum(1 for r in budget if r["needs_quench_water"])
-    print(f"[B] 需激冷补水的 (配置×阶段)：{nq}/{len(budget)}"
-          f"（这是实现限制的标记项，不是物理不可行——"
-          f"P1.13-A 明确 ξ 的水由激冷水提供）")
-    for r in budget:
-        if r["needs_quench_water"]:
-            print(f"    φ={r['phi']} ΔE={r['dE_kJ_per_mol']:.0f} "
-                  f"{PHASE_LABEL[r['phase']]}: ξ={r['xi_needed_mol']:.1f} "
-                  f"剩余水={r['h2o_remaining_after_slow_mol']:.1f} "
-                  f"需补水={r['quench_water_mol']:+.1f} mol/s")
+    print("[B] 逐窗口径（配置级三定义分列）：")
+    for ph in PHASES:
+        sub = [r for r in budget if r["phase"] == ph]
+        if not sub:
+            continue
+        n_all = sum(1 for r in sub if r["all_windows_ok_no_quench"])
+        n_any = sum(1 for r in sub if r["any_window_needs_quench"])
+        n_med = sum(1 for r in sub if not r["median_window_ok_no_quench"])
+        mx = max(r["max_window_quench_mol"] for r in sub)
+        print(f"    {PHASE_LABEL[ph]}: 全部窗不需补水 {n_all}/{len(sub)}；"
+              f"任一窗需补水 {n_any}/{len(sub)}；中位窗需补水 {n_med}/{len(sub)}；"
+              f"最大单窗补水 {mx:.1f} mol/s")
     print(f"    清单已写：{_rel(OUT_DIR / 'sha256.txt')}")
 
 
