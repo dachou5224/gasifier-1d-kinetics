@@ -40,6 +40,19 @@ P22D_WINDOWS = (ROOT.parent / "ai-research" / "papers" / "jax-gasifier-cascade-h
                 / "revision-evidence-20261118" / "P2.2-D" / "reconciled_windows.csv")
 P16D_QUENCH = (ROOT.parent / "gasifier-data-prep" / "outputs" / "diagnostics"
                / "p1.6d-20261031" / "window_quench_tags.csv")
+CANONICAL_DIR = ROOT.parent / "gasifier-data-prep" / "outputs" / "canonical"
+# canonical 的湿基/干基通道文件名按阶段不同：P1 是单品煤 huayi_sy3_phase1，
+# P2–P4 是混煤 huayi_sy3sy2_phaseN。不要用单一 glob 猜。
+CANONICAL_WET = {
+    "P1": CANONICAL_DIR / "huayi_sy3_phase1_wgs1.parquet",
+    "P2": CANONICAL_DIR / "huayi_sy3sy2_phase2_wgs1.parquet",
+    "P3": CANONICAL_DIR / "huayi_sy3sy2_phase3_wgs1.parquet",
+    "P4": CANONICAL_DIR / "huayi_sy3sy2_phase4_wgs1.parquet",
+}
+WET_F = "outlet_syngas_wet_washtower_nm3_h"
+WET_T = "outlet_syngas_wet_washtower_temperature_c"
+WET_P = "outlet_syngas_wet_washtower_pressure_mpa"
+DRY_F = "outlet_syngas_dry_nm3_h"
 
 sys.path.insert(0, str(ROOT / "src"))
 from model.kinetics import calculate_wgs_equilibrium  # noqa: E402
@@ -482,6 +495,62 @@ def build_teq(df: pd.DataFrame) -> tuple[list[dict], dict]:
 
 
 # --- R0：可辨识性表 ---------------------------------------------------------
+def audit_wet_basis() -> dict:
+    """审计洗涤塔出口湿基通道：逐阶段覆盖率，以及「水分率是否只是饱和假设回算」。
+
+    关键：数据仓 config/canonical_flows.yaml 的 wet_to_dry 明写
+    dry = wet*(1 - Psat(T)/P)（src/features/wet_to_dry_syngas.py:29-38 落实）。
+    因此用 canonical 的 1-dry/wet 复原出的水分率按构造恒等于 Psat/P，
+    它只能反映输入假设，不能独立检验「是否饱和」。这里量化该恒等偏差。
+    """
+    per_phase, max_dev = {}, 0.0
+    for phase, path in CANONICAL_WET.items():
+        if not path.exists():
+            per_phase[phase] = {"n_minutes": 0, "n_complete": 0, "coverage": None,
+                                "note": "canonical 文件缺失"}
+            continue
+        df = pd.read_parquet(path, columns=[WET_F, WET_T, WET_P, DRY_F])
+        ok = df[WET_F].notna() & df[WET_T].notna() & df[WET_P].notna() & df[DRY_F].notna()
+        n, n_ok = int(len(df)), int(ok.sum())
+        dev = None
+        if n_ok:
+            y_flow = 1.0 - df.loc[ok, DRY_F] / df.loc[ok, WET_F]
+            psat_arr = np.array([_psat_mpa(t) for t in df.loc[ok, WET_T]])
+            # 与数据仓一致：y = (Psat/P).clip(0, 0.99)
+            psat_frac = np.clip(psat_arr / df.loc[ok, WET_P].to_numpy(dtype=float), 0.0, 0.99)
+            dev = float(np.nanmax(np.abs(y_flow.to_numpy(dtype=float) - psat_frac)))
+            max_dev = max(max_dev, dev)
+        per_phase[phase] = {"n_minutes": n, "n_complete": n_ok,
+                            "coverage": (n_ok / n) if n else None,
+                            "max_abs_dev_vs_psat_over_p": dev}
+    return {"per_phase": per_phase, "max_dev": max_dev}
+
+
+def _psat_mpa(t_c: float) -> float:
+    """水饱和蒸气压（MPa）。
+
+    必须与数据仓 src/features/wet_to_dry_syngas.py 完全一致：那里是**查表线性插值**，
+    不是 Antoine 式。若这里换一个解析式，回算水分率与 Psat/P 的偏差会变成
+    「两套公式之差」，把「恒等式」误读成「独立核验」，正是本轮要避免的错误。
+    """
+    ts = np.array([100.0, 150.0, 180.0, 200.0, 204.0, 210.0, 220.0, 250.0])
+    ps = np.array([0.1014, 0.476, 1.024, 1.554, 1.687, 1.914, 2.320, 3.997])
+    t = float(np.clip(float(t_c), ts.min(), ts.max()))
+    return float(np.interp(t, ts, ps))
+
+
+def _fmt_cov(a: dict) -> str:
+    out = []
+    for p in ("P1", "P2", "P3", "P4"):
+        v = a["per_phase"].get(p, {})
+        cov = v.get("coverage")
+        if cov is None:
+            out.append(f"{p} 缺文件")
+        else:
+            out.append(f"{p} {v['n_complete']}/{v['n_minutes']}（{cov * 100:.1f}%）")
+    return "；".join(out)
+
+
 def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
     nw = rec.groupby("phase")["nw_after"].median()
     nw_txt = " / ".join(f"{nw[p]:.2f}" for p in ("P1", "P2", "P3", "P4"))
@@ -497,6 +566,10 @@ def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
                        f" ({len(q)} 窗)")
             wet_sha = sha256_of(P16D_QUENCH)
 
+    wet_audit = audit_wet_basis()
+    cov_txt = _fmt_cov(wet_audit)
+    dev_txt = f"{wet_audit['max_dev']:.2e}"
+
     rows = [
         {
             "quantity": "plant_inlet_water_total_mol_s",
@@ -510,15 +583,37 @@ def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
                      "三者相加不等于反应器入口水"),
         },
         {
-            "quantity": "plant_outlet_h2o_fraction_wet_basis",
+            "quantity": "washtower_wet_flow_channel",
             "required_for": "H-A_vs_H-B",
             "available_in_project": "yes",
-            "source_or_gap": ("canonical parquet（4 阶段分钟级全时段）："
-                              "outlet_syngas_wet_washtower_nm3_h 与干基流量、洗涤塔 T/P；"
-                              f"P1.6-D 已提取 9 个代表窗校核：{wet_src}; y_H2O = {wet_txt}"),
-            "note": ("湿基数据其实覆盖全部时段（不是没有），但测点在洗涤塔出口 "
-                     "205C/3.6MPa、接近饱和，水由循环洗涤水支配；它不是反应器出口/"
-                     "激冷入口的水，因此不能反推 Q_plant"),
+            "source_or_gap": (f"直接测量：{WET_F} + {WET_T} + {WET_P}"
+                              f"（canonical parquet）。分钟级覆盖：{cov_txt}"),
+            "note": ("这是**湿流量通道**，是真测量，四阶段覆盖接近 100%。"
+                     "审查前本卡把「有该通道」误当成「有独立水分率测量」，此处更正："
+                     "通道可用，但由它得不到独立的 H2O 分率（见下一行）"),
+        },
+        {
+            "quantity": "plant_outlet_h2o_fraction_wet_basis",
+            "required_for": "H-A_vs_H-B",
+            "available_in_project": "derived",
+            "source_or_gap": (f"**推算值，非测量**：数据仓 config/canonical_flows.yaml 的 "
+                              f"wet_to_dry 规定 dry = wet*(1 − Psat(T)/P)"
+                              f"（src/features/wet_to_dry_syngas.py:29-38 落实）。"
+                              f"故 1 − dry/wet ≡ Psat(T)/P；实测恒等偏差 "
+                              f"|1−dry/wet − Psat/P|max = {dev_txt}（机器精度）"),
+            "note": ("因此该水分率**只是输入的饱和假设本身**，不能用来检验「是否饱和」，"
+                     "也不能充当独立的湿基 H2O 测量。中位约 0.46 这一点成立的唯一含义是"
+                     "「canonical 按 ~0.46 的饱和假设生成」。此前「98% 饱和」的说法"
+                     "是拿 Psat 与 Psat 相比，为循环论证，已撤回"),
+        },
+        {
+            "quantity": "p16d_flow_difference_h2o_estimate",
+            "required_for": "H-A_vs_H-B",
+            "available_in_project": "conditional",
+            "source_or_gap": f"{wet_src}；y_H2O = {wet_txt}",
+            "note": ("来自另一口径的原始 FR1 湿/干流量差，**不是** canonical 的饱和假设回算；"
+                     "但 P1.6-D 原判读明确保留「同一标准状态与流量计标定尚未独立审计」的前提，"
+                     "故只作条件性估计，不能当已核实的独立测量，也不能由 9 窗推出全时段"),
         },
         {
             "quantity": "plant_reactor_outlet_h2o_fraction",
@@ -526,7 +621,9 @@ def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
             "available_in_project": "no",
             "source_or_gap": ("online analyzer is dry-basis (contract composition_basis: "
                               "outlet_*_dry_vol_pct); C/H/O 协调的碳平衡无水项"),
-            "note": "这是 H-A/H-B 不可分的直接原因；需要反应器出口或激冷入口的湿基测量",
+            "note": ("这是 H-A/H-B 不可分的直接原因。准确表述是"
+                     "「**湿流量通道有，缺的是所需位置**」——反应器出口/激冷入口；"
+                     "**不能**写成「已有独立 H2O 测量」：洗涤塔出口那份水分率是饱和假设推算的"),
         },
         {
             "quantity": "plant_wgs_quotient_Q",
@@ -585,9 +682,9 @@ def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
         },
     ]
     meta = {"y_h2o_wet_reference": wet_txt, "wet_reference_sha256": wet_sha,
-            "wet_basis_coverage": ("canonical parquet 四阶段分钟级全时段；"
-                                   "P1.6-D 已提取 9 个代表窗"),
-            "wet_basis_position": "wash-tower outlet (205 C / 3.6 MPa, near saturation)",
+            "wet_flow_channel_coverage": cov_txt,
+            "wet_fraction_derivation_identity_max_dev": wet_audit["max_dev"],
+            "wet_basis_position": "wash-tower outlet (~204.5 C / 3.65 MPa)",
             "nw_after_medians": {p: float(nw[p]) for p in ("P1", "P2", "P3", "P4")}}
     return rows, meta
 
@@ -688,17 +785,21 @@ def build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta) -> list[
     n_yes = sum(1 for r in r0_rows if r["available_in_project"] == "yes")
     n_partial = sum(1 for r in r0_rows if r["available_in_project"] == "partial")
     n_no = sum(1 for r in r0_rows if r["available_in_project"] == "no")
+    n_der = sum(1 for r in r0_rows if r["available_in_project"] == "derived")
+    n_cond = sum(1 for r in r0_rows if r["available_in_project"] == "conditional")
     rows.append({"reading": "R0", "metric": "quantities_listed", "phase": "ALL",
                  "value": len(r0_rows), "note": "R0 可辨识性表行数"})
-    rows.append({"reading": "R0", "metric": "available_yes_partial_no", "phase": "ALL",
-                 "value": f"{n_yes}/{n_partial}/{n_no}",
-                 "note": ("yes / partial / no；判别 H-A/H-B 的两个量里，入炉水只有 2% 假设"
-                          "（partial），反应器出口 H₂O 没有（no）；唯一的 yes 是洗涤塔出口，"
-                          "位置不对")})
+    rows.append({"reading": "R0", "metric": "available_yes_partial_derived_cond_no",
+                 "phase": "ALL", "value": f"{n_yes}/{n_partial}/{n_der}/{n_cond}/{n_no}",
+                 "note": ("yes / partial / derived / conditional / no。判别 H-A/H-B 的两个量里，"
+                          "入炉水只有 2% 假设（partial），反应器出口 H₂O 没有（no）。"
+                          "湿流量通道是 yes（真测量），但由其得到的水分率是 derived"
+                          "（恒等于 Psat/P 的饱和假设回算，1.67e-16），"
+                          "P1.6-D 的流量差估计是 conditional")})
     rows.append({
         "reading": "R0", "metric": "decidable_HA_vs_HB", "phase": "ALL", "value": "no",
-        "note": ("反应器出口水与装置 Q 都不可辨识；洗涤塔出口湿基测量位置不对，"
-                 "不能替代反应器出口水"),
+        "note": ("反应器出口水与装置 Q 都不可辨识。洗涤塔出口有湿流量通道，"
+                 "但水分率是饱和假设回算、不是独立测量，故不能替代反应器出口水"),
     })
 
     for phase in PHASE_ORDER:
@@ -781,7 +882,8 @@ def build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta) -> list[
     rows.append({
         "reading": "VERDICT", "metric": "outcome_of_three", "phase": "ALL", "value": 3,
         "note": ("分不开：R0 两个关键量不可辨识；R3 在 P1/P3 与 H-A 方向相反，P2 无信号。"
-                 "第 2 种（与 H-A 相容）被排除"),
+                 "第 2 种（与 H-A 相容）未获支持；R3 受模型内 CO2 与 T_out 机械耦合污染，"
+                 "不能作为 H-A 的反证"),
     })
     rows.append({
         "reading": "VERDICT", "metric": "R2_compatible_windows", "phase": "ALL",
@@ -794,8 +896,19 @@ def build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta) -> list[
         "note": "P4 阶段中位 χ² 超阈值、全部窗超阈值：单一 WGS 移动解释不了，缺口不止一个成分",
     })
     rows.append({
-        "reading": "VERDICT", "metric": "outcome_2", "phase": "ALL", "value": "excluded",
-        "note": "R3 方向在 P1/P3 与 H-A 相反（ρ<-0.3 且 p<0.05），不满足「方向一致」",
+        "reading": "VERDICT", "metric": "outcome_2", "phase": "ALL", "value": "not_supported",
+        "note": ("R3 方向在 P1/P3 与 H-A 相反（ρ<-0.3 且 p<0.05），按卡片预声明判据"
+                 "字面不满足「方向一致」。但 ξ 按定义是模型与装置 CO2 的残差，"
+                 "ρ(ξ,模型 CO2)=-0.70/-0.33/-0.80/-0.68 而 ρ(ξ,装置 CO2)=0.21/0.08/0.25/0.89；"
+                 "P1–P3 内模型 CO2 与 T_out 强同向（0.95/0.97/0.95），机械地把 ξ 压成负。"
+                 "故第 2 种记为**未获支持**，不能记为被排除：该检验近似在测模型内部协方差"),
+    })
+    rows.append({
+        "reading": "VERDICT", "metric": "outcome_2_predeclared_literal", "phase": "ALL",
+        "value": "excluded",
+        "note": ("按卡片原始字面判据的历史结果（已由 outcome_2 取代）："
+                 "「R3 方向在 P1/P3 与 H-A 相反，不满足方向一致 → 排除」。"
+                 "保留仅作预声明记录，不得作为当前结论引用"),
     })
     rows.append({
         "reading": "VERDICT", "metric": "aggregation_rule_predeclared", "phase": "ALL",
@@ -947,15 +1060,24 @@ def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
                  "反应器出口湿气 H₂O 分率——都没有在**所需位置**上的独立测量。R0 表逐项给出："
                  f"{sum(1 for r in r0_rows if r['available_in_project']=='yes')} 项 yes、"
                  f"{sum(1 for r in r0_rows if r['available_in_project']=='partial')} 项 partial、"
-                 f"{sum(1 for r in r0_rows if r['available_in_project']=='no')} 项 no；"
-                 "唯一的湿基 yes 在洗涤塔出口，位置不对。")
+                 f"{sum(1 for r in r0_rows if r['available_in_project']=='derived')} 项 derived、"
+                 f"{sum(1 for r in r0_rows if r['available_in_project']=='conditional')} 项 conditional、"
+                 f"{sum(1 for r in r0_rows if r['available_in_project']=='no')} 项 no。"
+                 "洗涤塔出口确实有**湿流量通道**（四阶段分钟级近全覆盖），"
+                 "但由它得到的水分率是 `dry = wet*(1−Psat/P)` 的**回算**，恒等于饱和假设本身，"
+                 "不是独立测量；缺口是「**缺所需位置**」，不是「缺湿流量通道」，"
+                 "更不能写成「已有独立 H₂O 测量」。")
     lines.append("2. **单 ξ 共同位移在 P2 与全部窗相容，在 P1/P3 约一半窗超阈值，在 P4 全部超阈值。**"
                  "P2 只能说「与单一移动相容」，不是「证明够用」；P4 的阶段中位 χ² 已超阈值，"
                  "单一移动解释不了该阶段的缺口。")
     lines.append("3. **R3 给不出与 H-A 一致的方向（P1/P3 反而相反）。** ρ(ξ, T_out) 在 P1（−0.65）、P3（−0.74）显著为负，"
                  "P2 无信号（−0.24, p=0.12），仅 P4 为正（+0.67）。"
-                 "按卡片预声明判据，这不是「与 H-A 方向一致」，因此三种结果里的第 2 种（与 H-A 相容）"
-                 "被排除。")
+                 "按卡片预声明判据，这不是「与 H-A 方向一致」。"
+                 "**但第 2 种结果记为「未获支持」，不是「被排除」**：ξ 按定义是模型与装置 CO₂ 的残差，"
+                 "它跟模型 CO₂（ρ=−0.70/−0.33/−0.80/−0.68）而非装置 CO₂（0.21/0.08/0.25/0.89）；"
+                 "P1–P3 内模型 CO₂ 与 T_out 强同向（0.95/0.97/0.95），机械地把 ξ 压成负相关。"
+                 "该检验近似在测模型内部协方差，因此不构成对 H-A 的反证。（原字面判据的结果见 "
+                 "VERDICT/outcome_2_predeclared_literal，仅作历史记录。）")
     lines.append("4. **R4 的 T_eq 不可引用。** 出口水情景从 5% 扫到 20%，T_eq 漂移远超 150 K，"
                  "按预声明判据记为「无信息」。R4 不参与 H-A 判定。")
     lines.append("5. 因此本卡属于第 3 种结果：**如实报「分不开」**，最终产出是所需观测清单（§R0）"
@@ -1110,8 +1232,10 @@ def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
     lines.append("**第 3 种：分不开。** 理由：")
     lines.append("")
     lines.append("1. R0 显示判别 H-A/H-B 的两个关键量（入炉水量、反应器出口 H₂O）在现有数据下不可辨识；"
-                 "唯一的湿基测量位置不对（洗涤塔出口、近饱和）。")
-    lines.append("2. R3 给不出与 H-A 一致的方向，P1/P3 反而相反，所以第 2 种结果（与 H-A 相容）被排除。")
+                 "洗涤塔出口的湿流量通道存在且覆盖近全时段，但由此回算的水分率恒等于饱和假设，"
+                 "不是独立测量——缺口在位置，不在通道。")
+    lines.append("2. R3 给不出与 H-A 一致的方向（P1/P3 反而相反），第 2 种结果因此**未获支持**；"
+                 "但 ξ 与模型 CO₂ 的机械耦合使该检验不构成反证，故**不能**记为「被排除」。")
     lines.append("3. R2 是混合的：P2 全部相容，P1/P3 约一半超阈值，P4 全部超阈值。"
                  "P4 的阶段级结论是第 1 种（不相容，缺口不止一个成分），但不能推广到四阶段。")
     lines.append("")

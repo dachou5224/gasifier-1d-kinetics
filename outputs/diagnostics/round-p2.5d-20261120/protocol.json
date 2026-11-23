@@ -1,7 +1,7 @@
 {
   "round": "P2.5-D / 2026-11-20",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "5f2cdd4c15060585e54c5aed65511938eaff2824",
+  "source_commit": "d2eb5cd5aa3e3507a0ba42f0861428df22894d41",
   "baseline_commit_expected": "5f2cdd4",
   "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/data-side-handoff-p2.5d-20261120.md",
   "solver_calls": 0,
@@ -361,8 +361,9 @@
   "R0": {
     "y_h2o_wet_reference": "0.4525-0.4646 (9 窗)",
     "wet_reference_sha256": "57916521be03a66a45f290a66439d814ac1236f467cdae775962ef4214adab06",
-    "wet_basis_coverage": "canonical parquet 四阶段分钟级全时段；P1.6-D 已提取 9 个代表窗",
-    "wet_basis_position": "wash-tower outlet (205 C / 3.6 MPa, near saturation)",
+    "wet_flow_channel_coverage": "P1 4313/4314（100.0%）；P2 4279/4279（100.0%）；P3 4279/4280（100.0%）；P4 2815/2817（99.9%）",
+    "wet_fraction_derivation_identity_max_dev": 1.6653345369377348e-16,
+    "wet_basis_position": "wash-tower outlet (~204.5 C / 3.65 MPa)",
     "nw_after_medians": {
       "P1": 71.8531,
       "P2": 19.7333,

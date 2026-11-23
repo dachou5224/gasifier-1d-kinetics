@@ -6,9 +6,9 @@ Status: `EXECUTED — offline analysis only`（无求解器调用）
 
 ## 结论摘要
 
-1. **在现有数据下，H-A 与 H-B 分不开。** 判别所需的两项——装置侧实际入炉水量、反应器出口湿气 H₂O 分率——都没有在**所需位置**上的独立测量。R0 表逐项给出：3 项 yes、3 项 partial、4 项 no；唯一的湿基 yes 在洗涤塔出口，位置不对。
+1. **在现有数据下，H-A 与 H-B 分不开。** 判别所需的两项——装置侧实际入炉水量、反应器出口湿气 H₂O 分率——都没有在**所需位置**上的独立测量。R0 表逐项给出：3 项 yes、3 项 partial、1 项 derived、1 项 conditional、4 项 no。洗涤塔出口确实有**湿流量通道**（四阶段分钟级近全覆盖），但由它得到的水分率是 `dry = wet*(1−Psat/P)` 的**回算**，恒等于饱和假设本身，不是独立测量；缺口是「**缺所需位置**」，不是「缺湿流量通道」，更不能写成「已有独立 H₂O 测量」。
 2. **单 ξ 共同位移在 P2 与全部窗相容，在 P1/P3 约一半窗超阈值，在 P4 全部超阈值。**P2 只能说「与单一移动相容」，不是「证明够用」；P4 的阶段中位 χ² 已超阈值，单一移动解释不了该阶段的缺口。
-3. **R3 给不出与 H-A 一致的方向（P1/P3 反而相反）。** ρ(ξ, T_out) 在 P1（−0.65）、P3（−0.74）显著为负，P2 无信号（−0.24, p=0.12），仅 P4 为正（+0.67）。按卡片预声明判据，这不是「与 H-A 方向一致」，因此三种结果里的第 2 种（与 H-A 相容）被排除。
+3. **R3 给不出与 H-A 一致的方向（P1/P3 反而相反）。** ρ(ξ, T_out) 在 P1（−0.65）、P3（−0.74）显著为负，P2 无信号（−0.24, p=0.12），仅 P4 为正（+0.67）。按卡片预声明判据，这不是「与 H-A 方向一致」。**但第 2 种结果记为「未获支持」，不是「被排除」**：ξ 按定义是模型与装置 CO₂ 的残差，它跟模型 CO₂（ρ=−0.70/−0.33/−0.80/−0.68）而非装置 CO₂（0.21/0.08/0.25/0.89）；P1–P3 内模型 CO₂ 与 T_out 强同向（0.95/0.97/0.95），机械地把 ξ 压成负相关。该检验近似在测模型内部协方差，因此不构成对 H-A 的反证。（原字面判据的结果见 VERDICT/outcome_2_predeclared_literal，仅作历史记录。）
 4. **R4 的 T_eq 不可引用。** 出口水情景从 5% 扫到 20%，T_eq 漂移远超 150 K，按预声明判据记为「无信息」。R4 不参与 H-A 判定。
 5. 因此本卡属于第 3 种结果：**如实报「分不开」**，最终产出是所需观测清单（§R0）与 P4 的阶段级不相容。
 
@@ -17,8 +17,10 @@ Status: `EXECUTED — offline analysis only`（无求解器调用）
 | quantity | required_for | available | source_or_gap | note |
 |---|---|---|---|---|
 | `plant_inlet_water_total_mol_s` | H-A_vs_H-B | partial | coal moisture fixed at 2% of dry coal (P2.2-D constants); burner steam = not_applicable (user-confirmed 2026-10-31); no quench-water flow tag in the Huayi mapping (the 激冷水入水流量 entry belongs to the Yulin tag file) | 煤水分是假设常数不是逐窗测量；Huayi 侧无激冷水流量位号；三者相加不等于反应器入口水 |
-| `plant_outlet_h2o_fraction_wet_basis` | H-A_vs_H-B | yes | canonical parquet（4 阶段分钟级全时段）：outlet_syngas_wet_washtower_nm3_h 与干基流量、洗涤塔 T/P；P1.6-D 已提取 9 个代表窗校核：P1.6-D window_quench_tags.csv: FR_1015/FR1_1015, y_sat/y_flow 1.027-1.029; y_H2O = 0.4525-0.4646 (9 窗) | 湿基数据其实覆盖全部时段（不是没有），但测点在洗涤塔出口 205C/3.6MPa、接近饱和，水由循环洗涤水支配；它不是反应器出口/激冷入口的水，因此不能反推 Q_plant |
-| `plant_reactor_outlet_h2o_fraction` | H-A_vs_H-B | no | online analyzer is dry-basis (contract composition_basis: outlet_*_dry_vol_pct); C/H/O 协调的碳平衡无水项 | 这是 H-A/H-B 不可分的直接原因；需要反应器出口或激冷入口的湿基测量 |
+| `washtower_wet_flow_channel` | H-A_vs_H-B | yes | 直接测量：outlet_syngas_wet_washtower_nm3_h + outlet_syngas_wet_washtower_temperature_c + outlet_syngas_wet_washtower_pressure_mpa（canonical parquet）。分钟级覆盖：P1 4313/4314（100.0%）；P2 4279/4279（100.0%）；P3 4279/4280（100.0%）；P4 2815/2817（99.9%） | 这是**湿流量通道**，是真测量，四阶段覆盖接近 100%。审查前本卡把「有该通道」误当成「有独立水分率测量」，此处更正：通道可用，但由它得不到独立的 H2O 分率（见下一行） |
+| `plant_outlet_h2o_fraction_wet_basis` | H-A_vs_H-B | derived | **推算值，非测量**：数据仓 config/canonical_flows.yaml 的 wet_to_dry 规定 dry = wet*(1 − Psat(T)/P)（src/features/wet_to_dry_syngas.py:29-38 落实）。故 1 − dry/wet ≡ Psat(T)/P；实测恒等偏差 |1−dry/wet − Psat/P|max = 1.67e-16（机器精度） | 因此该水分率**只是输入的饱和假设本身**，不能用来检验「是否饱和」，也不能充当独立的湿基 H2O 测量。中位约 0.46 这一点成立的唯一含义是「canonical 按 ~0.46 的饱和假设生成」。此前「98% 饱和」的说法是拿 Psat 与 Psat 相比，为循环论证，已撤回 |
+| `p16d_flow_difference_h2o_estimate` | H-A_vs_H-B | conditional | P1.6-D window_quench_tags.csv: FR_1015/FR1_1015, y_sat/y_flow 1.027-1.029；y_H2O = 0.4525-0.4646 (9 窗) | 来自另一口径的原始 FR1 湿/干流量差，**不是** canonical 的饱和假设回算；但 P1.6-D 原判读明确保留「同一标准状态与流量计标定尚未独立审计」的前提，故只作条件性估计，不能当已核实的独立测量，也不能由 9 窗推出全时段 |
+| `plant_reactor_outlet_h2o_fraction` | H-A_vs_H-B | no | online analyzer is dry-basis (contract composition_basis: outlet_*_dry_vol_pct); C/H/O 协调的碳平衡无水项 | 这是 H-A/H-B 不可分的直接原因。准确表述是「**湿流量通道有，缺的是所需位置**」——反应器出口/激冷入口；**不能**写成「已有独立 H2O 测量」：洗涤塔出口那份水分率是饱和假设推算的 |
 | `plant_wgs_quotient_Q` | H-A_vs_H-B | no | Q=CO2*H2/(CO*H2O) 的分母 H2O 不可辨识 | 干基三组分可算比值但缺 H2O；用洗涤塔出口水会得到与 205C 冻结状态不符的表观温度 |
 | `net_reacted_water_nw_after` | H-B | partial | P2.2-D S1-C-m reconciled_windows.csv; 阶段中位 71.85 / 19.73 / 9.82 / -25.09 | H 平衡反推的净耗水，P4 为负；不是输入水残差，也不能当出口残余水（原 R2/R4 已按卡片撤回） |
 | `quench_and_waste_heat_temperature_residence` | H-A | partial | 炉膛温度 3 层×2（TI_1025/1026/1027，水冷壁渣层偏置、仅趋势）、洗涤塔出口温度与压力（全时段）；无激冷段入口温度、无停留时间 | 只有点位温度，没有停留时间与沿程温度剖面；下游若确有变换需要能定位温度窗口的剖面 |
@@ -114,8 +116,8 @@ P4 的方向虽然一致（ρ = +0.67），但同一阶段的单一移动拟合�
 
 **第 3 种：分不开。** 理由：
 
-1. R0 显示判别 H-A/H-B 的两个关键量（入炉水量、反应器出口 H₂O）在现有数据下不可辨识；唯一的湿基测量位置不对（洗涤塔出口、近饱和）。
-2. R3 给不出与 H-A 一致的方向，P1/P3 反而相反，所以第 2 种结果（与 H-A 相容）被排除。
+1. R0 显示判别 H-A/H-B 的两个关键量（入炉水量、反应器出口 H₂O）在现有数据下不可辨识；洗涤塔出口的湿流量通道存在且覆盖近全时段，但由此回算的水分率恒等于饱和假设，不是独立测量——缺口在位置，不在通道。
+2. R3 给不出与 H-A 一致的方向（P1/P3 反而相反），第 2 种结果因此**未获支持**；但 ξ 与模型 CO₂ 的机械耦合使该检验不构成反证，故**不能**记为「被排除」。
 3. R2 是混合的：P2 全部相容，P1/P3 约一半超阈值，P4 全部超阈值。P4 的阶段级结论是第 1 种（不相容，缺口不止一个成分），但不能推广到四阶段。
 
 **不采用第 1 种作为总判定**：卡片没有预声明「阶段是否相容」如何由逐窗计数聚合，P1/P3 的中位 χ² 仍在阈值内；把 P4 的结果推广到全部阶段会超出数据。
