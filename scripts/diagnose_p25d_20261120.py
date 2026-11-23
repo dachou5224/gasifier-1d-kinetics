@@ -502,28 +502,54 @@ def audit_wet_basis() -> dict:
     dry = wet*(1 - Psat(T)/P)（src/features/wet_to_dry_syngas.py:29-38 落实）。
     因此用 canonical 的 1-dry/wet 复原出的水分率按构造恒等于 Psat/P，
     它只能反映输入假设，不能独立检验「是否饱和」。这里量化该恒等偏差。
+
+    状态传播（第三轮审查 P2）：未核查**不得**被报成通过。
+    - 缺文件 → status="missing"，max_dev 为 None（不是 0.0）
+    - 文件在但无有效样本 → status="no_samples"，max_dev 为 None
+    - 部分阶段缺 → 顶层 status="partial"；全缺 → "not_audited"；全有 → "complete"
+    max_dev 只在至少一个阶段真正算出偏差时才非 None。
     """
-    per_phase, max_dev = {}, 0.0
+    per_phase, devs = {}, []
     for phase, path in CANONICAL_WET.items():
         if not path.exists():
-            per_phase[phase] = {"n_minutes": 0, "n_complete": 0, "coverage": None,
-                                "note": "canonical 文件缺失"}
+            per_phase[phase] = {"status": "missing", "audited": False,
+                                "n_minutes": 0, "n_complete": 0, "coverage": None,
+                                "max_abs_dev_vs_psat_over_p": None,
+                                "note": "canonical 文件缺失，未核查"}
             continue
         df = pd.read_parquet(path, columns=[WET_F, WET_T, WET_P, DRY_F])
         ok = df[WET_F].notna() & df[WET_T].notna() & df[WET_P].notna() & df[DRY_F].notna()
         n, n_ok = int(len(df)), int(ok.sum())
-        dev = None
-        if n_ok:
-            y_flow = 1.0 - df.loc[ok, DRY_F] / df.loc[ok, WET_F]
-            psat_arr = np.array([_psat_mpa(t) for t in df.loc[ok, WET_T]])
-            # 与数据仓一致：y = (Psat/P).clip(0, 0.99)
-            psat_frac = np.clip(psat_arr / df.loc[ok, WET_P].to_numpy(dtype=float), 0.0, 0.99)
-            dev = float(np.nanmax(np.abs(y_flow.to_numpy(dtype=float) - psat_frac)))
-            max_dev = max(max_dev, dev)
-        per_phase[phase] = {"n_minutes": n, "n_complete": n_ok,
+        if n_ok == 0:
+            per_phase[phase] = {"status": "no_samples", "audited": False,
+                                "n_minutes": n, "n_complete": 0, "coverage": None,
+                                "max_abs_dev_vs_psat_over_p": None,
+                                "note": "文件在但无有效样本，未核查"}
+            continue
+        y_flow = 1.0 - df.loc[ok, DRY_F] / df.loc[ok, WET_F]
+        psat_arr = np.array([_psat_mpa(t) for t in df.loc[ok, WET_T]])
+        # 与数据仓一致：y = (Psat/P).clip(0, 0.99)
+        psat_frac = np.clip(psat_arr / df.loc[ok, WET_P].to_numpy(dtype=float), 0.0, 0.99)
+        dev = float(np.nanmax(np.abs(y_flow.to_numpy(dtype=float) - psat_frac)))
+        devs.append(dev)
+        per_phase[phase] = {"status": "audited", "audited": True,
+                            "n_minutes": n, "n_complete": n_ok,
                             "coverage": (n_ok / n) if n else None,
                             "max_abs_dev_vs_psat_over_p": dev}
-    return {"per_phase": per_phase, "max_dev": max_dev}
+
+    n_audited = sum(1 for v in per_phase.values() if v.get("audited"))
+    if n_audited == 0:
+        overall = "not_audited"
+    elif n_audited == len(per_phase):
+        overall = "complete"
+    else:
+        overall = "partial"
+    max_dev = float(np.max(devs)) if devs else None
+    audited_phases = [p for p, v in per_phase.items() if v.get("audited")]
+    missing_phases = [p for p, v in per_phase.items() if not v.get("audited")]
+    return {"per_phase": per_phase, "max_dev": max_dev, "status": overall,
+            "n_audited_phases": n_audited, "audited_phases": audited_phases,
+            "missing_phases": missing_phases}
 
 
 def _psat_mpa(t_c: float) -> float:
@@ -543,15 +569,38 @@ def _fmt_cov(a: dict) -> str:
     out = []
     for p in ("P1", "P2", "P3", "P4"):
         v = a["per_phase"].get(p, {})
-        cov = v.get("coverage")
-        if cov is None:
-            out.append(f"{p} 缺文件")
+        st = v.get("status")
+        if st == "missing":
+            out.append(f"{p} 缺文件（未核查）")
+        elif st == "no_samples":
+            out.append(f"{p} 无有效样本（未核查）")
+        elif v.get("coverage") is None:
+            out.append(f"{p} 未核查")
         else:
-            out.append(f"{p} {v['n_complete']}/{v['n_minutes']}（{cov * 100:.1f}%）")
+            out.append(f"{p} {v['n_complete']}/{v['n_minutes']}（{v['coverage'] * 100:.1f}%）")
     return "；".join(out)
 
 
-def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
+def _cov_claim(a: dict) -> str:
+    """覆盖率断言必须由实际 audited 阶段生成，不能写死「近全覆盖」。"""
+    st = a.get("status")
+    if st == "complete":
+        return "四阶段分钟级近全覆盖"
+    if st == "partial":
+        return (f"仅 {a['n_audited_phases']}/4 阶段已核查"
+                f"（{'、'.join(a['audited_phases'])}）；"
+                f"{'、'.join(a['missing_phases'])} 未核查")
+    return "**未核查**（无可用的 canonical 湿基输入）"
+
+
+def _dev_claim(a: dict) -> str:
+    """恒等偏差断言同理：无核查时不得写数值，更不能写 0。"""
+    if a.get("max_dev") is None:
+        return "未核查（无可用样本），偏差未知"
+    return f"{a['max_dev']:.2e}"
+
+
+def build_identifiability(rec: pd.DataFrame, wet_audit: dict | None = None) -> tuple[list[dict], dict]:
     nw = rec.groupby("phase")["nw_after"].median()
     nw_txt = " / ".join(f"{nw[p]:.2f}" for p in ("P1", "P2", "P3", "P4"))
 
@@ -566,9 +615,10 @@ def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
                        f" ({len(q)} 窗)")
             wet_sha = sha256_of(P16D_QUENCH)
 
-    wet_audit = audit_wet_basis()
+    wet_audit = wet_audit if wet_audit is not None else audit_wet_basis()
     cov_txt = _fmt_cov(wet_audit)
-    dev_txt = f"{wet_audit['max_dev']:.2e}"
+    dev_txt = _dev_claim(wet_audit)
+    claim_txt = _cov_claim(wet_audit)
 
     rows = [
         {
@@ -585,10 +635,10 @@ def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
         {
             "quantity": "washtower_wet_flow_channel",
             "required_for": "H-A_vs_H-B",
-            "available_in_project": "yes",
+            "available_in_project": "yes" if wet_audit["status"] == "complete" else "not_audited",
             "source_or_gap": (f"直接测量：{WET_F} + {WET_T} + {WET_P}"
-                              f"（canonical parquet）。分钟级覆盖：{cov_txt}"),
-            "note": ("这是**湿流量通道**，是真测量，四阶段覆盖接近 100%。"
+                              f"（canonical parquet）。覆盖：{cov_txt}"),
+            "note": (f"{claim_txt}。这是**湿流量通道**，是真测量。"
                      "审查前本卡把「有该通道」误当成「有独立水分率测量」，此处更正："
                      "通道可用，但由它得不到独立的 H2O 分率（见下一行）"),
         },
@@ -600,7 +650,7 @@ def build_identifiability(rec: pd.DataFrame) -> tuple[list[dict], dict]:
                               f"wet_to_dry 规定 dry = wet*(1 − Psat(T)/P)"
                               f"（src/features/wet_to_dry_syngas.py:29-38 落实）。"
                               f"故 1 − dry/wet ≡ Psat(T)/P；实测恒等偏差 "
-                              f"|1−dry/wet − Psat/P|max = {dev_txt}（机器精度）"),
+                              f"|1−dry/wet − Psat/P|max = {dev_txt}"),
             "note": ("因此该水分率**只是输入的饱和假设本身**，不能用来检验「是否饱和」，"
                      "也不能充当独立的湿基 H2O 测量。中位约 0.46 这一点成立的唯一含义是"
                      "「canonical 按 ~0.46 的饱和假设生成」。此前「98% 饱和」的说法"
@@ -779,8 +829,11 @@ def build_unit_checks(df: pd.DataFrame, xi_df: pd.DataFrame,
 
 
 # --- readings ---------------------------------------------------------------
-def build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta) -> list[dict]:
+def build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta,
+                   wet_audit=None) -> list[dict]:
     rows = []
+    wet_audit = wet_audit or {}
+    dev_txt = _dev_claim(wet_audit)
 
     n_yes = sum(1 for r in r0_rows if r["available_in_project"] == "yes")
     n_partial = sum(1 for r in r0_rows if r["available_in_project"] == "partial")
@@ -793,8 +846,8 @@ def build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta) -> list[
                  "phase": "ALL", "value": f"{n_yes}/{n_partial}/{n_der}/{n_cond}/{n_no}",
                  "note": ("yes / partial / derived / conditional / no。判别 H-A/H-B 的两个量里，"
                           "入炉水只有 2% 假设（partial），反应器出口 H₂O 没有（no）。"
-                          "湿流量通道是 yes（真测量），但由其得到的水分率是 derived"
-                          "（恒等于 Psat/P 的饱和假设回算，1.67e-16），"
+                          f"湿流量通道审计状态 = {wet_audit['status']}，但由其得到的水分率是 derived"
+                          f"（恒等于 Psat/P 的饱和假设回算，偏差 {dev_txt}），"
                           "P1.6-D 的流量差估计是 conditional")})
     rows.append({
         "reading": "R0", "metric": "decidable_HA_vs_HB", "phase": "ALL", "value": "no",
@@ -974,6 +1027,9 @@ def build_protocol(df, rec, spread, triplet, teq, r0_meta, unit_meta,
         "wet_basis_audit": {
             "note": ("R0 wet FLOW channel is a real measurement; the water FRACTION is derived, "
                      "because dry = wet*(1-Psat(T)/P) by construction, so 1-dry/wet == Psat/P."),
+            "status": (wet_audit or {}).get("status"),
+            "n_audited_phases": (wet_audit or {}).get("n_audited_phases"),
+            "missing_phases": (wet_audit or {}).get("missing_phases"),
             "max_abs_dev_identity": (wet_audit or {}).get("max_dev"),
             "per_phase": (wet_audit or {}).get("per_phase", {}),
             "psat_table_source": (rel_path(CANONICAL_DIR.parents[1] / "src" / "features"
@@ -1080,6 +1136,8 @@ def diagnostic_relations(df: pd.DataFrame, xi_df: pd.DataFrame) -> dict:
 
 def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
                          r0_rows, unit_meta, readings, wet_audit=None) -> str:
+    wet_audit = wet_audit or {}
+    claim_txt = _cov_claim(wet_audit)
     lines = []
     lines.append("# P2.5-D 装置组成偏还原的成因诊断 — 判读")
     lines.append("")
@@ -1098,7 +1156,7 @@ def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
                  f"{sum(1 for r in r0_rows if r['available_in_project']=='derived')} 项 derived、"
                  f"{sum(1 for r in r0_rows if r['available_in_project']=='conditional')} 项 conditional、"
                  f"{sum(1 for r in r0_rows if r['available_in_project']=='no')} 项 no。"
-                 "洗涤塔出口确实有**湿流量通道**（四阶段分钟级近全覆盖），"
+                 f"洗涤塔出口确实有**湿流量通道**（{claim_txt}），"
                  "但由它得到的水分率是 `dry = wet*(1−Psat/P)` 的**回算**，恒等于饱和假设本身，"
                  "不是独立测量；缺口是「**缺所需位置**」，不是「缺湿流量通道」，"
                  "更不能写成「已有独立 H₂O 测量」。")
@@ -1128,11 +1186,11 @@ def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
     lines.append("")
     lines.append("要点：三个观测量（CO/CO₂/H₂）都是**干基**，碳平衡没有水项，"
                  "所以装置侧 `Q_plant` 与反应器出口残余 H₂O 在现有数据下**都不可辨识**。"
-                 "洗涤塔出口确有**湿流量通道**（`outlet_syngas_wet_washtower_*`，分钟级覆盖四阶段，"
+                 f"洗涤塔出口确有**湿流量通道**（`outlet_syngas_wet_washtower_*`，{claim_txt}；"
                  "逐阶段覆盖率见上表与 protocol），这是真测量；"
                  "**但由它回算的水分率不是独立测量**：数据仓规定 `dry = wet*(1−Psat(T)/P)`，"
                  "故 `1 − dry/wet ≡ Psat(T)/P`，实测恒等偏差 "
-                 f"{(wet_audit or {}).get('max_dev', float('nan')):.2e}，即饱和假设本身被原样返回。"
+                 f"{_dev_claim(wet_audit or {})}，即饱和假设本身被原样返回。"
                  "P1.6-D 的 9 窗 `y_H2O` = 0.4525–0.4646 来自**另一口径**的原始 FR_1015/FR1_1015 "
                  "湿/干流量差，残差 2.7–2.9% 是一次真实的交叉检验；但其原判读已保留"
                  "「未做流量计标定、未核实是否同为标准状态」的前提，故只能算**条件性估计**。"
@@ -1329,6 +1387,27 @@ def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
 
 
 # --- 清单 -------------------------------------------------------------------
+
+def assert_no_false_audit_claim(wet_audit: dict) -> None:
+    """回归护栏：审计不完整时，产物里不得出现「全覆盖」或零偏差通过的字样。
+
+    这是第三轮审查 P2 的直接防线——未核查绝不能被报成通过。
+    """
+    if wet_audit.get("status") == "complete":
+        return
+    interp = (OUT_DIR / "interpretation.md").read_text(encoding="utf-8")
+    ident = (OUT_DIR / "identifiability.csv").read_text(encoding="utf-8")
+    readings = (OUT_DIR / "readings.csv").read_text(encoding="utf-8")
+    blob = interp + ident + readings
+    banned = ["四阶段分钟级近全覆盖", "四阶段覆盖接近 100%", "覆盖接近 100%"]
+    hits = [b for b in banned if b in blob]
+    if hits:
+        raise SystemExit(f"审计状态={wet_audit.get('status')} 却仍宣称全覆盖: {hits}")
+    if wet_audit.get("max_dev") is None:
+        for tok in ("0.00e+00", "0.0e+00"):
+            if tok in ident or tok in interp:
+                raise SystemExit(f"未核查却输出了零偏差字样: {tok}")
+
 def write_manifest(products: list[str], inputs: list[Path]) -> None:
     lines = ["# P2.5-D 产物与输入清单（sha256，相对仓库根）",
              "# self 行：sha256.txt 自身的哈希按「去掉最后一行 self 行后的内容」计算，",
@@ -1343,6 +1422,9 @@ def write_manifest(products: list[str], inputs: list[Path]) -> None:
     for p in inputs:
         if p.exists():
             lines.append(f"{sha256_of(p)}  {rel_path(p)}")
+        else:
+            # 缺失输入必须显式出现，不能静默跳过（否则自校验看不出它缺席）
+            lines.append(f"MISSING  {rel_path(p)}")
     lines += ["", "# self"]
     text_wo_self = "\n".join(lines) + "\n"
     self_hash = hashlib.sha256(text_wo_self.encode("utf-8")).hexdigest()
@@ -1405,11 +1487,12 @@ def main() -> None:
     triplet_rows, triplet = build_triplet(df)
     corr_rows = build_correlations(df, xi_df, spread)
     teq_rows, teq = build_teq(df)
-    r0_rows, r0_meta = build_identifiability(rec)
     wet_audit = audit_wet_basis()
+    r0_rows, r0_meta = build_identifiability(rec, wet_audit=wet_audit)
 
     unit_rows, unit_meta = build_unit_checks(df, xi_df, spread, triplet)
-    readings = build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta)
+    readings = build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta,
+                              wet_audit=wet_audit)
 
     products = ["identifiability.csv", "unit_checks.csv", "xi_window.csv",
                 "xi_spread.csv", "triplet_span.csv", "correlations.csv",
@@ -1465,6 +1548,7 @@ def main() -> None:
         json.dumps(protocol, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     write_manifest(products, inputs)
+    assert_no_false_audit_claim(wet_audit)
     verify = verify_outputs(products, inputs)
 
     if verify["absolute_path_hits"]:

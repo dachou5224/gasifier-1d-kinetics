@@ -1,6 +1,6 @@
 reading,metric,phase,value,note
 R0,quantities_listed,ALL,12,R0 可辨识性表行数
-R0,available_yes_partial_derived_cond_no,ALL,3/3/1/1/4,yes / partial / derived / conditional / no。判别 H-A/H-B 的两个量里，入炉水只有 2% 假设（partial），反应器出口 H₂O 没有（no）。湿流量通道是 yes（真测量），但由其得到的水分率是 derived（恒等于 Psat/P 的饱和假设回算，1.67e-16），P1.6-D 的流量差估计是 conditional
+R0,available_yes_partial_derived_cond_no,ALL,3/3/1/1/4,yes / partial / derived / conditional / no。判别 H-A/H-B 的两个量里，入炉水只有 2% 假设（partial），反应器出口 H₂O 没有（no）。湿流量通道审计状态 = complete，但由其得到的水分率是 derived（恒等于 Psat/P 的饱和假设回算，偏差 1.67e-16），P1.6-D 的流量差估计是 conditional
 R0,decidable_HA_vs_HB,ALL,no,反应器出口水与装置 Q 都不可辨识。洗涤塔出口有湿流量通道，但水分率是饱和假设回算、不是独立测量，故不能替代反应器出口水
 R1,xi_median_mol_s,P1,105.334272036,
 R1,xi_q1_mol_s,P1,98.4550236779,

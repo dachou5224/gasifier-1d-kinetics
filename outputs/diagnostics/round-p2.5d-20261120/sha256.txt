@@ -3,16 +3,16 @@
 # 校验：sed '$d' sha256.txt | shasum -a 256 应与 self 行一致
 
 # products
-4cb1eb31eabdbfab7830e554803ebee0e66bda43c27578c8b896068b8763f64d  outputs/diagnostics/round-p2.5d-20261120/identifiability.csv
+258977904461e3742db3d4b5473cb92a47e69150649e6798a4ad8675d89fb6f2  outputs/diagnostics/round-p2.5d-20261120/identifiability.csv
 195523f51b51c80a0e0311e82ee36551026fe8d632e059e83aa9e08edae53c99  outputs/diagnostics/round-p2.5d-20261120/unit_checks.csv
 f866491689da6a6712c7e5ad1a18e591c94be1f5a5f4f5cf34094d89ea225364  outputs/diagnostics/round-p2.5d-20261120/xi_window.csv
 48f7238bbac37c6c689a10f4119431141a4ab615acf291735bee0411dd722156  outputs/diagnostics/round-p2.5d-20261120/xi_spread.csv
 018286a6a1879a6c152ec58d2d5ba7fbd3e06b371bcf29dba3a85b8ac3d1d58e  outputs/diagnostics/round-p2.5d-20261120/triplet_span.csv
 5d7416200f65878d36c2f938682caf807710b2c9e9f792b6d7e3cdc2f171e6af  outputs/diagnostics/round-p2.5d-20261120/correlations.csv
 e537874bf20624e47fe284d74d5c76b8ad3b4adad74c633d1498d30e4062f6f1  outputs/diagnostics/round-p2.5d-20261120/teq_sensitivity.csv
-a1a41ca1fcda120acb92b551bc34759f56ceff966f71f6ce4e8598e2e307e4fc  outputs/diagnostics/round-p2.5d-20261120/readings.csv
-6e38210b6e9fbe4c2cf4b019b0e97dda05e4e43a02ae41c3acbfd4f9c8b1123a  outputs/diagnostics/round-p2.5d-20261120/protocol.json
-fdae004c00fbc6048762194a3dead9b43d7a2da8acef40b15613602a7db2266a  outputs/diagnostics/round-p2.5d-20261120/interpretation.md
+e131ab99e64eaec97105a62230f3375c0754661263dba143650e4f509ca42c75  outputs/diagnostics/round-p2.5d-20261120/readings.csv
+064548d143c20263c4b41dfb05d8a8f325eeb3e19f727743b7c0367e59ed9b15  outputs/diagnostics/round-p2.5d-20261120/protocol.json
+e4a471914de2eb7ee4e55e0e85b3fd867a6199b68184a5170f9b169e88661d1e  outputs/diagnostics/round-p2.5d-20261120/interpretation.md
 
 # inputs
 0c1fa8e2f7d7843295369a75a72c7460db65ecd3a11986bc02e9781dc4247c26  outputs/diagnostics/round-p2.2a-20261118/baseline_142.csv
@@ -25,4 +25,4 @@ ceee4f800c754318ff565cb8024312835cc1f61fda637555705072d2ec5ccddd  ../gasifier-da
 b087343688d4f7de057792895886c3b90fb8c87ab3ab5e98639251de1903ed64  ../gasifier-data-prep/src/features/wet_to_dry_syngas.py
 
 # self
-cbae39c1cb2c4446f080425a39ad480f8c452a56da2127e816ddc13e3f148d6b  outputs/diagnostics/round-p2.5d-20261120/sha256.txt
+9dd2dddb6f8511f322a5f10222efeed0a15f679e5273db91aeacb277f1e006f7  outputs/diagnostics/round-p2.5d-20261120/sha256.txt

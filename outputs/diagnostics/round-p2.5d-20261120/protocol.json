@@ -1,7 +1,7 @@
 {
   "round": "P2.5-D / 2026-11-20",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "5f5e27fdea100f0a3520118f94cf0668f6e7d3bf",
+  "source_commit": "dc3edd1768af09a525f44d0a921ca373529dd7a6",
   "baseline_commit_expected": "5f2cdd4",
   "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/data-side-handoff-p2.5d-20261120.md",
   "solver_calls": 0,
@@ -68,27 +68,38 @@
   ],
   "wet_basis_audit": {
     "note": "R0 wet FLOW channel is a real measurement; the water FRACTION is derived, because dry = wet*(1-Psat(T)/P) by construction, so 1-dry/wet == Psat/P.",
+    "status": "complete",
+    "n_audited_phases": 4,
+    "missing_phases": [],
     "max_abs_dev_identity": 1.6653345369377348e-16,
     "per_phase": {
       "P1": {
+        "status": "audited",
+        "audited": true,
         "n_minutes": 4314,
         "n_complete": 4313,
         "coverage": 0.9997681965693093,
         "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
       },
       "P2": {
+        "status": "audited",
+        "audited": true,
         "n_minutes": 4279,
         "n_complete": 4279,
         "coverage": 1.0,
         "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
       },
       "P3": {
+        "status": "audited",
+        "audited": true,
         "n_minutes": 4280,
         "n_complete": 4279,
         "coverage": 0.999766355140187,
         "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
       },
       "P4": {
+        "status": "audited",
+        "audited": true,
         "n_minutes": 2817,
         "n_complete": 2815,
         "coverage": 0.9992900248491303,
