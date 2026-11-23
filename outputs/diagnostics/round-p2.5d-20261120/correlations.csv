@@ -1,0 +1,11 @@
+scope,phase,metric,variable,n,n_missing,rho,p_value,direction_verdict,note
+P1,phase1,"spearman_rho(xi,T_out_K)",xi,37,0,-0.645566619251,1.59982322816e-05,opposite_to_HA_direction,
+P1,phase1,"spearman_rho(xi_over_dry,T_out_K)",xi_over_dry,37,0,-0.354433380749,0.0313692023912,opposite_to_HA_direction,
+P2,phase2,"spearman_rho(xi,T_out_K)",xi,44,0,-0.239182522903,0.117893698516,no_directional_signal,
+P2,phase2,"spearman_rho(xi_over_dry,T_out_K)",xi_over_dry,44,0,0.200986610289,0.1908020797,no_directional_signal,
+P3,phase3,"spearman_rho(xi,T_out_K)",xi,44,0,-0.739675828048,9.69382013979e-09,opposite_to_HA_direction,
+P3,phase3,"spearman_rho(xi_over_dry,T_out_K)",xi_over_dry,44,0,-0.649753347428,1.81972172244e-06,opposite_to_HA_direction,
+P4,phase4,"spearman_rho(xi,T_out_K)",xi,17,0,0.671568627451,0.00315573053211,consistent_with_HA_direction,
+P4,phase4,"spearman_rho(xi_over_dry,T_out_K)",xi_over_dry,17,0,0.65931372549,0.00398857681268,consistent_with_HA_direction,
+ALL,ALL,"spearman_rho(xi,T_out_K)",xi,142,0,-0.400265302573,7.99528581578e-07,opposite_to_HA_direction,
+ALL,ALL,"spearman_rho(xi_over_dry,T_out_K)",xi_over_dry,142,0,-0.411652776352,3.58915108185e-07,opposite_to_HA_direction,

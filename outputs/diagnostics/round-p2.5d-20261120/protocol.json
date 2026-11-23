@@ -1,0 +1,516 @@
+{
+  "round": "P2.5-D / 2026-11-20",
+  "model_repo": "gasifier-1d-kinetic",
+  "source_commit": "dc3edd1768af09a525f44d0a921ca373529dd7a6",
+  "baseline_commit_expected": "5f2cdd4",
+  "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/data-side-handoff-p2.5d-20261120.md",
+  "solver_calls": 0,
+  "solver_note": "本卡不重跑求解器；全部量由两个 CSV 离线导出",
+  "inputs": [
+    {
+      "path": "outputs/diagnostics/round-p2.2a-20261118/baseline_142.csv",
+      "sha256": "0c1fa8e2f7d7843295369a75a72c7460db65ecd3a11986bc02e9781dc4247c26"
+    },
+    {
+      "path": "../ai-research/papers/jax-gasifier-cascade-hybrid/revision-evidence-20261118/P2.2-D/reconciled_windows.csv",
+      "sha256": "517b13a89798d0d3e70927f3526b927d2b1e2c26ecc67bdc9ee78fb2f412c3e3"
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/diagnostics/p1.6d-20261031/window_quench_tags.csv",
+      "sha256": "57916521be03a66a45f290a66439d814ac1236f467cdae775962ef4214adab06",
+      "role": "R0 only (read-only reference, outside this repo)"
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3_phase1_wgs1.parquet",
+      "phase": "P1",
+      "sha256": "be898b89813a8ce6f919ac96055da01a4eb04e2dba21253b28fea8f503971697",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 4314,
+      "n_complete": 4313,
+      "coverage": 0.9997681965693093,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3sy2_phase2_wgs1.parquet",
+      "phase": "P2",
+      "sha256": "3645429fa81ea8cf53bf56bd4e154168804c80d2798193fb07808955d8412a8c",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 4279,
+      "n_complete": 4279,
+      "coverage": 1.0,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3sy2_phase3_wgs1.parquet",
+      "phase": "P3",
+      "sha256": "59da8ceda271cd8260e3d917de9fff4b346113eb96f089cb1d97d09bc2252e07",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 4280,
+      "n_complete": 4279,
+      "coverage": 0.999766355140187,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3sy2_phase4_wgs1.parquet",
+      "phase": "P4",
+      "sha256": "ceee4f800c754318ff565cb8024312835cc1f61fda637555705072d2ec5ccddd",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 2817,
+      "n_complete": 2815,
+      "coverage": 0.9992900248491303,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/src/features/wet_to_dry_syngas.py",
+      "sha256": "b087343688d4f7de057792895886c3b90fb8c87ab3ab5e98639251de1903ed64",
+      "role": "R0 only: the Psat lookup table replicated in _psat_mpa must match this file; a different formula would turn the tautology into a false independent check"
+    }
+  ],
+  "wet_basis_audit": {
+    "note": "R0 wet FLOW channel is a real measurement; the water FRACTION is derived, because dry = wet*(1-Psat(T)/P) by construction, so 1-dry/wet == Psat/P.",
+    "status": "complete",
+    "n_audited_phases": 4,
+    "missing_phases": [],
+    "max_abs_dev_identity": 1.6653345369377348e-16,
+    "per_phase": {
+      "P1": {
+        "status": "audited",
+        "audited": true,
+        "n_minutes": 4314,
+        "n_complete": 4313,
+        "coverage": 0.9997681965693093,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      },
+      "P2": {
+        "status": "audited",
+        "audited": true,
+        "n_minutes": 4279,
+        "n_complete": 4279,
+        "coverage": 1.0,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      },
+      "P3": {
+        "status": "audited",
+        "audited": true,
+        "n_minutes": 4280,
+        "n_complete": 4279,
+        "coverage": 0.999766355140187,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      },
+      "P4": {
+        "status": "audited",
+        "audited": true,
+        "n_minutes": 2817,
+        "n_complete": 2815,
+        "coverage": 0.9992900248491303,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      }
+    },
+    "psat_table_source": "../gasifier-data-prep/src/features/wet_to_dry_syngas.py"
+  },
+  "windows": {
+    "n": 142,
+    "by_phase": {
+      "phase1": 37,
+      "phase2": 44,
+      "phase3": 44,
+      "phase4": 17
+    },
+    "execution_status": "completed (all)"
+  },
+  "definitions": {
+    "xi_window": "R1 逐窗反解：xi = dry*(plant_CO2 - model_CO2)/(100 - plant_CO2)，model_CO2 = baseline 的变换前 CO2_vol_pct（不是 *_xi 列）",
+    "xi_phase_constant": "P2.2-A baseline 的 xi_mol_s（每阶段一个唯一值）",
+    "F_i": "F_i = 组成 vol% × dry_total / 100 (mol/s)",
+    "shifted_model": "CO=(F_CO-d)/(dry+d)*100, CO2=(F_CO2+d)/(dry+d)*100, H2=(F_H2+d)/(dry+d)*100，d 即 ξ",
+    "R2_estimator": "只拟合 ξ 一个参数；模型 dry 固定；Σ_comp=diag(0.5²,0.3²,0.5²)；χ²=yᵀΣ⁻¹y；dof=rank(Σ)-1=2；阈值 5.99",
+    "R2_solver": "dχ²/dξ 在扫描区间内变号后用 brentq 求根（xtol=1e-14），否则退回 bounded 最小化并显式记录",
+    "compatible": "chi2 <= 5.99（逐窗）",
+    "R3": "Spearman ρ(ξ, T_out_K) 与 ρ(ξ/dry, T_out_K)，双侧 p",
+    "R3_verdict": "ρ>0.3 且 p<0.05→consistent_with_HA_direction；ρ<-0.3→opposite_to_HA_direction；其余 no_directional_signal",
+    "R4_Q": "Q = n_CO2*n_H2/(n_CO*n_H2O)，n_i 由 *_xi 列 ×(dry+ξ) 换算（阶段常数 ξ）",
+    "R4_H2O": "主口径 F_H2O=(y/(1-y))*dry_total（卡片 §2.4 字面）；备查口径 F_H2O=(y/(1-y))*(dry+ξ)，两口径都写入 CSV",
+    "R4_T_eq": "解 K_WGS(T)=Q，K 用 model.kinetics.calculate_wgs_equilibrium（模型自身 Gibbs）",
+    "R4_drift": "drift(y) = median(T_eq|y) − median(T_eq|y=10%)，单位 K",
+    "R4_usability": "max|drift| ≤50 K usable；>150 K no_information；其间 marginal",
+    "CV": "样本标准差(ddof=1)/均值",
+    "U1": "诊断项，不是停止条件",
+    "U2": "3 窗独立重算：由 (F_CO2+ξ)/(dry+ξ)*100 = plant_CO2 解 ξ，与卡片公式互为独立推导",
+    "U2b": "dry 与各 F_i 同步乘 (1±4%)，ξ̂/dry 与 χ² 应不变（≤1e-9）",
+    "blank_cells": "结构性空缺：triplet_span.csv 的 phase_summary 行逐窗字段、unit_checks.csv 中非 U1 行的 U1 偏差列。这些不是缺失值；真缺失一律留空并在 reason 列写明原因，CSV 中不出现字面 NaN"
+  },
+  "R2_checks": {
+    "rank_Sigma": 3,
+    "eigenvalues_Sigma": [
+      0.09,
+      0.25,
+      0.25
+    ],
+    "dof": 2,
+    "chi2_threshold": 5.99,
+    "full_rank_required": true,
+    "note": "若 rank<3 应停止报告；本次满秩，未启用任何投影分支"
+  },
+  "R2_by_phase": {
+    "phase1": {
+      "n": 37,
+      "n_compatible": 21,
+      "chi2_median": 4.217486560305364,
+      "xi_hat_median": 112.89198658466215,
+      "xi_hat_over_dry_median": 0.06939679670016237,
+      "xi_hat_m4_median": 108.37630712127573,
+      "xi_hat_p4_median": 117.40766604804868,
+      "chi2_m4_median": 4.2174865603053835,
+      "chi2_p4_median": 4.2174865603054,
+      "z_median_abs_CO": 0.6954377326144794,
+      "z_median_abs_CO2": 1.4031587710050473,
+      "z_median_abs_H2": 1.349212487792478,
+      "z_signed_median_CO": -0.6954377326144794,
+      "z_signed_median_CO2": -1.4031587710050473,
+      "z_signed_median_H2": 1.349212487792478,
+      "max_ov_dev_m4": 5.551115123125783e-17,
+      "max_ov_dev_p4": 8.326672684688674e-17,
+      "max_chi2_dev_m4": 1.3500311979441904e-13,
+      "max_chi2_dev_p4": 2.184918912462308e-13,
+      "n_brentq": 37,
+      "n_bounded_fallback": 0
+    },
+    "phase2": {
+      "n": 44,
+      "n_compatible": 44,
+      "chi2_median": 0.2948192178182378,
+      "xi_hat_median": 107.76941083684827,
+      "xi_hat_over_dry_median": 0.06174009115211839,
+      "xi_hat_m4_median": 103.45863440337439,
+      "xi_hat_p4_median": 112.0801872703222,
+      "chi2_m4_median": 0.2948192178182385,
+      "chi2_p4_median": 0.2948192178182437,
+      "z_median_abs_CO": 0.20348578633365122,
+      "z_median_abs_CO2": 0.37265853725775955,
+      "z_median_abs_H2": 0.3282064365695234,
+      "z_signed_median_CO": -0.144076558412074,
+      "z_signed_median_CO2": -0.23562797027613475,
+      "z_signed_median_H2": 0.1679935969067472,
+      "max_ov_dev_m4": 8.326672684688674e-17,
+      "max_ov_dev_p4": 5.551115123125783e-17,
+      "max_chi2_dev_m4": 5.284661597215745e-14,
+      "max_chi2_dev_p4": 4.3298697960381105e-14,
+      "n_brentq": 44,
+      "n_bounded_fallback": 0
+    },
+    "phase3": {
+      "n": 44,
+      "n_compatible": 23,
+      "chi2_median": 5.865357141853446,
+      "xi_hat_median": 114.24494117888548,
+      "xi_hat_over_dry_median": 0.06523910158583192,
+      "xi_hat_m4_median": 109.67514353173007,
+      "xi_hat_p4_median": 118.81473882604095,
+      "chi2_m4_median": 5.865357141853449,
+      "chi2_p4_median": 5.865357141853455,
+      "z_median_abs_CO": 0.6961314000079994,
+      "z_median_abs_CO2": 1.566285890711606,
+      "z_median_abs_H2": 1.7042105005816772,
+      "z_signed_median_CO": 0.6961314000079994,
+      "z_signed_median_CO2": 1.566285890711606,
+      "z_signed_median_H2": -1.7042105005816772,
+      "max_ov_dev_m4": 6.938893903907228e-17,
+      "max_ov_dev_p4": 8.326672684688674e-17,
+      "max_chi2_dev_m4": 1.4921397450962104e-13,
+      "max_chi2_dev_p4": 1.3145040611561853e-13,
+      "n_brentq": 44,
+      "n_bounded_fallback": 0
+    },
+    "phase4": {
+      "n": 17,
+      "n_compatible": 0,
+      "chi2_median": 18.605388781283686,
+      "xi_hat_median": 97.10146691261595,
+      "xi_hat_over_dry_median": 0.05415944969326712,
+      "xi_hat_m4_median": 93.21740823611127,
+      "xi_hat_p4_median": 100.98552558912058,
+      "chi2_m4_median": 18.60538878128365,
+      "chi2_p4_median": 18.605388781283565,
+      "z_median_abs_CO": 1.3658169670270723,
+      "z_median_abs_CO2": 2.825755309447038,
+      "z_median_abs_H2": 2.9779237196207617,
+      "z_signed_median_CO": 1.3658169670270723,
+      "z_signed_median_CO2": 2.825755309447038,
+      "z_signed_median_H2": -2.9779237196207617,
+      "max_ov_dev_m4": 4.163336342344337e-17,
+      "max_ov_dev_p4": 5.551115123125783e-17,
+      "max_chi2_dev_m4": 1.2256862191861728e-13,
+      "max_chi2_dev_p4": 1.2079226507921703e-13,
+      "n_brentq": 17,
+      "n_bounded_fallback": 0
+    }
+  },
+  "R1_spread": {
+    "phase1": {
+      "n": 37,
+      "n_ok": 37,
+      "xi_median": 105.3342720361944,
+      "xi_q1": 98.45502367790007,
+      "xi_q3": 109.18169483627446,
+      "xi_cv": 0.09961117980679615,
+      "dry_cv": 0.03747623911216672,
+      "model_co2_cv": 0.1414002994056442,
+      "t_out_cv": 0.03926694436474475,
+      "xi_phase_constant": 110.50126739847181,
+      "max_input_cv": 0.1414002994056442,
+      "xi_cv_over_max_input_cv": 0.7044622976436218
+    },
+    "phase2": {
+      "n": 44,
+      "n_ok": 44,
+      "xi_median": 106.13729256293905,
+      "xi_q1": 103.94349531199866,
+      "xi_q3": 108.14389739732678,
+      "xi_cv": 0.03780574246529567,
+      "dry_cv": 0.01888030146150679,
+      "model_co2_cv": 0.11372367414650507,
+      "t_out_cv": 0.02936189797065127,
+      "xi_phase_constant": 108.08820586402827,
+      "max_input_cv": 0.11372367414650507,
+      "xi_cv_over_max_input_cv": 0.33243511299672085
+    },
+    "phase3": {
+      "n": 44,
+      "n_ok": 44,
+      "xi_median": 123.63887473851065,
+      "xi_q1": 116.3638030324651,
+      "xi_q3": 130.7869368260894,
+      "xi_cv": 0.09115191985722786,
+      "dry_cv": 0.018743003357377774,
+      "model_co2_cv": 0.17654859179849394,
+      "t_out_cv": 0.03672181576517887,
+      "xi_phase_constant": 129.26144987540613,
+      "max_input_cv": 0.17654859179849394,
+      "xi_cv_over_max_input_cv": 0.5162993311284255
+    },
+    "phase4": {
+      "n": 17,
+      "n_ok": 17,
+      "xi_median": 113.6370570672878,
+      "xi_q1": 111.50513513274335,
+      "xi_q3": 118.21298318220286,
+      "xi_cv": 0.06721589134923395,
+      "dry_cv": 0.0062360128446734145,
+      "model_co2_cv": 0.042595742522579444,
+      "t_out_cv": 0.011942046486010027,
+      "xi_phase_constant": 121.36870598297887,
+      "max_input_cv": 0.042595742522579444,
+      "xi_cv_over_max_input_cv": 1.5779955312107468
+    }
+  },
+  "R3_summary": {
+    "P1|xi": {
+      "rho": -0.6455666192508297,
+      "p": 1.5998232281609334e-05,
+      "n": 37,
+      "n_missing": 0,
+      "verdict": "opposite_to_HA_direction"
+    },
+    "P1|xi_over_dry": {
+      "rho": -0.35443338074917025,
+      "p": 0.031369202391178734,
+      "n": 37,
+      "n_missing": 0,
+      "verdict": "opposite_to_HA_direction"
+    },
+    "P2|xi": {
+      "rho": -0.23918252290345313,
+      "p": 0.11789369851597227,
+      "n": 44,
+      "n_missing": 0,
+      "verdict": "no_directional_signal"
+    },
+    "P2|xi_over_dry": {
+      "rho": 0.20098661028893586,
+      "p": 0.19080207969964044,
+      "n": 44,
+      "n_missing": 0,
+      "verdict": "no_directional_signal"
+    },
+    "P3|xi": {
+      "rho": -0.7396758280479211,
+      "p": 9.693820139785264e-09,
+      "n": 44,
+      "n_missing": 0,
+      "verdict": "opposite_to_HA_direction"
+    },
+    "P3|xi_over_dry": {
+      "rho": -0.649753347427766,
+      "p": 1.8197217224350231e-06,
+      "n": 44,
+      "n_missing": 0,
+      "verdict": "opposite_to_HA_direction"
+    },
+    "P4|xi": {
+      "rho": 0.6715686274509804,
+      "p": 0.00315573053211055,
+      "n": 17,
+      "n_missing": 0,
+      "verdict": "consistent_with_HA_direction"
+    },
+    "P4|xi_over_dry": {
+      "rho": 0.6593137254901962,
+      "p": 0.003988576812682064,
+      "n": 17,
+      "n_missing": 0,
+      "verdict": "consistent_with_HA_direction"
+    },
+    "ALL|xi": {
+      "rho": -0.4002653025727644,
+      "p": 7.995285815775892e-07,
+      "n": 142,
+      "n_missing": 0,
+      "verdict": "opposite_to_HA_direction"
+    },
+    "ALL|xi_over_dry": {
+      "rho": -0.4116527763516077,
+      "p": 3.5891510818489287e-07,
+      "n": 142,
+      "n_missing": 0,
+      "verdict": "opposite_to_HA_direction"
+    }
+  },
+  "R4_by_phase": {
+    "phase1": {
+      "max_abs_drift_K": 825.9725079818188,
+      "usability": "no_information",
+      "drifts_K": {
+        "0.05": -327.88852283464826,
+        "0.1": 0.0,
+        "0.15": 356.9800249337354,
+        "0.2": 825.9725079818188
+      },
+      "drifts_alt_basis_K": {
+        "0.05": -346.6185825345292,
+        "0.1": 0.0,
+        "0.15": 386.9292318932603,
+        "0.2": 915.848384167831
+      },
+      "T_eq_reference_K": 1473.1690429951566
+    },
+    "phase2": {
+      "max_abs_drift_K": 965.7053649952843,
+      "usability": "no_information",
+      "drifts_K": {
+        "0.05": -356.2798380389311,
+        "0.1": 0.0,
+        "0.15": 402.90290780210626,
+        "0.2": 965.7053649952843
+      },
+      "drifts_alt_basis_K": {
+        "0.05": -375.4383501889058,
+        "0.1": 0.0,
+        "0.15": 435.6696893014607,
+        "0.2": 1072.5627526291412
+      },
+      "T_eq_reference_K": 1535.167739573146
+    },
+    "phase3": {
+      "max_abs_drift_K": 781.0235106392029,
+      "usability": "no_information",
+      "drifts_K": {
+        "0.05": -317.83895903413077,
+        "0.1": 0.0,
+        "0.15": 341.43897946219704,
+        "0.2": 781.0235106392029
+      },
+      "drifts_alt_basis_K": {
+        "0.05": -336.7650360633081,
+        "0.1": 0.0,
+        "0.15": 371.0108438370935,
+        "0.2": 867.5241403653954
+      },
+      "T_eq_reference_K": 1450.633841518381
+    },
+    "phase4": {
+      "max_abs_drift_K": 819.369062464024,
+      "usability": "no_information",
+      "drifts_K": {
+        "0.05": -326.4419271858876,
+        "0.1": 0.0,
+        "0.15": 354.72066575806616,
+        "0.2": 819.369062464024
+      },
+      "drifts_alt_basis_K": {
+        "0.05": -344.57454301034795,
+        "0.1": 0.0,
+        "0.15": 383.59690989831597,
+        "0.2": 905.624532527851
+      },
+      "T_eq_reference_K": 1469.945078753588
+    }
+  },
+  "R0": {
+    "y_h2o_wet_reference": "0.4525-0.4646 (9 窗)",
+    "wet_reference_sha256": "57916521be03a66a45f290a66439d814ac1236f467cdae775962ef4214adab06",
+    "wet_flow_channel_coverage": "P1 4313/4314（100.0%）；P2 4279/4279（100.0%）；P3 4279/4280（100.0%）；P4 2815/2817（99.9%）",
+    "wet_fraction_derivation_identity_max_dev": 1.6653345369377348e-16,
+    "wet_basis_position": "wash-tower outlet (~204.5 C / 3.65 MPa)",
+    "nw_after_medians": {
+      "P1": 71.8531,
+      "P2": 19.7333,
+      "P3": 9.824805000000001,
+      "P4": -25.0894
+    }
+  },
+  "diagnostic_relations": {
+    "phase1": {
+      "n": 37,
+      "rho_xi_modelCO2": -0.7043622569938359,
+      "rho_xi_plantCO2": 0.21479374110953056,
+      "rho_modelCO2_Tout": 0.9502133712660028,
+      "label": "diagnostic_only_not_a_predeclared_reading"
+    },
+    "phase2": {
+      "n": 44,
+      "rho_xi_modelCO2": -0.32515856236786467,
+      "rho_xi_plantCO2": 0.08174770965468638,
+      "rho_modelCO2_Tout": 0.9685694150810428,
+      "label": "diagnostic_only_not_a_predeclared_reading"
+    },
+    "phase3": {
+      "n": 44,
+      "rho_xi_modelCO2": -0.7990133897110642,
+      "rho_xi_plantCO2": 0.2511627906976744,
+      "rho_modelCO2_Tout": 0.9546159267089499,
+      "label": "diagnostic_only_not_a_predeclared_reading"
+    },
+    "phase4": {
+      "n": 17,
+      "rho_xi_modelCO2": -0.6838235294117648,
+      "rho_xi_plantCO2": 0.8872549019607844,
+      "rho_modelCO2_Tout": -0.4338235294117647,
+      "label": "diagnostic_only_not_a_predeclared_reading"
+    }
+  },
+  "unit_checks": {
+    "u1_max_dev_pct_points": 0.004927082926518667,
+    "u2_max_abs_diff": 1.4210854715202004e-14,
+    "u2b_max_dev_ov": 8.326672684688674e-17,
+    "u2b_max_dev_chi2": 2.184918912462308e-13,
+    "solvable_rate": {
+      "phase1": 1.0,
+      "phase2": 1.0,
+      "phase3": 1.0,
+      "phase4": 1.0
+    }
+  },
+  "ambiguities": [
+    "R4 的水基准：卡片写 F_H2O=(y/(1-y))*dry_total，但变换后干气应为 dry+ξ。主口径按字面用 dry_total，备查口径同时写入 CSV（两口径 T_eq 差约 10-25 K，不改变 ≤50/>150 K 的分类）",
+    "R4 的 ξ 口径：卡片说「用 *_xi 列的对应流量」，即阶段常数 ξ；R1 的逐窗 ξ 是另一个量，本卡未在 R4 中使用",
+    "R2 的阶段聚合规则未预声明：卡片只给逐窗阈值与阶段汇总列；本卡同时报中位 χ² 与超阈值窗数，不自行定义阶段通过/不通过",
+    "R3 的实现细节未规定：本卡用双侧 p、逐窗 ξ（R1）与模型 T_out；未使用实测出口温度（见 R0 行 reactor_outlet_temperature_measured）",
+    "R1 的 inversion_ok 未定义：本卡定义为「分母 >1 pp 且 dry>0 且结果有限」，不把负 ξ 判为失败（负值是结果，不是数值失败）",
+    "洗涤塔出口湿基测量（P1.6-D，9 窗）的分母基准是洗涤塔出口干气，与 baseline 的模型 dry 不是同一位置；本卡未把它并入任何判据"
+  ],
+  "known_limitations": [
+    "不重跑求解器，ξ 的因果归属不在本卡范围内",
+    "不改 WGS 动力学：这是范围选择，不是「已证明无关」",
+    "R4 任何结果都不构成对 H-A 的支持"
+  ]
+}
