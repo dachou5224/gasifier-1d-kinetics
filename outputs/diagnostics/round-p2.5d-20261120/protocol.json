@@ -1,7 +1,7 @@
 {
   "round": "P2.5-D / 2026-11-20",
   "model_repo": "gasifier-1d-kinetic",
-  "source_commit": "d2eb5cd5aa3e3507a0ba42f0861428df22894d41",
+  "source_commit": "5f5e27fdea100f0a3520118f94cf0668f6e7d3bf",
   "baseline_commit_expected": "5f2cdd4",
   "task_card": "papers/jax-gasifier-cascade-hybrid/manuscript/data-side-handoff-p2.5d-20261120.md",
   "solver_calls": 0,
@@ -19,8 +19,84 @@
       "path": "../gasifier-data-prep/outputs/diagnostics/p1.6d-20261031/window_quench_tags.csv",
       "sha256": "57916521be03a66a45f290a66439d814ac1236f467cdae775962ef4214adab06",
       "role": "R0 only (read-only reference, outside this repo)"
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3_phase1_wgs1.parquet",
+      "phase": "P1",
+      "sha256": "be898b89813a8ce6f919ac96055da01a4eb04e2dba21253b28fea8f503971697",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 4314,
+      "n_complete": 4313,
+      "coverage": 0.9997681965693093,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3sy2_phase2_wgs1.parquet",
+      "phase": "P2",
+      "sha256": "3645429fa81ea8cf53bf56bd4e154168804c80d2798193fb07808955d8412a8c",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 4279,
+      "n_complete": 4279,
+      "coverage": 1.0,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3sy2_phase3_wgs1.parquet",
+      "phase": "P3",
+      "sha256": "59da8ceda271cd8260e3d917de9fff4b346113eb96f089cb1d97d09bc2252e07",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 4280,
+      "n_complete": 4279,
+      "coverage": 0.999766355140187,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/outputs/canonical/huayi_sy3sy2_phase4_wgs1.parquet",
+      "phase": "P4",
+      "sha256": "ceee4f800c754318ff565cb8024312835cc1f61fda637555705072d2ec5ccddd",
+      "role": "R0 wet-basis audit (coverage + saturation identity)",
+      "n_minutes": 2817,
+      "n_complete": 2815,
+      "coverage": 0.9992900248491303,
+      "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+    },
+    {
+      "path": "../gasifier-data-prep/src/features/wet_to_dry_syngas.py",
+      "sha256": "b087343688d4f7de057792895886c3b90fb8c87ab3ab5e98639251de1903ed64",
+      "role": "R0 only: the Psat lookup table replicated in _psat_mpa must match this file; a different formula would turn the tautology into a false independent check"
     }
   ],
+  "wet_basis_audit": {
+    "note": "R0 wet FLOW channel is a real measurement; the water FRACTION is derived, because dry = wet*(1-Psat(T)/P) by construction, so 1-dry/wet == Psat/P.",
+    "max_abs_dev_identity": 1.6653345369377348e-16,
+    "per_phase": {
+      "P1": {
+        "n_minutes": 4314,
+        "n_complete": 4313,
+        "coverage": 0.9997681965693093,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      },
+      "P2": {
+        "n_minutes": 4279,
+        "n_complete": 4279,
+        "coverage": 1.0,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      },
+      "P3": {
+        "n_minutes": 4280,
+        "n_complete": 4279,
+        "coverage": 0.999766355140187,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      },
+      "P4": {
+        "n_minutes": 2817,
+        "n_complete": 2815,
+        "coverage": 0.9992900248491303,
+        "max_abs_dev_vs_psat_over_p": 1.6653345369377348e-16
+      }
+    },
+    "psat_table_source": "../gasifier-data-prep/src/features/wet_to_dry_syngas.py"
+  },
   "windows": {
     "n": 142,
     "by_phase": {

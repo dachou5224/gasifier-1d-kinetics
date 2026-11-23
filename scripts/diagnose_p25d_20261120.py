@@ -921,7 +921,7 @@ def build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta) -> list[
 
 # --- protocol / interpretation ---------------------------------------------
 def build_protocol(df, rec, spread, triplet, teq, r0_meta, unit_meta,
-                   corr_rows, diag) -> dict:
+                   corr_rows, diag, wet_audit=None) -> dict:
     try:
         commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT,
                                          text=True).strip()
@@ -933,7 +933,34 @@ def build_protocol(df, rec, spread, triplet, teq, r0_meta, unit_meta,
     if P16D_QUENCH.exists():
         inputs.append({"path": rel_path(P16D_QUENCH), "sha256": sha256_of(P16D_QUENCH),
                        "role": "R0 only (read-only reference, outside this repo)"})
-
+    # R0 的覆盖率与恒等偏差直接由这四份 parquet 算出，必须进输入清单，
+    # 否则 canonical 更新后无法从交付物判断本次核查的是哪个版本。
+    canonical_inputs = []
+    for phase, path in CANONICAL_WET.items():
+        entry = {"path": rel_path(path), "phase": phase}
+        if path.exists():
+            entry["sha256"] = sha256_of(path)
+            entry["role"] = "R0 wet-basis audit (coverage + saturation identity)"
+            st = (wet_audit or {}).get("per_phase", {}).get(phase, {})
+            entry.update({
+                "n_minutes": st.get("n_minutes"),
+                "n_complete": st.get("n_complete"),
+                "coverage": st.get("coverage"),
+                "max_abs_dev_vs_psat_over_p": st.get("max_abs_dev_vs_psat_over_p"),
+            })
+        else:
+            # 缺文件时明确标为「未核查」，不能用固定文字宣称四阶段全覆盖
+            entry["sha256"] = None
+            entry["role"] = "R0 wet-basis audit -- MISSING, NOT AUDITED"
+            entry["audited"] = False
+        canonical_inputs.append(entry)
+        inputs.append(entry)
+    psat_src = (CANONICAL_DIR.parents[1] / "src" / "features" / "wet_to_dry_syngas.py")
+    if psat_src.exists():
+        inputs.append({"path": rel_path(psat_src), "sha256": sha256_of(psat_src),
+                       "role": ("R0 only: the Psat lookup table replicated in _psat_mpa must match "
+                                "this file; a different formula would turn the tautology into a "
+                                "false independent check")})
     return {
         "round": "P2.5-D / 2026-11-20",
         "model_repo": "gasifier-1d-kinetic",
@@ -944,6 +971,14 @@ def build_protocol(df, rec, spread, triplet, teq, r0_meta, unit_meta,
         "solver_calls": 0,
         "solver_note": "本卡不重跑求解器；全部量由两个 CSV 离线导出",
         "inputs": inputs,
+        "wet_basis_audit": {
+            "note": ("R0 wet FLOW channel is a real measurement; the water FRACTION is derived, "
+                     "because dry = wet*(1-Psat(T)/P) by construction, so 1-dry/wet == Psat/P."),
+            "max_abs_dev_identity": (wet_audit or {}).get("max_dev"),
+            "per_phase": (wet_audit or {}).get("per_phase", {}),
+            "psat_table_source": (rel_path(CANONICAL_DIR.parents[1] / "src" / "features"
+                                           / "wet_to_dry_syngas.py")),
+        },
         "windows": {"n": int(len(df)),
                     "by_phase": {p: int((df['phase'] == p).sum()) for p in PHASE_ORDER},
                     "execution_status": "completed (all)"},
@@ -1044,7 +1079,7 @@ def diagnostic_relations(df: pd.DataFrame, xi_df: pd.DataFrame) -> dict:
 
 
 def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
-                         r0_rows, unit_meta, readings) -> str:
+                         r0_rows, unit_meta, readings, wet_audit=None) -> str:
     lines = []
     lines.append("# P2.5-D 装置组成偏还原的成因诊断 — 判读")
     lines.append("")
@@ -1093,17 +1128,22 @@ def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
     lines.append("")
     lines.append("要点：三个观测量（CO/CO₂/H₂）都是**干基**，碳平衡没有水项，"
                  "所以装置侧 `Q_plant` 与反应器出口残余 H₂O 在现有数据下**都不可辨识**。"
-                 "湿基流量并非没有：canonical 表里有洗涤塔出口湿基流量、干基流量与洗涤塔温压，"
-                 "分钟级覆盖四个阶段的全部时段；P1.6-D 已用 9 个代表窗校核，"
-                 "`y_H2O` = 0.4525–0.4646，`y_sat/y_flow` = 1.027–1.029。"
-                 "但测点在**洗涤塔出口**（205 °C / 3.6 MPa，接近饱和），水由循环洗涤水支配，"
+                 "洗涤塔出口确有**湿流量通道**（`outlet_syngas_wet_washtower_*`，分钟级覆盖四阶段，"
+                 "逐阶段覆盖率见上表与 protocol），这是真测量；"
+                 "**但由它回算的水分率不是独立测量**：数据仓规定 `dry = wet*(1−Psat(T)/P)`，"
+                 "故 `1 − dry/wet ≡ Psat(T)/P`，实测恒等偏差 "
+                 f"{(wet_audit or {}).get('max_dev', float('nan')):.2e}，即饱和假设本身被原样返回。"
+                 "P1.6-D 的 9 窗 `y_H2O` = 0.4525–0.4646 来自**另一口径**的原始 FR_1015/FR1_1015 "
+                 "湿/干流量差，残差 2.7–2.9% 是一次真实的交叉检验；但其原判读已保留"
+                 "「未做流量计标定、未核实是否同为标准状态」的前提，故只能算**条件性估计**。"
+                 "测点在**洗涤塔出口**（约 204.5 °C / 3.65 MPa），水由循环洗涤水支配，"
                  "不是反应器出口或激冷入口的水，**不能**用来反推 `Q_plant`。"
                  "所以卡片「出口湿气 H₂O 分率：没有」应更精确地写成"
-                 "「没有反应器出口的湿基测量；洗涤塔出口的湿基测量覆盖全时段但位置不对」。"
-                 "这一改动不改变 R0 的结论，但改变了缺口清单的第一项：缺的是**位置**，不是湿基通道。")
+                 "「缺的是**所需位置上的独立湿基 H₂O 测量**；洗涤塔出口有湿流量通道，"
+                 "但那里的水分率是饱和假设的回算」——**不是**「已有湿基测量、只是位置不对」。")
     lines.append("")
-    lines.append("另需注意：唯一现成的湿基测量值 `y_H2O ≈ 0.46` 比 R4 扫描的 5–20% 高一个量级。"
-                 "R4 是显式假设扫描而不是测量，两者不能混为一谈。")
+    lines.append("另需注意：`y_H2O ≈ 0.46` 这个数（无论是 canonical 回算的中位还是 P1.6-D 的条件性估计）"
+                 "比 R4 扫描的 5–20% 高一个量级。R4 是显式假设扫描而不是测量，两者不能混为一谈。")
     lines.append("")
     lines.append("## R1 逐窗 ξ 分布")
     lines.append("")
@@ -1260,7 +1300,10 @@ def build_interpretation(df, xi_df, diag, spread, triplet, corr_rows, teq,
     lines.append("## 所需观测（若要与本卡之外的证据合流）")
     lines.append("")
     lines.append("1. 反应器出口或激冷入口的**湿基** H₂O 测量——现有湿基通道在洗涤塔出口，"
-                 "位置不对；若能把取压/取样点前移到激冷入口，这一项即可闭合。")
+                 "位置不对。**注意：仅把取压/取样点前移不能闭合这一项**——现有水分率是 "
+                 "`dry = wet*(1−Psat/P)` 的回算，若前移后仍用同一换算，循环依赖照旧。"
+                 "需要的是**独立**的 H₂O 测量（如在线湿度/露点、或独立的湿基流量与干基流量组合），"
+                 "或对湿/干两只流量计做独立标定并确认同为标准状态。")
     lines.append("2. 独立的入炉水测量：逐窗煤水分、激冷水流量、蒸汽流量（当前只有 2% 假设与"
                  "「无烧嘴蒸汽」的定性确认）。")
     lines.append("3. 激冷段/废锅的温度与停留时间剖面，用于判断下游是否真有变换窗口。")
@@ -1363,6 +1406,7 @@ def main() -> None:
     corr_rows = build_correlations(df, xi_df, spread)
     teq_rows, teq = build_teq(df)
     r0_rows, r0_meta = build_identifiability(rec)
+    wet_audit = audit_wet_basis()
 
     unit_rows, unit_meta = build_unit_checks(df, xi_df, spread, triplet)
     readings = build_readings(spread, triplet, corr_rows, teq, r0_rows, unit_meta)
@@ -1371,7 +1415,9 @@ def main() -> None:
                 "xi_spread.csv", "triplet_span.csv", "correlations.csv",
                 "teq_sensitivity.csv", "readings.csv", "protocol.json",
                 "interpretation.md", "sha256.txt"]
-    inputs = [BASELINE, P22D_WINDOWS, P16D_QUENCH]
+    inputs = [BASELINE, P22D_WINDOWS, P16D_QUENCH,
+              *CANONICAL_WET.values(),
+              CANONICAL_DIR.parents[1] / "src" / "features" / "wet_to_dry_syngas.py"]
 
     write_csv(OUT_DIR / "identifiability.csv",
               ["quantity", "required_for", "available_in_project",
@@ -1410,11 +1456,11 @@ def main() -> None:
 
     diag = diagnostic_relations(df, xi_df)
     interp = build_interpretation(df, xi_df, diag, spread, triplet, corr_rows,
-                                  teq, r0_rows, unit_meta, readings)
+                                  teq, r0_rows, unit_meta, readings, wet_audit=wet_audit)
     (OUT_DIR / "interpretation.md").write_text(interp, encoding="utf-8")
 
     protocol = build_protocol(df, rec, spread, triplet, teq, r0_meta, unit_meta,
-                              corr_rows, diag)
+                              corr_rows, diag, wet_audit=wet_audit)
     (OUT_DIR / "protocol.json").write_text(
         json.dumps(protocol, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
