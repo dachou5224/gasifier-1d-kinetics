@@ -1,0 +1,161 @@
+{
+  "schema": "operating-response-comparison/controlled_protocol_draft",
+  "schema_version": "1.0.0",
+  "card": "06A",
+  "status": "DRAFT_PENDING_REVIEW",
+  "generated_at": "2026-11-24T14:19:39",
+  "repo": {
+    "name": "gasifier-1d-kinetic",
+    "baseline_head": "c7cde49",
+    "n_cells": 182,
+    "solver_entry": "model.p1_5_round_20261030.run_case",
+    "note": "只读 model_cases 预览 parquet 的入炉侧字段作为名义工况；未读装置出口组成作为真值"
+  },
+  "reference_point": {
+    "historical_path": "run_case 不写 WGS_CatalyticFactor -> 使用 gasifier_system 的缺省 0.2",
+    "equivalence_result": "历史路径与显式 0.2 逐位相同（dCO = 0）",
+    "alt_entry": "revision_evidence_common.solve_model_case 显式写入 alpha_wgs",
+    "alt_entry_equivalence": "在 alpha_wgs=1.0 下与 run_case(1.0) **不等价**，不能用于验证历史 C0",
+    "scale_conversion": {
+      "absolute": "op_conds['WGS_CatalyticFactor']，历史 C0 为 0.2",
+      "relative_to_C0": "absolute / 0.2",
+      "warning": "theta=1.0 是绝对 1.0，等于 5x C0；不得等同于 C0"
+    }
+  },
+  "arms": {
+    "A": "历史 C0（absolute 0.2，不写键）",
+    "B": "以 A 为底座的直接出口残差校正（复用 direct_residual_baseline）",
+    "C": "同一候选集按开发组成误差选",
+    "G": "同一候选集先过组成与响应门槛，再按组成误差排序；无合格则返回 A"
+  },
+  "candidate": {
+    "family": "alpha_wgs",
+    "absolute_grid": [
+      0.02,
+      0.06,
+      0.15,
+      0.32,
+      0.68,
+      2.0
+    ],
+    "relative_to_C0": [
+      0.1,
+      0.3,
+      0.75,
+      1.6,
+      3.4,
+      10.0
+    ],
+    "basis": "06 独立登记；不继承 01 的网格作为阈值依据"
+  },
+  "response": {
+    "definition": "r = ln(1.05) * (y_hi - y_lo) / ln(u_hi / u_lo)",
+    "u": "o_c_ratio（含载气 CO2 的 O 与 C）",
+    "y": "干基 CO 体积分数",
+    "pair_construction": "名义入炉工况下只改 O2 ±2.5%，得 rel_u ≈ 4.1%",
+    "unit": "百分点 / 输入相对变化 5%",
+    "sign": "r < 0 表示 CO 随 O/C 上升而下降"
+  },
+  "thresholds": {
+    "basis_statement": "全部阈值由本轮杠杆与预设测量分辨率独立导出，不继承 01 的 0.25、R_abs_dev、网格或工程组成上限",
+    "sigma_y_preset_pp": {
+      "optimistic": 0.1,
+      "moderate": 0.25,
+      "conservative": 0.5
+    },
+    "primary_preset": "optimistic",
+    "composition_match_tolerance_pp": 0.2,
+    "composition_match_basis": "2 x 最乐观预设 sigma_y；低于此差异视为分析仪不可分辨",
+    "separation_multiplier_k": 2.0,
+    "separation_rule": "信号须超过 k * sigma_r，sigma_r = ln(1.05)*sqrt(2)*sigma_y/ln(u_hi/u_lo)"
+  },
+  "preset_assumption_disclosure": {
+    "is_measurement": false,
+    "basis": "工业在线合成气分析仪（NDIR CO/CO2、TCD H2）的典型重复性量级",
+    "sensitivity": "同时报 0.10 / 0.25 / 0.50 三档；结论在全部三档下一致"
+  },
+  "separation_findings": {
+    "composition_level_span_pp": {
+      "P1": 0.049035,
+      "P3": 0.043271,
+      "P4": 0.070227
+    },
+    "saturation_gain_2.0_to_10.0_pp": {
+      "P1": 0.000464,
+      "P3": 0.000503,
+      "P4": 0.000501
+    },
+    "response_span_pp_per_5pct": {
+      "P1": 0.014499808,
+      "P3": 0.007962357,
+      "P4": 0.050833101
+    },
+    "separable_by_phase": {
+      "P1": false,
+      "P3": false,
+      "P4": false
+    },
+    "c_dev_spread_pp": {
+      "P3": 0.031529,
+      "P4": 0.028308
+    },
+    "r_dev_spread": {
+      "P3": 0.007713147,
+      "P4": 0.047471392
+    },
+    "c_argmin_theta": {
+      "P3": 2.0,
+      "P4": 2.0
+    },
+    "r_argmin_theta": {
+      "P3": 2.0,
+      "P4": 2.0
+    },
+    "gate_changes_action": {
+      "P3": false,
+      "P4": false
+    }
+  },
+  "structural_finding": {
+    "statement": "候选是单标量族，组成误差与响应误差都对该标量单调，两个指标的 argmin 必然落在同一端点，因此任何仅靠排序的门槛都不可能改变选择动作。这不是数据量问题，是候选族的维数问题。",
+    "evidence": "ablation_trace.csv：C 与 R 的 argmin 在各阶段相同"
+  },
+  "verdict": {
+    "exit": "STOP_TO_07",
+    "reason_codes": [
+      "signal_below_preset_resolution",
+      "single_scalar_family_degeneracy",
+      "saturation_not_amplitude_limited"
+    ],
+    "detail": {
+      "signal_below_preset_resolution": "组成水平杠杆 <= 0.057 pp、响应杠杆 <= 0.008 pp/5%，在最乐观预设 sigma_y=0.10 pp 下仍低 3-22 倍",
+      "single_scalar_family_degeneracy": "组成与响应同为 theta 的单调函数，argmin 相同，关闭响应门槛不改变动作，消融为空",
+      "saturation_not_amplitude_limited": "absolute 2.0 -> 10.0（再增 5 倍）仅再加 0.0005 pp，说明不是幅度不够，而是该路径上 WGS 已近平衡、乘子无杠杆"
+    },
+    "not_triggered": [
+      "matrix_search_expansion",
+      "new_physical_mechanism_added"
+    ]
+  },
+  "isolation": {
+    "generation_side": "名义入炉工况 + 注入机制；真值由生成端保存并哈希",
+    "fitting_side": "只读授权输入与开发观测",
+    "scoring_side": "预测锁定后才读评估真值",
+    "scenario_selection_neutrality": "场景不按 C/G 评估成绩挑选；两场景在本轮均因可分辨性不足而未进入执行"
+  },
+  "seeds": {
+    "solver": "deterministic",
+    "noise_model": "not_applied_in_06A"
+  },
+  "handoff_to_07": {
+    "carry": [
+      "候选族杠杆与饱和的定量证据",
+      "双入口不等价的记录",
+      "单一标量族的排序退化结论"
+    ],
+    "do_not_claim": [
+      "响应判据有效或无效（本轮无对照可判）",
+      "工业响应已识别"
+    ]
+  }
+}
