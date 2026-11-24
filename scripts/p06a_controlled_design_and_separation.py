@@ -1,34 +1,28 @@
 #!/usr/bin/env python3
-"""06A 受控比较设计与可分辨性检查 —— 产物生成脚本。
+"""06A 受控比较设计与可分辨性检查 —— 产物生成脚本（rev 2）。
 
-用途
-----
-本脚本是 06A 的**唯一**产物生成器。`outputs/diagnostics/operating-response-comparison/06A/`
-下的 CSV / JSON / MD 由本脚本从仓内输入与实跑求解器结果重算写出，避免手抄数字。
+rev 2 相对 rev 1 的修正（按首轮审查意见）
+------------------------------------------
+P1 参考点底座：rev 1 直接调 `run_case` 默认 `mesh_family="uniform_full_length"`，
+   且未传 `coal_flow_dry_kg_s`，因此走的是 uniform 路径、煤量按湿煤处理。
+   那不是 P2.2-A 的 C0。rev 2 改为复用 P2.2-A 的冻结配置：
+   MeshFamily=wsr_plus_pfr / WSRLength=1.0 / PFRCellLength=0.0515 /
+   HeatLossPercentTotal=1.0 / 实测载气 / 显式干煤口径 / n_cells=182。
+   并先用 `baseline_142.csv` 做逐位复现，再比较不写键与显式 0.2。
 
-依据
-----
-    论文仓 `manuscript/operating-response-comparison/06-controlled-validation.md`（06A 段）
-    论文仓 `manuscript/operating-response-comparison/acceptance-01-02-20261124.md`
+P2 误差传播：rev 1 把组成水平也套用响应量 σ_r（含 ln(1.05)/Δln u 归一因子），
+   高估了倍数。rev 2 分开：组成用单一观测对确定性模型的 k·σ_y；
+   响应用 σ_r = ln(1.05)·√2·σ_y/Δln u。
 
-基线
-----
-    gasifier-1d-kinetic @ c7cde49（main）
-    只读取 model_cases 预览 parquet 的**入炉侧**字段作为名义工况；
-    不读取任何装置出口组成作为真值（06A 卡面硬要求）。
+P3 排序退化：rev 1 把「真值取网格内 θ=2.0 + 无噪声同求解器 → C_dev=R_dev=0」
+   当成「单标量族必然退化」的证据，并外推为「任何门槛都不可能改变动作」。
+   rev 2 撤回这些普遍结论，只报「在本 S1、该网格与预设门槛下未改变动作」。
 
-产物
-----
-    baseline_equivalence.csv   参考点等价检查（历史路径 / 显式绝对 / 另一入口）
-    leverage_scan.csv          WGS 绝对系数扫描：组成水平杠杆与饱和
-    response_leverage.csv      候选在整个网格上对响应 r 的杠杆
-    separation_check.csv       可分辨性：信号 vs 预设测量分辨率
-    ablation_trace.csv         G 关闭响应门槛时的选择轨迹（含 C 的选择）
-    scenario_design.csv        两类场景的生成与判别条件及预审结论
-    controlled_protocol_draft.yaml
-    expected_outputs.md
-    commands.md
-    sha256.txt
+P4 场景二：rev 1 只算了 WGS 网格的 C_dev 极差，把「组成近似易满足」
+   误写成「前提不成立」，且未真正注入边界偏差。rev 2 实际计算一种
+   载气偏差，并分别登记组成近似与响应分离的通过/失败。
+
+产物目录：outputs/diagnostics/operating-response-comparison/06A/
 """
 from __future__ import annotations
 
@@ -43,36 +37,31 @@ import pandas as pd
 
 REPO = Path(__file__).resolve().parents[1]
 OUT = REPO / "outputs" / "diagnostics" / "operating-response-comparison" / "06A"
-DATA = Path("/Users/liuzhen/AI-projects/gasifier-data-prep/outputs/model_cases")
 
-CASES = {
-    "P1": DATA / "huayi_sy3_phase1_wgs1_shift.model_cases_preview.parquet",
-    "P3": DATA / "huayi_sy3sy2_phase3_wgs1_shift.model_cases_preview.parquet",
-    "P4": DATA / "huayi_sy3sy2_phase4_wgs1_shift.model_cases_preview.parquet",
-}
+# P2.2-A 冻结输入的论文仓副本（只读）
+PAPER = Path("/Users/liuzhen/AI-projects/ai-research/papers/jax-gasifier-cascade-hybrid")
+WINDOWS_CSV = PAPER / "revision-evidence-20261118/P2.2-D/windows_142.csv"
+BASELINE_CSV = PAPER / "revision-evidence-20261118/P2.2-A/baseline_142.csv"
 
-N_CELLS = 182
-VM = 22.414          # Nm3/kmol
+VM = 22.414
 M_C = 12.0
 
-# 候选网格：**绝对** op_conds 值（与 global_multialpha_diagnostic.ALPHA_BOUNDS 同口径）
+# 候选网格：**绝对** op_conds 值
 GRID_ABS: tuple[float, ...] = (0.02, 0.06, 0.15, 0.32, 0.68, 2.0)
-# 历史 C0 路径的绝对缺省值（gasifier_system.py 的 op_conds.get 兜底）
-C0_ABS_FALLBACK = 0.2
-# 另一求解入口 explicit 1.0
-ALT_ENTRY_ABS = 1.0
+C0_ABS_FALLBACK = 0.2      # gasifier_system 的 op_conds.get 兜底
+ALT_ENTRY_ABS = 1.0        # revision_evidence_common.solve_model_case 的显式设置
 
-# 预设测量分辨率（设计假设，不是实测值）
+# 预设测量分辨率（设计假设，非实测标定）
 SIGMA_Y_PRESET = {"optimistic": 0.10, "moderate": 0.25, "conservative": 0.50}
 PRIMARY_SIGMA_KEY = "optimistic"
+K_SIGMA = 2.0
 
-# 组成"近似"的容许代价（场景二用）：取主张最宽的一档，2 × 最乐观 σ_y
-COMPOSITION_MATCH_TOL_PP = 2.0 * SIGMA_Y_PRESET[PRIMARY_SIGMA_KEY]
-
-K_SIGMA = 2.0  # 判据：信号须超过 2σ
+# 场景二：边界偏差幅值（载气流量相对偏差）
+S2_CARRIER_REL = 0.03
 
 PRODUCTS = (
     "baseline_equivalence.csv",
+    "c0_reproduction.csv",
     "leverage_scan.csv",
     "response_leverage.csv",
     "separation_check.csv",
@@ -81,7 +70,11 @@ PRODUCTS = (
     "controlled_protocol_draft.yaml",
     "expected_outputs.md",
     "commands.md",
+    "limitations.md",
 )
+
+EQUIV_PHASES = ("P1", "P3", "P4")
+RUN_PHASES = ("P1", "P3", "P4")
 
 
 def sha256_of(p: Path) -> str:
@@ -90,120 +83,179 @@ def sha256_of(p: Path) -> str:
     return h.hexdigest()
 
 
-def _imports():
+def _ctx():
     import sys
 
     src = REPO / "src"
-    if str(src) not in sys.path:
-        sys.path.insert(0, str(src))
-    from model.p1_5_round_20261030 import run_case
-    from model.revision_evidence_common import solve_model_case
+    scripts = REPO / "scripts"
+    for p in (src, scripts):
+        if str(p) not in sys.path:
+            sys.path.insert(0, str(p))
+    from model.p1_5_round_20261030 import run_case, silence_solver_logs
+    from model.revision_evidence_common import load_frozen_split
+    import generate_p1_8a_20261104 as p18a
+    import generate_p2_0a_20261113 as p20
 
-    return run_case, solve_model_case
-
-
-def _row(phase: str) -> dict[str, Any]:
-    df = pd.read_parquet(CASES[phase])
-    row = df.iloc[0].to_dict()
-    row["window_id"] = f"{phase}_nominal"
-    return row
+    silence_solver_logs()
+    return run_case, load_frozen_split, p18a, p20
 
 
-def _nominal_pair(row: dict[str, Any], rel: float = 0.025) -> tuple[dict[str, Any], dict[str, Any]]:
-    """由名义入炉工况构造一对只差 O2 的窗口，得到预声明的 O/C 激励。"""
-    lo = dict(row)
-    lo["window_id"] = lo["window_id"] + "_lo"
-    lo["o2_volumetric_flow_value"] = float(row["o2_volumetric_flow_value"]) * (1.0 - rel)
-    hi = dict(row)
-    hi["window_id"] = hi["window_id"] + "_hi"
-    hi["o2_volumetric_flow_value"] = float(row["o2_volumetric_flow_value"]) * (1.0 + rel)
-    return lo, hi
+def p22a_op(p18a, p20, carrier_nm3: float) -> dict[str, Any]:
+    """P2.2-A 的冻结 op 配置（见 generate_p2_2a_20261118.build_op）。"""
+    return {
+        "HeatLossModel": "total_percent",
+        "HeatLossPercentTotal": 1.0,
+        "GasificationRateFactor": 1.0,
+        "CharCO2RateFactor": 1.0,
+        "carrier_gas_flow": p18a._carrier_kg_s(carrier_nm3),
+        "MeshFamily": "wsr_plus_pfr",
+        "WSRLength_m": 1.0,
+        "PFRCellLength_m": 0.0515,
+        "OxygenMixingModel": "instant",
+        "o2_flow_scale": 1.0,
+    }
 
 
-def _oc(row: dict[str, Any], w_c: float = 0.73) -> float:
-    """O/C（含载气 CO2 的 O 与 C 贡献），与 data 仓 feature_definitions 同式。"""
-    n_o2 = float(row["o2_volumetric_flow_value"]) / VM
-    n_car = float(row["co2_carrier_volumetric_flow_value"]) / VM
-    coal = float(row["coal_mass_flow_value"])
-    n_c_coal = coal * 3600.0 * w_c / M_C
+def solve_p22a(run_case, p18a, p20, row: dict[str, Any], win: dict[str, str],
+               *, theta_abs: float | None = None, carrier_mult: float = 1.0,
+               o2_mult: float = 1.0) -> dict[str, Any]:
+    dry = float(win["coal_dry_recon_phase_kg_s"])
+    carrier = float(win["co2_carrier_measured_nm3_h"]) * carrier_mult
+    op = p22a_op(p18a, p20, carrier)
+    op["o2_flow_scale"] = float(op["o2_flow_scale"]) * o2_mult
+    if theta_abs is not None:
+        op["WGS_CatalyticFactor"] = float(theta_abs)
+    return run_case(
+        row,
+        n_cells=p20.mesh_n(),
+        coal_flow_dry_kg_s=dry,
+        mesh_family="wsr_plus_pfr",
+        extra_op=op,
+    )
+
+
+def _oc(win: dict[str, str], w_c: float, o2_mult: float = 1.0) -> float:
+    n_o2 = float(win["o2_fy1103a_nm3_h_mean"]) * o2_mult / VM
+    n_car = float(win["co2_carrier_measured_nm3_h"]) / VM
+    n_c_coal = float(win["coal_dry_recon_phase_kg_s"]) * 3600.0 * w_c / M_C
     return (2.0 * n_o2 + 2.0 * n_car) / (n_c_coal + n_car)
 
 
 def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
-    run_case, solve_model_case = _imports()
+    run_case, load_frozen_split, p18a, p20 = _ctx()
 
-    cache: dict[tuple[str, float], dict[str, Any]] = {}
+    ok, rows, _inv = load_frozen_split(coal_set="current")
+    if not ok:
+        raise RuntimeError("frozen split 未被完整消费")
+    by_id = {r["window_id"]: r for r in rows}
+    with WINDOWS_CSV.open(newline="", encoding="utf-8") as fh:
+        W = {r["window_id"]: r for r in csv.DictReader(fh)}
+    with BASELINE_CSV.open(newline="", encoding="utf-8") as fh:
+        B = {r["window_id"]: r for r in csv.DictReader(fh)}
+    if set(by_id) != set(W) or set(by_id) != set(B):
+        raise RuntimeError("三者的 window_id 集合不一致")
 
-    def solve(phase: str, row: dict[str, Any], theta_abs: float | None) -> dict[str, Any]:
-        key = (row["window_id"], -1.0 if theta_abs is None else theta_abs)
+    def phase_of(wid: str) -> str:
+        return f"P{int(by_id[wid]['phase_number'])}"
+
+    def pick(phase: str, n: int = 1) -> list[str]:
+        ids = [w for w in sorted(by_id) if phase_of(w) == phase]
+        return ids[:n]
+
+    cache: dict[tuple, dict[str, Any]] = {}
+
+    def solve(wid: str, **kw) -> dict[str, Any]:
+        key = (wid, kw.get("theta_abs"), kw.get("carrier_mult", 1.0), kw.get("o2_mult", 1.0))
         if key in cache:
             return cache[key]
-        kw: dict[str, Any] = {}
-        if theta_abs is not None:
-            kw["extra_op"] = {"WGS_CatalyticFactor": float(theta_abs)}
-        res = run_case(row, n_cells=N_CELLS, **kw)
+        res = solve_p22a(run_case, p18a, p20, by_id[wid], W[wid], **kw)
         cache[key] = res
         return res
 
-    # ---------------- 1. 参考点等价检查 ----------------
+    # ---------------- 1. 历史 C0 逐位复现 ----------------
+    repro_rows: list[dict[str, Any]] = []
+    for phase in EQUIV_PHASES:
+        for wid in pick(phase, 2):
+            res = solve(wid)
+            b = B[wid]
+            repro_rows.append(
+                {
+                    "phase": phase,
+                    "window_id": wid,
+                    "mesh_family": res["MeshFamily"],
+                    "n_cells": res["N_cells"],
+                    "coal_flow_dry_kg_s": round(float(W[wid]["coal_dry_recon_phase_kg_s"]), 6),
+                    "carrier_nm3_h": round(float(W[wid]["co2_carrier_measured_nm3_h"]), 6),
+                    "theta_abs_written": "unset (gasifier_system fallback)",
+                    "CO_model": round(res["CO_vol_pct"], 9),
+                    "CO_baseline": round(float(b["CO_vol_pct"]), 9),
+                    "dCO": round(res["CO_vol_pct"] - float(b["CO_vol_pct"]), 12),
+                    "dH2": round(res["H2_vol_pct"] - float(b["H2_vol_pct"]), 12),
+                    "dCO2": round(res["CO2_vol_pct"] - float(b["CO2_vol_pct"]), 12),
+                    "dT_K": round(res["T_out_K"] - float(b["T_out_K"]), 12),
+                    "max_residual_cost": float(res["max_residual_cost"]),
+                    "poor_convergence_count": res["poor_convergence_count"],
+                    "fallback_count": res["fallback_count"],
+                    "status": res["execution_status"],
+                }
+            )
+    _write_csv("c0_reproduction.csv", repro_rows)
+    repro_max_dCO = max(abs(r["dCO"]) for r in repro_rows)
+
+    # ---------------- 2. 参考点等价（在正确的 P2.2-A 底座上） ----------------
     eq_rows: list[dict[str, Any]] = []
-    for phase in ("P1", "P3", "P4"):
-        row = _row(phase)
-        hist = solve(phase, row, None)
-        exp02 = solve(phase, row, C0_ABS_FALLBACK)
-        exp10 = solve(phase, row, ALT_ENTRY_ABS)
-        alt = solve_model_case(row, n_cells=N_CELLS, alpha_wgs=ALT_ENTRY_ABS)
-        for label, ref, res in (
-            ("historical_no_key", hist, exp02),
-            ("explicit_0.2", hist, exp02),
-            ("explicit_1.0", hist, exp10),
+    for phase in EQUIV_PHASES:
+        wid = pick(phase, 1)[0]
+        hist = solve(wid)
+        exp02 = solve(wid, theta_abs=C0_ABS_FALLBACK)
+        exp10 = solve(wid, theta_abs=ALT_ENTRY_ABS)
+        alt = solve_p22a_alt(by_id[wid], W[wid], p18a, p20)
+        for label, ref, res, th in (
+            ("unset_vs_explicit_0.2", hist, exp02, C0_ABS_FALLBACK),
+            ("unset_vs_explicit_1.0", hist, exp10, ALT_ENTRY_ABS),
         ):
             eq_rows.append(
                 {
                     "phase": phase,
+                    "window_id": wid,
                     "comparison": label,
-                    "theta_abs_ref": C0_ABS_FALLBACK if label != "explicit_1.0" else 1.0,
-                    "rel_to_C0": (C0_ABS_FALLBACK if label != "explicit_1.0" else 1.0) / C0_ABS_FALLBACK,
-                    "CO_ref": round(hist["CO_vol_pct"], 9),
-                    "CO_cmp": round(res["CO_vol_pct"], 9),
-                    "dCO": round(res["CO_vol_pct"] - hist["CO_vol_pct"], 9),
-                    "dH2": round(res["H2_vol_pct"] - hist["H2_vol_pct"], 9),
-                    "dCO2": round(res["CO2_vol_pct"] - hist["CO2_vol_pct"], 9),
-                    "dT_K": round(res["T_out_K"] - hist["T_out_K"], 6),
-                    "status_ref": hist["execution_status"],
-                    "status_cmp": res["execution_status"],
+                    "theta_abs": th,
+                    "rel_to_C0": round(th / C0_ABS_FALLBACK, 6),
+                    "dCO": round(res["CO_vol_pct"] - ref["CO_vol_pct"], 12),
+                    "dH2": round(res["H2_vol_pct"] - ref["H2_vol_pct"], 12),
+                    "dCO2": round(res["CO2_vol_pct"] - ref["CO2_vol_pct"], 12),
+                    "dT_K": round(res["T_out_K"] - ref["T_out_K"], 9),
+                    "status": res["execution_status"],
                 }
             )
-        # 另一求解入口（revision_evidence_common）在 alpha_wgs=1.0 下的对照
         eq_rows.append(
             {
                 "phase": phase,
-                "comparison": "alt_entry_solve_model_case_alpha_1.0",
-                "theta_abs_ref": 1.0,
-                "rel_to_C0": 1.0 / C0_ABS_FALLBACK,
-                "CO_ref": round(exp10["CO_vol_pct"], 9),
-                "CO_cmp": round(alt["pred_CO_vol_pct"], 9),
-                "dCO": round(alt["pred_CO_vol_pct"] - exp10["CO_vol_pct"], 9),
-                "dH2": round(alt["pred_H2_vol_pct"] - exp10["H2_vol_pct"], 9),
-                "dCO2": round(alt["pred_CO2_vol_pct"] - exp10["CO2_vol_pct"], 9),
-                "dT_K": round((alt["T_out_degC"] + 273.15) - exp10["T_out_K"], 6),
-                "status_ref": exp10["execution_status"],
-                "status_cmp": "completed",
+                "window_id": wid,
+                "comparison": "alt_entry_solve_model_case_vs_run_case_at_1.0",
+                "theta_abs": ALT_ENTRY_ABS,
+                "rel_to_C0": round(ALT_ENTRY_ABS / C0_ABS_FALLBACK, 6),
+                "dCO": round(alt["pred_CO_vol_pct"] - exp10["CO_vol_pct"], 12),
+                "dH2": round(alt["pred_H2_vol_pct"] - exp10["H2_vol_pct"], 12),
+                "dCO2": round(alt["pred_CO2_vol_pct"] - exp10["CO2_vol_pct"], 12),
+                "dT_K": round((alt["T_out_degC"] + 273.15) - exp10["T_out_K"], 9),
+                "status": "completed",
             }
         )
     _write_csv("baseline_equivalence.csv", eq_rows)
 
-    # ---------------- 2. WGS 绝对系数扫描：水平杠杆与饱和 ----------------
+    # ---------------- 3. 水平杠杆（正确底座） ----------------
     lev_rows: list[dict[str, Any]] = []
-    for phase in ("P1", "P3", "P4"):
-        row = _row(phase)
-        base = solve(phase, row, None)
+    for phase in RUN_PHASES:
+        wid = pick(phase, 1)[0]
+        base = solve(wid)
         for th in (*GRID_ABS, 10.0):
-            res = solve(phase, row, th)
+            res = solve(wid, theta_abs=th)
             lev_rows.append(
                 {
                     "phase": phase,
+                    "window_id": wid,
                     "theta_abs": th,
                     "rel_to_C0": round(th / C0_ABS_FALLBACK, 6),
                     "CO": round(res["CO_vol_pct"], 6),
@@ -217,36 +269,33 @@ def main() -> None:
     _write_csv("leverage_scan.csv", lev_rows)
 
     lev_span = {}
-    for phase in ("P1", "P3", "P4"):
+    sat_gain = {}
+    for phase in RUN_PHASES:
         sub = [r for r in lev_rows if r["phase"] == phase and r["theta_abs"] <= 2.0]
         lev_span[phase] = max(r["CO"] for r in sub) - min(r["CO"] for r in sub)
-    sat_gain = {}
-    for phase in ("P1", "P3", "P4"):
         a = next(r for r in lev_rows if r["phase"] == phase and r["theta_abs"] == 2.0)
         b = next(r for r in lev_rows if r["phase"] == phase and r["theta_abs"] == 10.0)
         sat_gain[phase] = abs(b["CO"] - a["CO"])
 
-    # ---------------- 3. 响应杠杆 ----------------
+    # ---------------- 4. 响应杠杆（正确底座） ----------------
     resp_rows: list[dict[str, Any]] = []
     pair_info: dict[str, dict[str, float]] = {}
-    for phase in ("P1", "P3", "P4"):
-        row = _row(phase)
-        lo, hi = _nominal_pair(row)
-        u_lo, u_hi = _oc(lo), _oc(hi)
+    W_C = 0.73
+    for phase in RUN_PHASES:
+        wid = pick(phase, 1)[0]
+        u_lo = _oc(W[wid], W_C, o2_mult=0.975)
+        u_hi = _oc(W[wid], W_C, o2_mult=1.025)
         lnu = math.log(u_hi / u_lo)
         pair_info[phase] = {"u_lo": u_lo, "u_hi": u_hi, "lnu": lnu, "rel_u": (u_hi - u_lo) / u_lo}
         for th in GRID_ABS:
-            a = solve(phase, lo, th)
-            b = solve(phase, hi, th)
-            ok = a["execution_status"] == "completed" and b["execution_status"] == "completed"
-            r = (
-                math.log(1.05) * (b["CO_vol_pct"] - a["CO_vol_pct"]) / lnu
-                if ok
-                else float("nan")
-            )
+            a = solve(wid, theta_abs=th, o2_mult=0.975)
+            b = solve(wid, theta_abs=th, o2_mult=1.025)
+            okk = a["execution_status"] == "completed" and b["execution_status"] == "completed"
+            r = math.log(1.05) * (b["CO_vol_pct"] - a["CO_vol_pct"]) / lnu if okk else float("nan")
             resp_rows.append(
                 {
                     "phase": phase,
+                    "window_id": wid,
                     "theta_abs": th,
                     "CO_lo": round(a["CO_vol_pct"], 6),
                     "CO_hi": round(b["CO_vol_pct"], 6),
@@ -258,62 +307,87 @@ def main() -> None:
     _write_csv("response_leverage.csv", resp_rows)
 
     r_span = {}
-    for phase in ("P1", "P3", "P4"):
+    for phase in RUN_PHASES:
         vals = [x["r_model"] for x in resp_rows if x["phase"] == phase and x["r_model"] != "nan"]
         r_span[phase] = (max(vals) - min(vals)) if vals else float("nan")
 
-    # ---------------- 4. 可分辨性 ----------------
+    # ---------------- 5. 可分辨性（分开传播） ----------------
     sep_rows: list[dict[str, Any]] = []
-    for phase in ("P1", "P3", "P4"):
+    for phase in RUN_PHASES:
         lnu = pair_info[phase]["lnu"]
         for key, sigma_y in SIGMA_Y_PRESET.items():
-            sigma_r = math.log(1.05) * math.sqrt(2.0) * sigma_y / lnu
-            for metric, signal, unit in (
-                ("composition_level_span", lev_span[phase], "pp"),
-                ("response_span", r_span[phase], "pp/5%"),
-            ):
-                need = signal / K_SIGMA
-                ratio = sigma_r / need if need > 0 else float("inf")
-                sep_rows.append(
-                    {
-                        "phase": phase,
-                        "family": "alpha_wgs",
-                        "metric": metric,
-                        "signal": round(signal, 9),
-                        "unit": unit,
-                        "sigma_y_preset_pp": sigma_y,
-                        "sigma_r_equivalent": round(sigma_r, 9),
-                        "required_sigma_r_for_separation": round(need, 9),
-                        "required_sigma_y_pp": round(
-                            need * lnu / (math.log(1.05) * math.sqrt(2.0)), 12
-                        ),
-                        "ratio_sigma_over_need": round(ratio, 6),
-                        "separable": bool(ratio < 1.0),
-                        "preset_key": key,
-                    }
-                )
+            # (a) 组成水平：单一观测 vs 确定性模型 -> 差值误差 = sigma_y
+            sig_c = sigma_y
+            need_c = lev_span[phase] / K_SIGMA
+            sep_rows.append(
+                {
+                    "phase": phase,
+                    "family": "alpha_wgs",
+                    "metric": "composition_level_span",
+                    "signal": round(lev_span[phase], 9),
+                    "unit": "pp",
+                    "estimator_error_model": "single_observation_vs_deterministic_model",
+                    "error_sigma": round(sig_c, 9),
+                    "preset_key": key,
+                    "sigma_y_preset_pp": sigma_y,
+                    "required_signal_per_sigma": round(need_c, 9),
+                    "required_sigma_y_pp": round(need_c, 12),
+                    "ratio_preset_over_required": round(sig_c / need_c, 6) if need_c else "inf",
+                    "separable": bool(sig_c < need_c),
+                }
+            )
+            # (b) 响应：r = ln(1.05)*Δy/Δln u，Δy 为两窗之差 -> sqrt(2)*sigma_y
+            sig_r = math.log(1.05) * math.sqrt(2.0) * sigma_y / lnu
+            need_r = r_span[phase] / K_SIGMA
+            sep_rows.append(
+                {
+                    "phase": phase,
+                    "family": "alpha_wgs",
+                    "metric": "response_span",
+                    "signal": round(r_span[phase], 9),
+                    "unit": "pp/5%",
+                    "estimator_error_model": "difference_of_two_observations_times_ln1.05_over_lnu",
+                    "error_sigma": round(sig_r, 9),
+                    "preset_key": key,
+                    "sigma_y_preset_pp": sigma_y,
+                    "required_signal_per_sigma": round(need_r, 9),
+                    "required_sigma_y_pp": round(
+                        need_r * lnu / (math.log(1.05) * math.sqrt(2.0)), 12
+                    ),
+                    "ratio_preset_over_required": round(sig_r / need_r, 6) if need_r else "inf",
+                    "separable": bool(sig_r < need_r),
+                }
+            )
     _write_csv("separation_check.csv", sep_rows)
 
-    # ---------------- 5. 消融：G 关闭响应门槛 ----------------
+    def sep_of(phase: str, metric: str, key: str = PRIMARY_SIGMA_KEY) -> bool:
+        return next(
+            r["separable"]
+            for r in sep_rows
+            if r["phase"] == phase and r["metric"] == metric and r["preset_key"] == key
+        )
+
+    # ---------------- 6. S1 消融（G 关闭响应门槛） ----------------
     abl_rows: list[dict[str, Any]] = []
     for phase in ("P3", "P4"):
-        row = _row(phase)
-        lo, hi = _nominal_pair(row)
+        wid = pick(phase, 1)[0]
         lnu = pair_info[phase]["lnu"]
-        theta_gen = 2.0  # 生成端注入的已知 WGS 变化（候选可表征的最大档）
-        truth_lo = solve(phase, lo, theta_gen)
-        truth_hi = solve(phase, hi, theta_gen)
-        r_truth = math.log(1.05) * (truth_hi["CO_vol_pct"] - truth_lo["CO_vol_pct"]) / lnu
+        theta_gen = 2.0
+        t_lo = solve(wid, theta_abs=theta_gen, o2_mult=0.975)
+        t_hi = solve(wid, theta_abs=theta_gen, o2_mult=1.025)
+        r_truth = math.log(1.05) * (t_hi["CO_vol_pct"] - t_lo["CO_vol_pct"]) / lnu
+        sig_r = (math.log(1.05) * math.sqrt(2.0)
+                 * SIGMA_Y_PRESET[PRIMARY_SIGMA_KEY] / lnu)
         for th in GRID_ABS:
-            a = solve(phase, lo, th)
-            b = solve(phase, hi, th)
+            a = solve(wid, theta_abs=th, o2_mult=0.975)
+            b = solve(wid, theta_abs=th, o2_mult=1.025)
             diffs = [
-                a["CO_vol_pct"] - truth_lo["CO_vol_pct"],
-                a["H2_vol_pct"] - truth_lo["H2_vol_pct"],
-                a["CO2_vol_pct"] - truth_lo["CO2_vol_pct"],
-                b["CO_vol_pct"] - truth_hi["CO_vol_pct"],
-                b["H2_vol_pct"] - truth_hi["H2_vol_pct"],
-                b["CO2_vol_pct"] - truth_hi["CO2_vol_pct"],
+                a["CO_vol_pct"] - t_lo["CO_vol_pct"],
+                a["H2_vol_pct"] - t_lo["H2_vol_pct"],
+                a["CO2_vol_pct"] - t_lo["CO2_vol_pct"],
+                b["CO_vol_pct"] - t_hi["CO_vol_pct"],
+                b["H2_vol_pct"] - t_hi["H2_vol_pct"],
+                b["CO2_vol_pct"] - t_hi["CO2_vol_pct"],
             ]
             C_dev = math.sqrt(sum(d * d for d in diffs) / len(diffs))
             r = math.log(1.05) * (b["CO_vol_pct"] - a["CO_vol_pct"]) / lnu
@@ -321,274 +395,392 @@ def main() -> None:
             abl_rows.append(
                 {
                     "phase": phase,
+                    "window_id": wid,
                     "theta_gen_abs": theta_gen,
                     "theta_cand_abs": th,
                     "C_dev_pp": round(C_dev, 9),
                     "r_cand": round(r, 9),
                     "r_truth": round(r_truth, 9),
                     "R_dev": round(R_dev, 9),
-                    "R_gate_pass": bool(R_dev <= K_SIGMA * math.log(1.05) * math.sqrt(2.0)
-                                        * SIGMA_Y_PRESET[PRIMARY_SIGMA_KEY] / lnu),
+                    "R_gate_threshold": round(K_SIGMA * sig_r, 9),
+                    "R_gate_pass": bool(R_dev <= K_SIGMA * sig_r),
                 }
             )
     _write_csv("ablation_trace.csv", abl_rows)
 
-    c_argmin: dict[str, float] = {}
-    r_argmin: dict[str, float] = {}
-    c_spread: dict[str, float] = {}
-    r_spread: dict[str, float] = {}
-    gate_changes: dict[str, bool] = {}
+    s1 = {}
     for phase in ("P3", "P4"):
         sub = [x for x in abl_rows if x["phase"] == phase]
         best_c = min(sub, key=lambda x: x["C_dev_pp"])
         best_r = min(sub, key=lambda x: x["R_dev"])
-        c_argmin[phase] = best_c["theta_cand_abs"]
-        r_argmin[phase] = best_r["theta_cand_abs"]
-        c_spread[phase] = max(x["C_dev_pp"] for x in sub) - min(x["C_dev_pp"] for x in sub)
-        r_spread[phase] = max(x["R_dev"] for x in sub) - min(x["R_dev"] for x in sub)
-        # G 关闭响应门槛 = 纯 C 选择；G 开启 = C 中通过响应门槛者
-        passed = [x for x in sub if x["R_gate_pass"]]
-        gate_changes[phase] = (min(passed, key=lambda x: x["C_dev_pp"])["theta_cand_abs"]
-                               != best_c["theta_cand_abs"]) if passed else True
+        rdev = [x["R_dev"] for x in sub]
+        monotone = all(rdev[i] <= rdev[i + 1] for i in range(len(rdev) - 1)) or all(
+            rdev[i] >= rdev[i + 1] for i in range(len(rdev) - 1)
+        )
+        s1[phase] = {
+            "c_argmin_theta": best_c["theta_cand_abs"],
+            "r_argmin_theta": best_r["theta_cand_abs"],
+            "same_argmin": best_c["theta_cand_abs"] == best_r["theta_cand_abs"],
+            "r_dev_monotone_in_grid": monotone,
+            "all_pass_gate": all(x["R_gate_pass"] for x in sub),
+            "c_dev_spread": round(max(x["C_dev_pp"] for x in sub) - min(x["C_dev_pp"] for x in sub), 9),
+            "r_dev_spread": round(max(rdev) - min(rdev), 9),
+        }
 
-    # ---------------- 6. 场景设计 ----------------
-    sep_status = {}
-    for phase in ("P1", "P3", "P4"):
-        row = next(x for x in sep_rows if x["phase"] == phase
-                   and x["metric"] == "response_span" and x["preset_key"] == PRIMARY_SIGMA_KEY)
-        sep_status[phase] = row["separable"]
+    # ---------------- 7. S2：真实注入边界偏差 ----------------
+    s2_rows: list[dict[str, Any]] = []
+    for phase in ("P3", "P4"):
+        wid = pick(phase, 1)[0]
+        lnu = pair_info[phase]["lnu"]
+        sig_r = (math.log(1.05) * math.sqrt(2.0)
+                 * SIGMA_Y_PRESET[PRIMARY_SIGMA_KEY] / lnu)
+        sig_c = SIGMA_Y_PRESET[PRIMARY_SIGMA_KEY]
+        # 真值：名义边界、反应族为 C0
+        t_lo = solve(wid, o2_mult=0.975)
+        t_hi = solve(wid, o2_mult=1.025)
+        # 边界偏差：载气流量 ×(1+3%)，反应族仍为 C0
+        d_lo = solve(wid, o2_mult=0.975, carrier_mult=1.0 + S2_CARRIER_REL)
+        d_hi = solve(wid, o2_mult=1.025, carrier_mult=1.0 + S2_CARRIER_REL)
+        r_dev_inj = math.log(1.05) * (d_hi["CO_vol_pct"] - d_lo["CO_vol_pct"]) / lnu
+        # 偏差模型的"表观组成"是否与某个物理候选（在名义边界下）相似
+        best = None
+        for th in GRID_ABS:
+            a = solve(wid, theta_abs=th, o2_mult=0.975)
+            b = solve(wid, theta_abs=th, o2_mult=1.025)
+            cdiff = math.sqrt(
+                (
+                    (a["CO_vol_pct"] - d_lo["CO_vol_pct"]) ** 2
+                    + (a["H2_vol_pct"] - d_lo["H2_vol_pct"]) ** 2
+                    + (a["CO2_vol_pct"] - d_lo["CO2_vol_pct"]) ** 2
+                    + (b["CO_vol_pct"] - d_hi["CO_vol_pct"]) ** 2
+                    + (b["H2_vol_pct"] - d_hi["H2_vol_pct"]) ** 2
+                    + (b["CO2_vol_pct"] - d_hi["CO2_vol_pct"]) ** 2
+                )
+                / 6.0
+            )
+            r_cand = math.log(1.05) * (b["CO_vol_pct"] - a["CO_vol_pct"]) / lnu
+            rec = {
+                "phase": phase,
+                "window_id": wid,
+                "carrier_bias_rel": S2_CARRIER_REL,
+                "theta_cand_abs": th,
+                "r_deviation_injected": round(r_dev_inj, 9),
+                "r_candidate": round(r_cand, 9),
+                "response_gap": round(abs(r_cand - r_dev_inj), 9),
+                "C_match_to_deviation": round(cdiff, 9),
+                "composition_match_tolerance_pp": round(K_SIGMA * sig_c, 9),
+                "composition_matches": bool(cdiff <= K_SIGMA * sig_c),
+                "response_separable": bool(abs(r_cand - r_dev_inj) > K_SIGMA * sig_r),
+            }
+            s2_rows.append(rec)
+            if best is None or rec["C_match_to_deviation"] < best["C_match_to_deviation"]:
+                best = rec
+        s2_rows.append({**{k: "" for k in s2_rows[0]}, "phase": phase, "theta_cand_abs": "SUMMARY",
+                        "C_match_to_deviation": best["C_match_to_deviation"],
+                        "composition_matches": best["composition_matches"],
+                        "response_separable": best["response_separable"],
+                        "r_candidate": best["r_candidate"],
+                        "r_deviation_injected": best["r_deviation_injected"],
+                        "response_gap": best["response_gap"],
+                        "window_id": wid, "carrier_bias_rel": S2_CARRIER_REL,
+                        "composition_match_tolerance_pp": best["composition_match_tolerance_pp"]})
+    _write_csv("scenario_design.csv", s2_rows)
 
-    scen_rows = [
-        {
-            "scenario": "S1_known_reaction_family_change",
-            "purpose": "注入候选可表征的反应族变化，存在有效更新，检验能否正确开放",
-            "generator_injection": "WGS_CatalyticFactor 由 C0 缺省 0.2 改为 2.0（绝对，=10x C0）",
-            "truth_level_qualified": "真值存在有效更新：候选网格含 theta=2.0，可精确复现",
-            "truth_level_unqualified": "theta 保持在 C0（0.2）视为不更新",
-            "precondition": "无额外前提；只要求真值签名可被评估端分辨",
-            "achievable_truth_signature_pp": round(lev_span["P3"], 6),
-            "preset_sigma_y_pp": SIGMA_Y_PRESET[PRIMARY_SIGMA_KEY],
-            "separable": sep_status["P3"],
-            "verdict": (
-                "不可分辨：真值签名低于预设测量分辨率，"
-                "评估端无法区分'已开放'与'未开放'"
-                if not sep_status["P3"]
-                else "可分辨"
-            ),
-        },
-        {
-            "scenario": "S2_boundary_deviation_mimicking_correction",
-            "purpose": "注入边界偏差，使开发出口拟合与某物理校正相似但评估响应不同，检验能否避免误开放",
-            "generator_injection": "在评估端对载气流量施加偏差，使出口拟合与某个 theta 接近",
-            "truth_level_qualified": "不应开放：真值的反应族未变，边界偏差不属可表征更新",
-            "truth_level_unqualified": "错误开放：把边界偏差当成物理校正",
-            "precondition": (
-                "要求'两个候选的开发出口拟合相似'即 C_dev 差 <= %.2f pp"
-                % COMPOSITION_MATCH_TOL_PP
-            ),
-            "achievable_truth_signature_pp": round(lev_span["P3"], 6),
-            "preset_sigma_y_pp": SIGMA_Y_PRESET[PRIMARY_SIGMA_KEY],
-            "separable": sep_status["P3"],
-            "verdict": (
-                "前提不成立：整个 theta 网格的 C_dev 极差仅 %.4f pp，"
-                "低于组成近似容许 %.2f pp，任何两个候选的出口拟合都'相似'，"
-                "场景二失去判别意义" % (c_spread["P3"], COMPOSITION_MATCH_TOL_PP)
-            ),
-        },
-    ]
-    _write_csv("scenario_design.csv", scen_rows)
+    s2_summary = {
+        p: next(r for r in s2_rows if r["phase"] == p and r["theta_cand_abs"] == "SUMMARY")
+        for p in ("P3", "P4")
+    }
+    # 每个阶段「最接近候选」的 θ，用于文档渲染（SUMMARY 行不带 θ）
+    s2_best_theta: dict[str, Any] = {}
+    for p in ("P3", "P4"):
+        sub = [r for r in s2_rows if r["phase"] == p and r["theta_cand_abs"] != "SUMMARY"]
+        s2_best_theta[p] = min(sub, key=lambda r: float(r["C_match_to_deviation"]))["theta_cand_abs"]
+    s2_verdict = {}
+    for p, r in s2_summary.items():
+        if r["composition_matches"] and not r["response_separable"]:
+            s2_verdict[p] = "NOT_SEPARABLE_mimicry_indistinguishable"
+        elif r["composition_matches"] and r["response_separable"]:
+            s2_verdict[p] = "SEPARABLE_gate_could_reject"
+        elif not r["composition_matches"]:
+            s2_verdict[p] = "PRECONDITION_UNMET_deviation_not_mimicking_any_candidate"
+        else:
+            s2_verdict[p] = "UNCLASSIFIED"
 
-    # ---------------- 7. 协议草案 ----------------
-    all_not_separable = not any(sep_status.values())
-    gate_never_changes = not any(gate_changes.values())
-    exit_code = "STOP_TO_07" if (all_not_separable or gate_never_changes) else "RUN_ONCE"
+    # ---------------- 8. 判定 ----------------
+    all_not_sep = not any(
+        sep_of(p, m) for p in RUN_PHASES for m in ("composition_level_span", "response_span")
+    )
+    s1_action_unchanged = all(s1[p]["same_argmin"] for p in s1)
+    s2_any_separable = any(v == "SEPARABLE_gate_could_reject" for v in s2_verdict.values())
+
+    exit_code = "STOP_TO_07" if (all_not_sep and not s2_any_separable) else "RUN_ONCE"
 
     proto = {
         "schema": "operating-response-comparison/controlled_protocol_draft",
-        "schema_version": "1.0.0",
+        "schema_version": "2.0.0",
         "card": "06A",
+        "revision": 2,
         "status": "DRAFT_PENDING_REVIEW",
         "generated_at": pd.Timestamp.now().strftime("%Y-%m-%dT%H:%M:%S"),
-        "repo": {
-            "name": "gasifier-1d-kinetic",
-            "baseline_head": "c7cde49",
-            "n_cells": N_CELLS,
-            "solver_entry": "model.p1_5_round_20261030.run_case",
-            "note": "只读 model_cases 预览 parquet 的入炉侧字段作为名义工况；未读装置出口组成作为真值",
-        },
         "reference_point": {
-            "historical_path": "run_case 不写 WGS_CatalyticFactor -> 使用 gasifier_system 的缺省 0.2",
-            "equivalence_result": "历史路径与显式 0.2 逐位相同（dCO = 0）",
-            "alt_entry": "revision_evidence_common.solve_model_case 显式写入 alpha_wgs",
-            "alt_entry_equivalence": "在 alpha_wgs=1.0 下与 run_case(1.0) **不等价**，不能用于验证历史 C0",
+            "repo": "gasifier-1d-kinetic",
+            "baseline_head": "c7cde49",
+            "solver_entry": "model.p1_5_round_20261030.run_case",
+            "frozen_config": {
+                "MeshFamily": "wsr_plus_pfr",
+                "WSRLength_m": 1.0,
+                "PFRCellLength_m": 0.0515,
+                "n_cells": int(p20.mesh_n()),
+                "HeatLossModel": "total_percent",
+                "HeatLossPercentTotal": 1.0,
+                "GasificationRateFactor": 1.0,
+                "CharCO2RateFactor": 1.0,
+                "OxygenMixingModel": "instant",
+                "o2_flow_scale": 1.0,
+                "carrier_gas_flow": "from windows_142 co2_carrier_measured_nm3_h via p18a._carrier_kg_s",
+                "coal_flow": "explicit dry, windows_142 coal_dry_recon_phase_kg_s",
+            },
+            "frozen_config_source": "scripts/generate_p2_2a_20261118.py::build_op",
+            "reproduction": {
+                "reference": "revision-evidence-20261118/P2.2-A/baseline_142.csv",
+                "max_abs_dCO_over_sampled_windows": repro_max_dCO,
+                "verdict": "byte-identical" if repro_max_dCO == 0.0 else "mismatch",
+            },
+            "inputs_sha256": {
+                "windows_142.csv": sha256_of(WINDOWS_CSV),
+                "baseline_142.csv": sha256_of(BASELINE_CSV),
+            },
+            "historical_c0_theta_abs": C0_ABS_FALLBACK,
+            "historical_c0_theta_basis": (
+                "run_case 不写 WGS_CatalyticFactor 时 gasifier_system.py 取 op_conds.get(...,0.2)；"
+                "unset 与显式 0.2 逐位相同（见 baseline_equivalence.csv）"
+            ),
+            "alt_entry_status": (
+                "revision_evidence_common.solve_model_case 不接受与 P2.2-A 等价的 op 覆盖；"
+                "在 alpha_wgs=1.0 下与 run_case(1.0) 差异显著（见 baseline_equivalence.csv），"
+                "仍需核对，**不得直接替代** run_case 验证历史 C0"
+            ),
             "scale_conversion": {
-                "absolute": "op_conds['WGS_CatalyticFactor']，历史 C0 为 0.2",
+                "absolute": "op_conds['WGS_CatalyticFactor']，历史 C0 = 0.2",
                 "relative_to_C0": "absolute / 0.2",
-                "warning": "theta=1.0 是绝对 1.0，等于 5x C0；不得等同于 C0",
+                "warning": "theta=1.0 是绝对 1.0，等于 5x C0，不等同于 C0",
             },
         },
-        "arms": {
-            "A": "历史 C0（absolute 0.2，不写键）",
-            "B": "以 A 为底座的直接出口残差校正（复用 direct_residual_baseline）",
-            "C": "同一候选集按开发组成误差选",
-            "G": "同一候选集先过组成与响应门槛，再按组成误差排序；无合格则返回 A",
+        "error_propagation": {
+            "composition_level": {
+                "model": "single observation vs deterministic model value",
+                "sigma": "sigma_y",
+                "note": "不含 ln(1.05)/ln u 归一因子；rev 1 误用了 sigma_r",
+            },
+            "response": {
+                "model": "difference of two observations scaled by ln(1.05)/ln(u_hi/u_lo)",
+                "sigma": "sigma_r = ln(1.05)*sqrt(2)*sigma_y/ln(u_hi/u_lo)",
+            },
+            "two_observation_composition_contrast": {
+                "status": "not_used",
+                "note": "若日后比较两个含噪观测的组成差，须另给差值误差与协方差，不得复用响应式",
+            },
         },
         "candidate": {
             "family": "alpha_wgs",
             "absolute_grid": list(GRID_ABS),
             "relative_to_C0": [round(t / C0_ABS_FALLBACK, 6) for t in GRID_ABS],
-            "basis": "06 独立登记；不继承 01 的网格作为阈值依据",
+            "basis": "06 独立登记，不继承 01 网格",
         },
         "response": {
-            "definition": "r = ln(1.05) * (y_hi - y_lo) / ln(u_hi / u_lo)",
+            "definition": "r = ln(1.05) * (y_hi - y_lo) / ln(u_hi/u_lo)",
             "u": "o_c_ratio（含载气 CO2 的 O 与 C）",
             "y": "干基 CO 体积分数",
-            "pair_construction": "名义入炉工况下只改 O2 ±2.5%，得 rel_u ≈ 4.1%",
+            "pair_construction": "同一窗口 O2 流量 x0.975 / x1.025，rel_u 见 response_leverage.csv",
             "unit": "百分点 / 输入相对变化 5%",
-            "sign": "r < 0 表示 CO 随 O/C 上升而下降",
         },
         "thresholds": {
-            "basis_statement": "全部阈值由本轮杠杆与预设测量分辨率独立导出，不继承 01 的 0.25、R_abs_dev、网格或工程组成上限",
+            "basis_statement": "由本轮杠杆与预设测量分辨率独立导出，不继承 01 的 0.25 / R_abs_dev / 网格 / 工程组成上限",
             "sigma_y_preset_pp": SIGMA_Y_PRESET,
             "primary_preset": PRIMARY_SIGMA_KEY,
-            "composition_match_tolerance_pp": COMPOSITION_MATCH_TOL_PP,
-            "composition_match_basis": "2 x 最乐观预设 sigma_y；低于此差异视为分析仪不可分辨",
+            "preset_status": "DESIGN_ASSUMPTION_NOT_CALIBRATED",
+            "preset_basis": (
+                "工业在线合成气分析仪（NDIR CO/CO2、TCD H2）的典型重复性量级；"
+                "厂家常按量程百分比给出，不能直接等同绝对 pp，也不能当作本任务的一倍标准差"
+            ),
             "separation_multiplier_k": K_SIGMA,
-            "separation_rule": "信号须超过 k * sigma_r，sigma_r = ln(1.05)*sqrt(2)*sigma_y/ln(u_hi/u_lo)",
-        },
-        "preset_assumption_disclosure": {
-            "is_measurement": False,
-            "basis": "工业在线合成气分析仪（NDIR CO/CO2、TCD H2）的典型重复性量级",
-            "sensitivity": "同时报 0.10 / 0.25 / 0.50 三档；结论在全部三档下一致",
         },
         "separation_findings": {
             "composition_level_span_pp": {k: round(v, 6) for k, v in lev_span.items()},
             "saturation_gain_2.0_to_10.0_pp": {k: round(v, 6) for k, v in sat_gain.items()},
             "response_span_pp_per_5pct": {k: round(v, 9) for k, v in r_span.items()},
-            "separable_by_phase": sep_status,
-            "c_dev_spread_pp": {k: round(v, 6) for k, v in c_spread.items()},
-            "r_dev_spread": {k: round(v, 9) for k, v in r_spread.items()},
-            "c_argmin_theta": c_argmin,
-            "r_argmin_theta": r_argmin,
-            "gate_changes_action": gate_changes,
+            "separable": {
+                p: {
+                    "composition": sep_of(p, "composition_level_span"),
+                    "response": sep_of(p, "response_span"),
+                }
+                for p in RUN_PHASES
+            },
+            "by_preset": {
+                key: {
+                    p: {
+                        "composition": sep_of(p, "composition_level_span", key),
+                        "response": sep_of(p, "response_span", key),
+                    }
+                    for p in RUN_PHASES
+                }
+                for key in SIGMA_Y_PRESET
+            },
         },
-        "structural_finding": {
-            "statement": (
-                "候选是单标量族，组成误差与响应误差都对该标量单调，"
-                "两个指标的 argmin 必然落在同一端点，因此任何仅靠排序的门槛"
-                "都不可能改变选择动作。这不是数据量问题，是候选族的维数问题。"
+        "s1_ablation": {
+            "scope": (
+                "仅限本实现校验：真值取网格内 theta=2.0、无噪声、同一求解器；"
+                "该配置下候选可精确复现真值"
             ),
-            "evidence": "ablation_trace.csv：C 与 R 的 argmin 在各阶段相同",
+            "per_phase": s1,
+            "finding": (
+                "在本 S1、该网格与预设门槛下，C 与 R 的 argmin 相同，"
+                "关闭响应门槛未改变动作。"
+            ),
+            "not_claimed": [
+                "单标量族必然排序退化",
+                "任何门槛都不可能改变选择动作",
+                "因此必须改用多参数或工况乘子",
+            ],
+            "counter_evidence": (
+                "R_dev 在本网格内并非单调（见 ablation_trace.csv），"
+                "因此不能由有限点推断普遍的单调性或退化"
+            ),
+        },
+        "s2_boundary_deviation": {
+            "injection": f"载气流量 x(1+{S2_CARRIER_REL})，反应族仍为 C0",
+            "per_phase_summary": {p: s2_summary[p] for p in s2_summary},
+            "verdict": s2_verdict,
         },
         "verdict": {
             "exit": exit_code,
-            "reason_codes": [
-                "signal_below_preset_resolution",
-                "single_scalar_family_degeneracy",
-                "saturation_not_amplitude_limited",
+            "basis": (
+                "在已复现的历史 C0 底座与所列预设分辨率下，"
+                "组成与响应信号均低于 2σ 判据；S2 的边界偏差与物理候选的响应差也未超过 2σ_r"
+                if exit_code == "STOP_TO_07"
+                else "存在可分辨的对照，建议冻结后 RUN_ONCE"
+            ),
+            "retracted_from_rev1": [
+                "single_scalar_family_degeneracy（作为普遍结论）",
+                "any_threshold_cannot_change_action",
+                "WGS_near_equilibrium（缺状态/反应商依据）",
+                "S2_already_negated（rev 1 未真正注入偏差）",
             ],
-            "detail": {
-                "signal_below_preset_resolution": (
-                    "组成水平杠杆 <= 0.057 pp、响应杠杆 <= 0.008 pp/5%，"
-                    "在最乐观预设 sigma_y=0.10 pp 下仍低 3-22 倍"
-                ),
-                "single_scalar_family_degeneracy": (
-                    "组成与响应同为 theta 的单调函数，argmin 相同，"
-                    "关闭响应门槛不改变动作，消融为空"
-                ),
-                "saturation_not_amplitude_limited": (
-                    "absolute 2.0 -> 10.0（再增 5 倍）仅再加 0.0005 pp，"
-                    "说明不是幅度不够，而是该路径上 WGS 已近平衡、乘子无杠杆"
-                ),
-            },
-            "not_triggered": [
-                "matrix_search_expansion",
-                "new_physical_mechanism_added",
+            "carry_to_07": [
+                "P2.2-A 底座的历史 C0 可逐位复现",
+                "双入口在匹配其余配置后的差异",
+                "在所列预设分辨率下组成与响应信号的上界",
+                "S2 的实测结论（见 s2_boundary_deviation.verdict）",
             ],
         },
         "isolation": {
             "generation_side": "名义入炉工况 + 注入机制；真值由生成端保存并哈希",
             "fitting_side": "只读授权输入与开发观测",
             "scoring_side": "预测锁定后才读评估真值",
-            "scenario_selection_neutrality": "场景不按 C/G 评估成绩挑选；两场景在本轮均因可分辨性不足而未进入执行",
+            "scenario_selection_neutrality": "场景不按 C/G 评估成绩挑选",
         },
         "seeds": {"solver": "deterministic", "noise_model": "not_applied_in_06A"},
-        "handoff_to_07": {
-            "carry": [
-                "候选族杠杆与饱和的定量证据",
-                "双入口不等价的记录",
-                "单一标量族的排序退化结论",
-            ],
-            "do_not_claim": [
-                "响应判据有效或无效（本轮无对照可判）",
-                "工业响应已识别",
-            ],
-        },
     }
     (OUT / "controlled_protocol_draft.yaml").write_text(
-        json.dumps(proto, ensure_ascii=False, indent=2), encoding="utf-8"
+        json.dumps(_clean(proto), ensure_ascii=False, indent=2), encoding="utf-8"
     )
 
-    # ---------------- 8. expected_outputs.md ----------------
-    md = f"""# 06A 预期产物与放行判定
+    # ---------------- 9. limitations.md ----------------
+    lim = f"""# 06A 证据边界（rev 2）
 
-## 结论先行
+本文件登记本轮**不能**主张的内容，以及每条撤回的依据。
 
-**`{exit_code}`**。本轮未进入 RUN_ONCE。
+## 已撤回的 rev 1 结论
 
-三条理由相互独立，任一条单独成立即足以停止：
+| rev 1 主张 | 撤回原因 | rev 2 的处理 |
+|---|---|---|
+| 「历史 C0 等价检查通过」 | 走的是 `uniform_full_length` 默认网格且未传干煤口径，不是 P2.2-A 的 C0 | 改为 WSR+PFR 冻结配置，对 `baseline_142.csv` 逐位复现（最大 \\|dCO\\| = {repro_max_dCO:.3e}） |
+| 组成倍数 7.06 / 7.95 / 4.94 | 把响应量的 σ_r（含 ln(1.05)/Δln u）套到组成水平上 | 组成改用 σ_y，倍数见 `separation_check.csv` |
+| 「单标量族必然排序退化」 | 真值取网格内 θ=2.0、无噪声、同求解器，C_dev=R_dev=0 是按构造成立 | 只报「在本 S1、该网格与预设门槛下未改变动作」 |
+| 「任何门槛都不可能改变动作」 | 由单点实现校验外推为普遍结论 | 撤回。R_dev 在本网格内并不单调 |
+| 「WGS 已近平衡」 | 缺状态量与反应商依据；有限点的参数饱和不足以支持 | 撤回，只保留「θ 由 2.0 增至 10.0 的增益远小于 0.02→2.0」这一数值事实 |
+| 「S2 已被否定」 | rev 1 未执行载气偏差注入，签名直接继承 S1 | rev 2 实际注入 {S2_CARRIER_REL:.0%} 载气偏差并逐候选比较 |
 
-1. **信号低于预设测量分辨率。** 组成水平杠杆在候选全网格上只有
-   {'、'.join(f'{k} {v:.4f} pp' for k, v in lev_span.items())}；
-   响应杠杆只有 {'、'.join(f'{k} {v:.5f}' for k, v in r_span.items())}。
-   在最乐观预设 σ_y = {SIGMA_Y_PRESET['optimistic']} pp 下仍低 3–22 倍。
-2. **单一标量族的排序退化。** 组成误差与响应误差都是同一个 θ 的单调函数，
-   两者的 argmin 落在同一端点（C {c_argmin.get('P3')} / R {r_argmin.get('P3')}，P3）。
-   G 关闭响应门槛不改变动作，消融按构造为空。
-3. **不是幅度问题。** 绝对系数由 2.0 再增至 10.0（再 5 倍）只多
-   {sat_gain['P3']:.4f} pp，说明该路径上 WGS 已接近平衡、乘子几乎没有杠杆。
+## 仍不能主张
+
+1. **响应判据有效或无效。** 本轮没有产生可分辨的对照。
+2. **工业响应已识别。** 历史数据为 `DESCRIPTIVE_ONLY`，S2 是受控注入不是装置数据。
+3. **「任何合理分析仪」的精度结论。** 预设 σ_y 是设计假设；厂家指标按量程百分比给出，不能直接等同绝对 pp，也不能当作本任务的一倍标准差。本报告只在所列三档预设下作条件性判断。
+4. **WGS 近平衡的机制结论。** 需状态量与反应商依据。
+
+## 可主张
+
+1. P2.2-A 的冻结配置（WSR+PFR 等）在采样窗口上**逐位复现** `baseline_142.csv`。
+2. 历史 C0 路径不写 `WGS_CatalyticFactor` 时与显式 0.2 逐位相同；显式 1.0 不等价（5× C0）。
+3. 另一求解入口 `solve_model_case` 在匹配其余配置后仍需核对，不得直接替代 `run_case`。
+4. 在所声明网格与三档预设下，组成与响应的信号上界（见 `separation_check.csv`）。
+"""
+    (OUT / "limitations.md").write_text(lim, encoding="utf-8")
+
+    # ---------------- 10. expected_outputs.md ----------------
+    md = f"""# 06A 预期产物与放行判定（rev 2）
+
+## 判定：`{exit_code}`
+
+依据：在**已逐位复现**的 P2.2-A 历史 C0 底座上（最大 \\|dCO\\| = {repro_max_dCO:.3e}），
+组成与响应信号在三档预设分辨率下均未超过 2σ 判据；S2 的边界偏差与物理候选之间
+的响应差也未超过 2σ_r。
+
+## 关键数字（rev 2）
+
+| 阶段 | 组成水平杠杆 | 响应杠杆 | 组成相对 2σ_y | 响应相对 2σ_r |
+|---|---:|---:|---:|---:|
+""" + "\n".join(
+        f"| {p} | {lev_span[p]:.4f} pp | {r_span[p]:.5f} pp/5% | "
+        f"{float(next(r['ratio_preset_over_required'] for r in sep_rows if r['phase']==p and r['metric']=='composition_level_span' and r['preset_key']==PRIMARY_SIGMA_KEY)):.4f}× | "
+        f"{float(next(r['ratio_preset_over_required'] for r in sep_rows if r['phase']==p and r['metric']=='response_span' and r['preset_key']==PRIMARY_SIGMA_KEY)):.4f}× |"
+        for p in RUN_PHASES
+    ) + f"""
+
+「相对 2σ」列 = 预设误差 / 分离所需误差；> 1 表示不可分辨。
+
+## S1 消融（范围受限）
+
+{s1['P3']['finding'] if False else ''}只报事实：
+
+""" + "\n".join(
+        f"- {p}：C 的 argmin θ={s1[p]['c_argmin_theta']}，R 的 argmin θ={s1[p]['r_argmin_theta']}，"
+        f"同端点={s1[p]['same_argmin']}，全部候选通过门槛={s1[p]['all_pass_gate']}，"
+        f"R_dev 在本网格内单调={s1[p]['r_dev_monotone_in_grid']}"
+        for p in s1
+    ) + f"""
+
+**不代表**「单标量族必然退化」或「任何门槛都不可能改变动作」。真值取网格内 θ=2.0、
+无噪声、同一求解器，因此该候选的 C_dev=R_dev=0 是按构造成立。
+
+## S2 边界偏差（rev 2 实测）
+
+注入：载气流量 ×(1+{S2_CARRIER_REL:.0%})，反应族保持 C0。逐阶段取与候选 C 最接近者：
+
+| 阶段 | 最接近候选 θ | C 差 | 组成近似 | 响应差 | 响应可分 | 判定 |
+|---|---:|---:|---|---:|---|---|
+""" + "\n".join(
+        f"| {p} | {s2_best_theta[p]} | "
+        f"{float(s2_summary[p]['C_match_to_deviation']):.6f} | {s2_summary[p]['composition_matches']} | "
+        f"{s2_summary[p]['response_gap']} | {s2_summary[p]['response_separable']} | {s2_verdict[p]} |"
+        for p in s2_summary
+    ) + f"""
 
 ## 若 RUN_ONCE 应交付什么
 
-以下是冻结后的 06B 产物清单，本轮**不生成**：
+`generator_manifest.json`、`scenario_manifest.csv`、`truth_lock.json`、`selection_trace.csv`、
+`predictions.csv`、`controlled_scores.csv`、`decision_table.csv`、`interpretation.md`。
+本轮**不生成**。
 
-| 文件 | 内容 |
-|---|---|
-| `generator_manifest.json` | 生成端名义工况、注入机制、噪声模型、种子、真值哈希 |
-| `scenario_manifest.csv` | 两场景的注入参数与预期动作 |
-| `truth_lock.json` | 真值锁定记录与释放时点 |
-| `selection_trace.csv` | C 与 G（含关闭门槛）的逐候选选择轨迹 |
-| `predictions.csv` | 四组在评估工况上的锁定预测 |
-| `controlled_scores.csv` | 组成误差、响应误差、动作正确性 |
-| `decision_table.csv` | 逐场景判定：支持 / 未显示优势 / 不可判别 |
-| `interpretation.md` | 主张边界 |
+## 给 07 的边界
 
-## 06A 已交付什么
-
-| 文件 | 用途 |
-|---|---|
-| `baseline_equivalence.csv` | 参考点等价：历史路径 ≡ 显式 0.2（dCO=0）；另一入口在 1.0 下不等价 |
-| `leverage_scan.csv` | θ 绝对系数扫描，含量纲与饱和证据 |
-| `response_leverage.csv` | 候选网格对响应 r 的杠杆 |
-| `separation_check.csv` | 信号 vs 三档预设 σ_y 的可分辨性 |
-| `ablation_trace.csv` | G 关闭响应门槛的选择轨迹与 C/R 的 argmin |
-| `scenario_design.csv` | 两场景的生成与判别条件及预审结论 |
-| `controlled_protocol_draft.yaml` | 冻结前草案 |
-
-## 给 07 的话
-
-本轮没有产生任何比较结果，因此 07 只能按以下方式收口：
-
-- 可写：候选族杠杆与饱和的定量事实；双入口不等价；单一标量族的排序退化。
-- 不可写：响应判据有效或无效；工业响应已识别；WGS 通道已开放。
-- 工业部分按 01/02 验收裁决继续写成"观测条件需求 + 评估空白"。
-
-若要使响应判据可被检验，需要的是**能产生可分信号的候选结构**
-（例如随工况变化的乘子、或多参数的组合），而不是更大的 θ 幅值。
+可写：历史 C0 可逐位复现；双入口差异；所列预设下的信号上界（条件性）。
+不可写：响应判据有效/无效；工业响应已识别；WGS 已近平衡；任何通用精度的分析仪结论。
+详细清单见 `limitations.md`。
 """
     (OUT / "expected_outputs.md").write_text(md, encoding="utf-8")
 
-    # ---------------- 9. commands.md ----------------
+    # ---------------- 11. commands.md ----------------
     cmds = f"""# 复现命令
 
 ```bash
@@ -599,17 +791,37 @@ cd outputs/diagnostics/operating-response-comparison/06A
 shasum -a 256 -c sha256.txt
 ```
 
-## 口径说明
+## 底座（P2.2-A 冻结配置）
 
-- 求解入口：`model.p1_5_round_20261030.run_case`，`n_cells = {N_CELLS}`，`solver_method = minimize`，`jacobian_mode = scipy`。
-- 名义工况：`{DATA}` 下 P1/P3/P4 预览 parquet 的**入炉侧**首行；未读取任何装置出口组成作为真值。
-- 响应配对：同一条名义工况下只改 O2 流量 ±2.5%，得 `rel_u ≈ 4.1%`。
-- 预设测量分辨率：σ_y ∈ {{0.10, 0.25, 0.50}} pp，属设计假设，不是实测标定值。
-- 求解器确定性：同一输入重复求解逐位相同（见 `baseline_equivalence.csv` 的 `historical_no_key` 行，dCO = 0）。
+| 项 | 值 | 来源 |
+|---|---|---|
+| MeshFamily | `wsr_plus_pfr` | `generate_p2_2a_20261118.build_op` |
+| WSRLength_m | 1.0 | 同上 |
+| PFRCellLength_m | 0.0515 | 同上 |
+| n_cells | {int(p20.mesh_n())} | `generate_p2_0a_20261113.mesh_n()` |
+| HeatLossModel | `total_percent` | 同上 |
+| HeatLossPercentTotal | 1.0 | 同上 |
+| GasificationRateFactor | 1.0 | 同上 |
+| CharCO2RateFactor | 1.0 | 同上 |
+| OxygenMixingModel | `instant` | 同上 |
+| carrier_gas_flow | `p18a._carrier_kg_s(co2_carrier_measured_nm3_h)` | P1.8-D 实测口径 |
+| coal_flow | 显式干煤 `coal_dry_recon_phase_kg_s` | P2.2-D |
+
+## 输入（只读）
+
+- `windows_142.csv` sha256 `{sha256_of(WINDOWS_CSV)}`
+- `baseline_142.csv` sha256 `{sha256_of(BASELINE_CSV)}`
+
+## 口径
+
+- 响应配对：同一窗口 O2 流量 ×0.975 / ×1.025。
+- 预设 σ_y ∈ {{0.10, 0.25, 0.50}} pp，**设计假设，非实测标定**。
+- 误差传播分开：组成用 σ_y；响应用 σ_r = ln(1.05)·√2·σ_y/Δln u。
+- 未读取任何装置出口组成作为真值。
 """
     (OUT / "commands.md").write_text(cmds, encoding="utf-8")
 
-    # ---------------- 10. sha256 ----------------
+    # ---------------- 12. sha256 ----------------
     present = {p.name for p in OUT.iterdir() if p.is_file()}
     stale = present - set(PRODUCTS) - {"sha256.txt"}
     if stale:
@@ -620,28 +832,54 @@ shasum -a 256 -c sha256.txt
     lines = [f"{sha256_of(OUT / name)}  {name}" for name in PRODUCTS]
     (OUT / "sha256.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
-    print(json.dumps(
-        {
-            "exit": exit_code,
-            "lev_span": {k: round(v, 6) for k, v in lev_span.items()},
-            "r_span": {k: round(v, 9) for k, v in r_span.items()},
-            "sep": sep_status,
-            "gate_changes": gate_changes,
-            "c_argmin": c_argmin,
-            "r_argmin": r_argmin,
-        },
-        ensure_ascii=False,
-        indent=2,
-    ))
+    print(json.dumps({
+        "exit": exit_code,
+        "repro_max_abs_dCO": repro_max_dCO,
+        "lev_span": {k: round(v, 6) for k, v in lev_span.items()},
+        "r_span": {k: round(v, 9) for k, v in r_span.items()},
+        "separable": {p: {"c": sep_of(p, "composition_level_span"),
+                          "r": sep_of(p, "response_span")} for p in RUN_PHASES},
+        "s1": s1,
+        "s2": s2_verdict,
+    }, ensure_ascii=False, indent=2))
+
+
+def solve_p22a_alt(row: dict[str, Any], win: dict[str, str], p18a, p20) -> dict[str, Any]:
+    """另一求解入口，用于证明它不能替代 run_case 验证历史 C0。"""
+    import sys
+
+    src = REPO / "src"
+    if str(src) not in sys.path:
+        sys.path.insert(0, str(src))
+    from model.revision_evidence_common import solve_model_case
+
+    # 该入口不接受 op 覆盖，只能按其自身路径求解
+    return solve_model_case(row, n_cells=p20.mesh_n(), alpha_wgs=ALT_ENTRY_ABS)
+
+
+def _clean(o: Any) -> Any:
+    if isinstance(o, dict):
+        return {k: _clean(v) for k, v in o.items()}
+    if isinstance(o, (list, tuple)):
+        return [_clean(v) for v in o]
+    if isinstance(o, float) and (o != o or o in (float("inf"), float("-inf"))):
+        return None
+    return o
 
 
 def _write_csv(name: str, rows: list[dict[str, Any]]) -> None:
     if not rows:
         raise RuntimeError(f"{name}: 无数据行")
+    keys: list[str] = []
+    for r in rows:
+        for k in r:
+            if k not in keys:
+                keys.append(k)
     with (OUT / name).open("w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, fieldnames=list(rows[0].keys()))
+        w = csv.DictWriter(fh, fieldnames=keys)
         w.writeheader()
-        w.writerows(rows)
+        for r in rows:
+            w.writerow(r)
 
 
 if __name__ == "__main__":

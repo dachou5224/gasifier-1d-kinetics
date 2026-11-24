@@ -1,16 +1,11 @@
-"""06A 受控设计与可分辨性检查 —— 产物一致性测试。
+"""06A 受控设计与可分辨性检查 —— 产物一致性测试（rev 2）。
 
 只读 `outputs/diagnostics/operating-response-comparison/06A/` 的产物，
 不重新求解反应器（求解由 `scripts/p06a_controlled_design_and_separation.py` 完成）。
 
-覆盖的关键断言
---------------
-1. 产品名单与 sha256 清单一致，无过时产物。
-2. 历史路径与显式 0.2 逐位相同（C0 缺省值确实是 0.2）。
-3. 另一求解入口在 alpha_wgs=1.0 下与 run_case(1.0) 不等价。
-4. 组成水平杠杆与响应杠杆均低于最乐观预设分辨率。
-5. C 与 R 的 argmin 相同，响应门槛不改变动作（消融为空）。
-6. 放行判定为 STOP_TO_07，且理由码与数据一致。
+本测试刻意**不**固化 rev 1 被撤回的普遍结论（「单标量族必然退化」
+「任何门槛都不可能改变动作」「WGS 已近平衡」「S2 已被否定」）。
+它只验证：底座正确、误差传播分开、计算可复现、以及范围受限的观察。
 """
 
 from __future__ import annotations
@@ -27,6 +22,7 @@ OUT = Path("outputs/diagnostics/operating-response-comparison/06A")
 
 PRODUCTS = (
     "baseline_equivalence.csv",
+    "c0_reproduction.csv",
     "leverage_scan.csv",
     "response_leverage.csv",
     "separation_check.csv",
@@ -35,6 +31,7 @@ PRODUCTS = (
     "controlled_protocol_draft.yaml",
     "expected_outputs.md",
     "commands.md",
+    "limitations.md",
 )
 
 C0_ABS = 0.2
@@ -71,127 +68,232 @@ def test_products_exist_and_manifest_matches() -> None:
     assert on_disk == set(PRODUCTS), f"目录含名单外文件: {on_disk - set(PRODUCTS)}"
 
 
-def test_historical_path_equals_explicit_c0() -> None:
-    """历史路径（不写键）必须与显式 0.2 逐位相同。"""
-    rows = _read("baseline_equivalence.csv")
+# ---------------- P1：底座正确性 ----------------
+
+
+def test_reference_point_uses_wsr_plus_pfr() -> None:
+    """审查 P1：不得走 uniform_full_length 默认网格。"""
+    rows = _read("c0_reproduction.csv")
+    assert rows
     for r in rows:
-        if r["comparison"] in ("historical_no_key", "explicit_0.2"):
-            assert float(r["dCO"]) == 0.0, (r["phase"], r["comparison"], r["dCO"])
-            assert float(r["dT_K"]) == 0.0, (r["phase"], r["comparison"])
+        assert r["mesh_family"] == "wsr_plus_pfr", r["window_id"]
+        assert int(r["n_cells"]) == 182
+        assert r["status"] == "completed"
+
+
+def test_historical_c0_reproduced_exactly() -> None:
+    """对 baseline_142.csv 必须逐位复现，而不是「接近」。"""
+    rows = _read("c0_reproduction.csv")
+    assert len(rows) >= 6, "至少覆盖三个阶段各两窗"
+    for r in rows:
+        assert float(r["dCO"]) == 0.0, (r["window_id"], r["dCO"])
+        assert float(r["dH2"]) == 0.0, (r["window_id"], r["dH2"])
+        assert float(r["dCO2"]) == 0.0, (r["window_id"], r["dCO2"])
+        assert float(r["dT_K"]) == 0.0, (r["window_id"], r["dT_K"])
+
+
+def test_proto_records_reproduction_verdict(proto: dict) -> None:
+    rep = proto["reference_point"]["reproduction"]
+    assert rep["max_abs_dCO_over_sampled_windows"] == 0.0
+    assert rep["verdict"] == "byte-identical"
+    assert rep["reference"].endswith("baseline_142.csv")
+
+
+def test_proto_records_frozen_config(proto: dict) -> None:
+    cfg = proto["reference_point"]["frozen_config"]
+    assert cfg["MeshFamily"] == "wsr_plus_pfr"
+    assert cfg["WSRLength_m"] == 1.0
+    assert cfg["PFRCellLength_m"] == 0.0515
+    assert cfg["HeatLossPercentTotal"] == 1.0
+    assert cfg["n_cells"] == 182
+    assert "measured" in cfg["carrier_gas_flow"] or "co2_carrier_measured" in cfg["carrier_gas_flow"]
+    assert "explicit dry" in cfg["coal_flow"] or "coal_dry_recon" in cfg["coal_flow"]
+
+
+def test_historical_c0_equals_explicit_0_2() -> None:
+    rows = [
+        r for r in _read("baseline_equivalence.csv")
+        if r["comparison"] == "unset_vs_explicit_0.2"
+    ]
+    assert rows
+    for r in rows:
+        assert float(r["dCO"]) == 0.0, r["phase"]
+        assert float(r["dT_K"]) == 0.0, r["phase"]
 
 
 def test_explicit_1_0_differs_from_c0() -> None:
-    """显式 1.0 必须与 C0 不同，否则尺度区分无意义。"""
-    rows = [r for r in _read("baseline_equivalence.csv") if r["comparison"] == "explicit_1.0"]
+    rows = [
+        r for r in _read("baseline_equivalence.csv")
+        if r["comparison"] == "unset_vs_explicit_1.0"
+    ]
     assert rows
     for r in rows:
-        assert abs(float(r["dCO"])) > 1e-6, (r["phase"], r["dCO"])
-    # 1.0 相对 C0 是 5 倍，不得写成等价
-    assert all(abs(float(r["rel_to_C0"]) - 5.0) < 1e-9 for r in rows)
+        assert abs(float(r["dCO"])) > 1e-9, r["phase"]
+        assert abs(float(r["rel_to_C0"]) - 5.0) < 1e-9, r["phase"]
 
 
-def test_alt_entry_not_equivalent(proto: dict) -> None:
-    """另一求解入口不得用于验证历史 C0。"""
+def test_alt_entry_documented_as_not_substitutable(proto: dict) -> None:
+    """另一入口在正确底座上差异更大，不得替代 run_case 验证历史 C0。"""
     rows = [
-        r
-        for r in _read("baseline_equivalence.csv")
-        if r["comparison"] == "alt_entry_solve_model_case_alpha_1.0"
+        r for r in _read("baseline_equivalence.csv")
+        if r["comparison"].startswith("alt_entry")
     ]
     assert rows
     assert all(abs(float(r["dCO"])) > 1e-6 for r in rows)
     text = json.dumps(proto, ensure_ascii=False)
-    assert "不等价" in text or "not_equivalent" in text
+    assert "不得直接替代" in text or "not_substitutable" in text or "仍需核对" in text
 
 
-def test_level_leverage_below_resolution() -> None:
-    for r in _read("separation_check.csv"):
-        if r["metric"] == "composition_level_span" and r["preset_key"] == "optimistic":
-            assert r["separable"] == "False", (r["phase"], r["ratio_sigma_over_need"])
-            assert float(r["ratio_sigma_over_need"]) > 1.0
+# ---------------- P2：误差传播分开 ----------------
 
 
-def test_response_leverage_below_resolution() -> None:
-    for r in _read("separation_check.csv"):
-        if r["metric"] == "response_span" and r["preset_key"] == "optimistic":
-            assert r["separable"] == "False", (r["phase"], r["ratio_sigma_over_need"])
+def test_composition_uses_sigma_y_not_sigma_r() -> None:
+    """审查 P2：组成水平不得套用 σ_r（含 ln(1.05)/Δln u）。"""
+    rows = _read("separation_check.csv")
+    comp = [r for r in rows if r["metric"] == "composition_level_span"]
+    assert comp
+    for r in comp:
+        assert r["estimator_error_model"] == "single_observation_vs_deterministic_model"
+        # 组成：error_sigma 应恰等于预设 σ_y
+        assert abs(float(r["error_sigma"]) - float(r["sigma_y_preset_pp"])) < 1e-12, r["phase"]
+        # required_sigma_y = signal / k
+        assert abs(
+            float(r["required_sigma_y_pp"]) - float(r["signal"]) / K_SIGMA
+        ) < 1e-9, r["phase"]
 
 
-def test_all_presets_agree(proto: dict) -> None:
-    """三档预设 σ_y 下的结论必须一致，避免结论依赖单档假设。"""
-    for metric in ("composition_level_span", "response_span"):
-        for phase in ("P1", "P3", "P4"):
-            flags = {
-                r["separable"]
-                for r in _read("separation_check.csv")
-                if r["metric"] == metric and r["phase"] == phase
-            }
-            assert flags == {"False"}, (metric, phase, flags)
-
-
-def test_required_sigma_y_is_physically_implausible() -> None:
-    """要被分辨所需的 σ_y 必须远小于任何合理分析仪精度。
-
-    判据取 0.05 pp（= 500 ppm）。工业在线合成气分析仪（NDIR 测 CO/CO2）
-    的典型重复性量级是 0.1 vol%（= 1000 ppm）以上，因此 0.05 pp 已属
-    乐观上限；实测最紧的一档是 P4 组成水平 0.0202 pp（≈202 ppm），
-    仍比该上限紧一倍以上。
-    """
-    for r in _read("separation_check.csv"):
-        if r["preset_key"] == "optimistic":
-            need = float(r["required_sigma_y_pp"])
-            assert need < 0.05, (r["phase"], r["metric"], need)
-
-
-def test_c_and_r_argmin_coincide(proto: dict) -> None:
-    """组成与响应的 argmin 相同 → 响应门槛不改变动作。"""
-    f = proto["separation_findings"]
-    for phase in ("P3", "P4"):
-        assert f["c_argmin_theta"][phase] == f["r_argmin_theta"][phase], phase
-        assert f["gate_changes_action"][phase] is False, phase
-
-
-def test_all_candidates_pass_response_gate() -> None:
-    """R_dev 全低于门槛 → G 从不拒绝 → 消融为空。"""
-    rows = _read("ablation_trace.csv")
+def test_response_uses_sigma_r_formula() -> None:
+    rows = [r for r in _read("separation_check.csv") if r["metric"] == "response_span"]
     assert rows
-    assert all(r["R_gate_pass"] == "True" for r in rows), "应全部通过门槛，说明门槛无判别力"
+    for r in rows:
+        sy = float(r["required_sigma_y_pp"])
+        sr = float(r["required_signal_per_sigma"])
+        assert sy > 0 and sr > 0
+        # need_r / sigma_y_required = ln(1.05)*sqrt(2)/ln u
+        # error_sigma / sigma_y_preset 应为同一比值；CSV 里 required_sigma_y 只存
+        # 12 位小数，故用 1e-5 的相对容差而非 1e-9。
+        assert math.isclose(
+            sr / sy,
+            float(r["error_sigma"]) / float(r["sigma_y_preset_pp"]),
+            rel_tol=1e-5,
+        ), r["phase"]
 
 
-def test_saturation_not_amplitude_limited(proto: dict) -> None:
-    """θ 由 2.0 增至 10.0 的增益必须远小于 [0.02,2.0] 的跨度。"""
-    f = proto["separation_findings"]
-    for phase in ("P1", "P3", "P4"):
-        lev = float(f["composition_level_span_pp"][phase])
-        gain = float(f["saturation_gain_2.0_to_10.0_pp"][phase])
-        assert gain < 0.2 * lev, (phase, gain, lev)
+def test_required_sigma_y_matches_signal_over_k() -> None:
+    """rev 1 把组成倍数算成 7.06/7.95/4.94；rev 2 必须是 signal/2。"""
+    for r in _read("separation_check.csv"):
+        if r["preset_key"] != "optimistic":
+            continue
+        if r["metric"] == "composition_level_span":
+            want = float(r["signal"]) / K_SIGMA
+            assert abs(float(r["required_sigma_y_pp"]) - want) < 1e-9, r["phase"]
 
 
-def test_verdict_is_stop_to_07(proto: dict) -> None:
-    assert proto["verdict"]["exit"] == "STOP_TO_07"
-    codes = set(proto["verdict"]["reason_codes"])
-    assert codes == {
-        "signal_below_preset_resolution",
-        "single_scalar_family_degeneracy",
-        "saturation_not_amplitude_limited",
-    }
+def test_ratio_is_preset_over_required() -> None:
+    for r in _read("separation_check.csv"):
+        ratio = float(r["ratio_preset_over_required"])
+        sigma = float(r["error_sigma"])
+        need = float(r["required_signal_per_sigma"])
+        assert abs(ratio - sigma / need) < 1e-6, (r["phase"], r["metric"])
+
+
+def test_preset_marked_as_assumption(proto: dict) -> None:
+    t = proto["thresholds"]
+    assert t["preset_status"] == "DESIGN_ASSUMPTION_NOT_CALIBRATED"
+    assert "量程" in t["preset_basis"] or "range" in t["preset_basis"].lower()
+
+
+# ---------------- P3：撤回普遍结论 ----------------
+
+
+def test_retracted_claims_listed(proto: dict) -> None:
+    retracted = proto["verdict"]["retracted_from_rev1"]
+    joined = " ".join(retracted)
+    assert "degeneracy" in joined
+    assert "any_threshold" in joined
+    assert "near_equilibrium" in joined
+    assert "S2" in joined
+
+
+def test_s1_scope_is_limited(proto: dict) -> None:
+    s1 = proto["s1_ablation"]
+    assert "仅限本实现校验" in s1["scope"]
+    assert any("必然" in x or "不可能" in x for x in s1["not_claimed"])
+    assert "非单调" in s1["counter_evidence"] or "并非单调" in s1["counter_evidence"]
+
+
+def test_r_dev_not_claimed_monotone(proto: dict) -> None:
+    """P3 的 R_dev 在本网格内确实不单调，必须保留为反例。"""
+    assert proto["s1_ablation"]["per_phase"]["P3"]["r_dev_monotone_in_grid"] is False
+
+
+def test_no_universal_degeneracy_in_limitations() -> None:
+    text = (OUT / "limitations.md").read_text(encoding="utf-8")
+    assert "单标量族必然排序退化" in text, "须显式登记为已撤回"
+    assert "任何门槛都不可能改变动作" in text
+
+
+def test_analysis_仪_precision_claim_removed(proto: dict) -> None:
+    """不得声称「任何合理分析仪」都达不到。"""
+    text = (OUT / "limitations.md").read_text(encoding="utf-8")
+    assert "任何合理分析仪" in text
+    assert "预设" in text
+
+
+# ---------------- P4：S2 实际注入 ----------------
+
+
+def test_s2_actually_injects_boundary_deviation() -> None:
+    rows = _read("scenario_design.csv")
+    detail = [r for r in rows if r["theta_cand_abs"] != "SUMMARY"]
+    assert detail, "S2 必须有逐候选明细，不能只继承 S1"
+    for r in detail:
+        assert float(r["carrier_bias_rel"]) > 0
+        assert r["r_deviation_injected"] != "", "必须实际注入偏差"
+        assert r["r_candidate"] != ""
+        assert r["response_gap"] != ""
+
+
+def test_s2_registers_both_composition_and_response() -> None:
+    """组成近似与响应分离须分别登记，不得只报其一。"""
+    for r in _read("scenario_design.csv"):
+        if r["theta_cand_abs"] != "SUMMARY":
+            assert r["composition_matches"] in ("True", "False")
+            assert r["response_separable"] in ("True", "False")
+
+
+def test_s2_verdict_recorded(proto: dict) -> None:
+    v = proto["s2_boundary_deviation"]["verdict"]
+    assert set(v) == {"P3", "P4"}
+    for phase, verdict in v.items():
+        assert verdict.startswith(("NOT_SEPARABLE", "SEPARABLE", "PRECONDITION", "UNCLASSIFIED")), (
+            phase,
+            verdict,
+        )
+
+
+# ---------------- 判定与范围 ----------------
+
+
+def test_verdict_exit_is_consistent(proto: dict) -> None:
+    """STOP 的依据必须只引用本轮实际验证过的三项，不外推。"""
+    assert proto["verdict"]["exit"] in ("STOP_TO_07", "RUN_ONCE")
+    basis = proto["verdict"]["basis"]
+    assert "复现" in basis or "reproduc" in basis.lower()
+    assert "2σ" in basis or "2 sigma" in basis.lower()
+    if proto["verdict"]["exit"] == "STOP_TO_07":
+        assert "S2" in basis
 
 
 def test_no_plant_outlet_used_as_truth(proto: dict) -> None:
-    """06A 卡面：生成端不得用历史装置出口拟合值当真值。"""
-    note = proto["repo"]["note"]
-    assert "未读" in note or "not" in note.lower()
+    iso = proto["isolation"]
+    assert "真值" in iso["generation_side"]
+    assert "锁定后" in iso["scoring_side"]
 
 
-def test_scenarios_both_blocked() -> None:
-    rows = _read("scenario_design.csv")
-    assert len(rows) == 2
-    for r in rows:
-        assert r["separable"] == "False", r["scenario"]
-        assert "不可分辨" in r["verdict"] or "前提不成立" in r["verdict"], r["scenario"]
-
-
-def test_composition_match_tolerance_exceeds_c_dev_spread(proto: dict) -> None:
-    """场景二的前提（两候选出口拟合相似）在整个网格上恒成立，故失去判别意义。"""
-    tol = float(proto["thresholds"]["composition_match_tolerance_pp"])
-    spread = float(proto["separation_findings"]["c_dev_spread_pp"]["P3"])
-    assert spread < tol, (spread, tol)
+def test_saturation_fact_recorded_without_mechanism_claim(proto: dict) -> None:
+    """保留数值事实，但不得据此断言近平衡机制。"""
+    f = proto["separation_findings"]
+    assert set(f["saturation_gain_2.0_to_10.0_pp"]) == {"P1", "P3", "P4"}
+    joined = " ".join(proto["verdict"]["retracted_from_rev1"])
+    assert "near_equilibrium" in joined

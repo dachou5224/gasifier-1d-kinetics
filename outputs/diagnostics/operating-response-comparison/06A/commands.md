@@ -8,10 +8,30 @@ cd outputs/diagnostics/operating-response-comparison/06A
 shasum -a 256 -c sha256.txt
 ```
 
-## 口径说明
+## 底座（P2.2-A 冻结配置）
 
-- 求解入口：`model.p1_5_round_20261030.run_case`，`n_cells = 182`，`solver_method = minimize`，`jacobian_mode = scipy`。
-- 名义工况：`/Users/liuzhen/AI-projects/gasifier-data-prep/outputs/model_cases` 下 P1/P3/P4 预览 parquet 的**入炉侧**首行；未读取任何装置出口组成作为真值。
-- 响应配对：同一条名义工况下只改 O2 流量 ±2.5%，得 `rel_u ≈ 4.1%`。
-- 预设测量分辨率：σ_y ∈ {0.10, 0.25, 0.50} pp，属设计假设，不是实测标定值。
-- 求解器确定性：同一输入重复求解逐位相同（见 `baseline_equivalence.csv` 的 `historical_no_key` 行，dCO = 0）。
+| 项 | 值 | 来源 |
+|---|---|---|
+| MeshFamily | `wsr_plus_pfr` | `generate_p2_2a_20261118.build_op` |
+| WSRLength_m | 1.0 | 同上 |
+| PFRCellLength_m | 0.0515 | 同上 |
+| n_cells | 182 | `generate_p2_0a_20261113.mesh_n()` |
+| HeatLossModel | `total_percent` | 同上 |
+| HeatLossPercentTotal | 1.0 | 同上 |
+| GasificationRateFactor | 1.0 | 同上 |
+| CharCO2RateFactor | 1.0 | 同上 |
+| OxygenMixingModel | `instant` | 同上 |
+| carrier_gas_flow | `p18a._carrier_kg_s(co2_carrier_measured_nm3_h)` | P1.8-D 实测口径 |
+| coal_flow | 显式干煤 `coal_dry_recon_phase_kg_s` | P2.2-D |
+
+## 输入（只读）
+
+- `windows_142.csv` sha256 `a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119`
+- `baseline_142.csv` sha256 `0c1fa8e2f7d7843295369a75a72c7460db65ecd3a11986bc02e9781dc4247c26`
+
+## 口径
+
+- 响应配对：同一窗口 O2 流量 ×0.975 / ×1.025。
+- 预设 σ_y ∈ {0.10, 0.25, 0.50} pp，**设计假设，非实测标定**。
+- 误差传播分开：组成用 σ_y；响应用 σ_r = ln(1.05)·√2·σ_y/Δln u。
+- 未读取任何装置出口组成作为真值。

@@ -1,3 +1,15 @@
-scenario,purpose,generator_injection,truth_level_qualified,truth_level_unqualified,precondition,achievable_truth_signature_pp,preset_sigma_y_pp,separable,verdict
-S1_known_reaction_family_change,注入候选可表征的反应族变化，存在有效更新，检验能否正确开放,WGS_CatalyticFactor 由 C0 缺省 0.2 改为 2.0（绝对，=10x C0）,真值存在有效更新：候选网格含 theta=2.0，可精确复现,theta 保持在 C0（0.2）视为不更新,无额外前提；只要求真值签名可被评估端分辨,0.043271,0.1,False,不可分辨：真值签名低于预设测量分辨率，评估端无法区分'已开放'与'未开放'
-S2_boundary_deviation_mimicking_correction,注入边界偏差，使开发出口拟合与某物理校正相似但评估响应不同，检验能否避免误开放,在评估端对载气流量施加偏差，使出口拟合与某个 theta 接近,不应开放：真值的反应族未变，边界偏差不属可表征更新,错误开放：把边界偏差当成物理校正,要求'两个候选的开发出口拟合相似'即 C_dev 差 <= 0.20 pp,0.043271,0.1,False,前提不成立：整个 theta 网格的 C_dev 极差仅 0.0315 pp，低于组成近似容许 0.20 pp，任何两个候选的出口拟合都'相似'，场景二失去判别意义
+phase,window_id,carrier_bias_rel,theta_cand_abs,r_deviation_injected,r_candidate,response_gap,C_match_to_deviation,composition_match_tolerance_pp,composition_matches,response_separable
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,0.03,0.02,0.18203196,0.179491087,0.002540872,0.116653022,0.2,True,False
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,0.03,0.06,0.18203196,0.181239013,0.000792947,0.112160331,0.2,True,False
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,0.03,0.15,0.18203196,0.180626826,0.001405134,0.106954764,0.2,True,False
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,0.03,0.32,0.18203196,0.179670349,0.002361611,0.102834281,0.2,True,False
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,0.03,0.68,0.18203196,0.178859824,0.003172136,0.099804417,0.2,True,False
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,0.03,2.0,0.18203196,0.178070235,0.003961724,0.097453862,0.2,True,False
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,0.03,SUMMARY,0.18203196,0.178070235,0.003961724,0.097453862,0.2,True,False
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,0.03,0.02,0.974657391,1.146412178,0.171754788,0.105572569,0.2,True,False
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,0.03,0.06,0.974657391,0.986808642,0.012151251,0.094161382,0.2,True,False
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,0.03,0.15,0.974657391,0.958422816,0.016234575,0.094048913,0.2,True,False
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,0.03,0.32,0.974657391,0.953106746,0.021550645,0.090701349,0.2,True,False
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,0.03,0.68,0.974657391,0.949208776,0.025448614,0.08751626,0.2,True,False
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,0.03,2.0,0.974657391,0.945576589,0.029080801,0.085024258,0.2,True,False
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,0.03,SUMMARY,0.974657391,0.945576589,0.029080801,0.085024258,0.2,True,False
