@@ -5,6 +5,12 @@ P1,alpha_wgs,composition_level_span,0.008914,pp,single_observation_vs_determinis
 P1,alpha_wgs,response_span,0.002068216,pp/5%,difference_of_two_observations_times_ln1.05_over_lnu,0.431690121,moderate,0.25,0.001034108,0.000598871708,417.451679,False
 P1,alpha_wgs,composition_level_span,0.008914,pp,single_observation_vs_deterministic_model,0.5,conservative,0.5,0.004457,0.004457,112.183083,False
 P1,alpha_wgs,response_span,0.002068216,pp/5%,difference_of_two_observations_times_ln1.05_over_lnu,0.863380242,conservative,0.5,0.001034108,0.000598871708,834.903358,False
+P2,alpha_wgs,composition_level_span,0.004027,pp,single_observation_vs_deterministic_model,0.1,optimistic,0.1,0.0020135,0.0020135,49.664763,False
+P2,alpha_wgs,response_span,0.004149788,pp/5%,difference_of_two_observations_times_ln1.05_over_lnu,0.17349328,optimistic,0.1,0.002074894,0.001195950647,83.615491,False
+P2,alpha_wgs,composition_level_span,0.004027,pp,single_observation_vs_deterministic_model,0.25,moderate,0.25,0.0020135,0.0020135,124.161907,False
+P2,alpha_wgs,response_span,0.004149788,pp/5%,difference_of_two_observations_times_ln1.05_over_lnu,0.433733199,moderate,0.25,0.002074894,0.001195950647,209.038726,False
+P2,alpha_wgs,composition_level_span,0.004027,pp,single_observation_vs_deterministic_model,0.5,conservative,0.5,0.0020135,0.0020135,248.323814,False
+P2,alpha_wgs,response_span,0.004149788,pp/5%,difference_of_two_observations_times_ln1.05_over_lnu,0.867466398,conservative,0.5,0.002074894,0.001195950647,418.077453,False
 P3,alpha_wgs,composition_level_span,0.00349,pp,single_observation_vs_deterministic_model,0.1,optimistic,0.1,0.001745,0.001745,57.30659,False
 P3,alpha_wgs,response_span,0.003168778,pp/5%,difference_of_two_observations_times_ln1.05_over_lnu,0.173724746,optimistic,0.1,0.001584389,0.000912011117,109.647786,False
 P3,alpha_wgs,composition_level_span,0.00349,pp,single_observation_vs_deterministic_model,0.25,moderate,0.25,0.001745,0.001745,143.266476,False

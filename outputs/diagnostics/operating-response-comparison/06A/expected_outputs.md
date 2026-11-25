@@ -11,6 +11,7 @@
 | 阶段 | 组成水平杠杆 | 响应杠杆 | 组成相对 2σ_y | 响应相对 2σ_r |
 |---|---:|---:|---:|---:|
 | P1 | 0.0089 pp | 0.00207 pp/5% | 22.4366× | 166.9807× |
+| P2 | 0.0040 pp | 0.00415 pp/5% | 49.6648× | 83.6155× |
 | P3 | 0.0035 pp | 0.00317 pp/5% | 57.3066× | 109.6478× |
 | P4 | 0.1649 pp | 0.20084 pp/5% | 1.2127× | 1.7203× |
 
@@ -20,6 +21,8 @@
 
 只报事实：
 
+- P1：C 的 argmin θ=2.0，R 的 argmin θ=2.0，同端点=True，全部候选通过门槛=True，R_dev 在本网格内单调=False
+- P2：C 的 argmin θ=2.0，R 的 argmin θ=2.0，同端点=True，全部候选通过门槛=True，R_dev 在本网格内单调=False
 - P3：C 的 argmin θ=2.0，R 的 argmin θ=2.0，同端点=True，全部候选通过门槛=True，R_dev 在本网格内单调=False
 - P4：C 的 argmin θ=2.0，R 的 argmin θ=2.0，同端点=True，全部候选通过门槛=True，R_dev 在本网格内单调=True
 
@@ -32,6 +35,8 @@
 
 | 阶段 | 最接近候选 θ | C 差 | 组成近似 | 响应差 | 响应可分 | 判定 |
 |---|---:|---:|---|---:|---|---|
+| P1 | 2.0 | 0.088462 | True | 0.010175123 | False | NOT_SEPARABLE_mimicry_indistinguishable |
+| P2 | 2.0 | 0.089283 | True | 0.008604988 | False | NOT_SEPARABLE_mimicry_indistinguishable |
 | P3 | 2.0 | 0.097454 | True | 0.003961724 | False | NOT_SEPARABLE_mimicry_indistinguishable |
 | P4 | 2.0 | 0.085024 | True | 0.029080801 | False | NOT_SEPARABLE_mimicry_indistinguishable |
 

@@ -84,7 +84,7 @@ def test_reference_point_uses_wsr_plus_pfr() -> None:
 def test_historical_c0_reproduced_exactly() -> None:
     """对 baseline_142.csv 必须逐位复现，而不是「接近」。"""
     rows = _read("c0_reproduction.csv")
-    assert len(rows) >= 6, "至少覆盖三个阶段各两窗"
+    assert len(rows) >= 8, "应覆盖四个阶段各两窗"
     for r in rows:
         assert float(r["dCO"]) == 0.0, (r["window_id"], r["dCO"])
         assert float(r["dH2"]) == 0.0, (r["window_id"], r["dH2"])
@@ -302,7 +302,7 @@ def test_s2_registers_both_composition_and_response() -> None:
 
 def test_s2_verdict_recorded(proto: dict) -> None:
     v = proto["s2_boundary_deviation"]["verdict"]
-    assert set(v) == {"P3", "P4"}
+    assert set(v) == {"P1", "P2", "P3", "P4"}
     for phase, verdict in v.items():
         assert verdict.startswith(("NOT_SEPARABLE", "SEPARABLE", "PRECONDITION", "UNCLASSIFIED")), (
             phase,
@@ -332,6 +332,30 @@ def test_no_plant_outlet_used_as_truth(proto: dict) -> None:
 def test_saturation_fact_recorded_without_mechanism_claim(proto: dict) -> None:
     """保留数值事实，但不得据此断言近平衡机制。"""
     f = proto["separation_findings"]
-    assert set(f["saturation_gain_2.0_to_10.0_pp"]) == {"P1", "P3", "P4"}
+    assert set(f["saturation_gain_2.0_to_10.0_pp"]) == {"P1", "P2", "P3", "P4"}
     joined = " ".join(proto["verdict"]["retracted_from_rev1"])
     assert "near_equilibrium" in joined
+
+
+def test_p2_included_in_all_phases() -> None:
+    """P2 已补算，四个阶段都须出现在响应杠杆与 S2 表中。"""
+    resp_phases = {r["phase"] for r in _read("response_leverage.csv")}
+    assert resp_phases == {"P1", "P2", "P3", "P4"}
+    s2_phases = {r["phase"] for r in _read("scenario_design.csv")}
+    assert s2_phases == {"P1", "P2", "P3", "P4"}
+    sep_phases = {r["phase"] for r in _read("separation_check.csv")}
+    assert sep_phases == {"P1", "P2", "P3", "P4"}
+
+
+def test_p2_values_recorded(proto: dict) -> None:
+    """P2 的具体数值须与产物一致，避免只加行不加值。"""
+    f = proto["separation_findings"]
+    assert "P2" in f["composition_level_span_pp"]
+    assert "P2" in f["response_span_pp_per_5pct"]
+    row = next(
+        r for r in _read("separation_check.csv")
+        if r["phase"] == "P2" and r["metric"] == "response_span"
+        and r["preset_key"] == "optimistic"
+    )
+    assert float(row["signal"]) > 0
+    assert row["separable"] == "False"
