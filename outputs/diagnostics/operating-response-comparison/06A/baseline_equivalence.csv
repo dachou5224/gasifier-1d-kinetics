@@ -1,0 +1,10 @@
+phase,window_id,comparison,theta_abs,rel_to_C0,dCO,dH2,dCO2,dT_K,status
+P1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_007__W001,unset_vs_explicit_0.2,0.2,1.0,0.0,0.0,0.0,0.0,completed
+P1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_007__W001,unset_vs_explicit_1.0,1.0,5.0,0.001599152493,-0.017331377053,0.00627989755,0.584778452,completed
+P1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_007__W001,alt_entry_solve_model_case_vs_run_case_at_1.0,1.0,5.0,-0.107029846908,0.093915800798,-0.003316789,-14.836309581,completed
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,unset_vs_explicit_0.2,0.2,1.0,0.0,0.0,0.0,0.0,completed
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,unset_vs_explicit_1.0,1.0,5.0,0.001219261817,-0.012325688345,0.004486438144,0.394397912,completed
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,alt_entry_solve_model_case_vs_run_case_at_1.0,1.0,5.0,-0.270982938879,0.779793416617,-0.566087979265,-105.337167265,completed
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,unset_vs_explicit_0.2,0.2,1.0,0.0,0.0,0.0,0.0,completed
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,unset_vs_explicit_1.0,1.0,5.0,0.012205135057,-0.019865558343,-0.003905693498,-0.000332523,completed
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,alt_entry_solve_model_case_vs_run_case_at_1.0,1.0,5.0,0.239713922519,-0.023785383532,-0.15283239191,20.855209594,completed

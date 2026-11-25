@@ -1,0 +1,269 @@
+{
+  "schema": "operating-response-comparison/controlled_protocol_draft",
+  "schema_version": "2.0.0",
+  "card": "06A",
+  "revision": 2,
+  "status": "DRAFT_PENDING_REVIEW",
+  "generated_at": "2026-11-25T10:16:11",
+  "reference_point": {
+    "repo": "gasifier-1d-kinetic",
+    "baseline_head": "c7cde49",
+    "solver_entry": "model.p1_5_round_20261030.run_case",
+    "frozen_config": {
+      "MeshFamily": "wsr_plus_pfr",
+      "WSRLength_m": 1.0,
+      "PFRCellLength_m": 0.0515,
+      "n_cells": 182,
+      "HeatLossModel": "total_percent",
+      "HeatLossPercentTotal": 1.0,
+      "GasificationRateFactor": 1.0,
+      "CharCO2RateFactor": 1.0,
+      "OxygenMixingModel": "instant",
+      "o2_flow_scale": 1.0,
+      "carrier_gas_flow": "from windows_142 co2_carrier_measured_nm3_h via p18a._carrier_kg_s",
+      "coal_flow": "explicit dry, windows_142 coal_dry_recon_phase_kg_s"
+    },
+    "frozen_config_source": "scripts/generate_p2_2a_20261118.py::build_op",
+    "reproduction": {
+      "reference": "revision-evidence-20261118/P2.2-A/baseline_142.csv",
+      "max_abs_dCO_over_sampled_windows": 0.0,
+      "verdict": "byte-identical"
+    },
+    "inputs_sha256": {
+      "windows_142.csv": "a24b5fe636752d8b7872ebacd569e40325244f90b851ae4ff1adaeee6e989119",
+      "baseline_142.csv": "0c1fa8e2f7d7843295369a75a72c7460db65ecd3a11986bc02e9781dc4247c26"
+    },
+    "historical_c0_theta_abs": 0.2,
+    "historical_c0_theta_basis": "run_case 不写 WGS_CatalyticFactor 时 gasifier_system.py 取 op_conds.get(...,0.2)；unset 与显式 0.2 逐位相同（见 baseline_equivalence.csv）",
+    "alt_entry_status": "revision_evidence_common.solve_model_case 按其自身缺省路径求解，**未传** WSR+PFR / 整炉热损 1% / 显式干煤口径。因此 baseline_equivalence.csv 中 alt 行与正确 C0 路径的差异是「配置差异 + 入口差异」的混合，原因未分离。可主张：两个未匹配配置的调用不等价，不能直接互相替代。不可主张：差异来自求解入口本身，或「控制其余配置后仍不等价」。若日后需要后者，须另做匹配配置对照（非本轮 06A 的必需计算）。",
+    "scale_conversion": {
+      "absolute": "op_conds['WGS_CatalyticFactor']，历史 C0 = 0.2",
+      "relative_to_C0": "absolute / 0.2",
+      "warning": "theta=1.0 是绝对 1.0，等于 5x C0，不等同于 C0"
+    }
+  },
+  "error_propagation": {
+    "composition_level": {
+      "model": "single observation vs deterministic model value",
+      "sigma": "sigma_y",
+      "note": "不含 ln(1.05)/ln u 归一因子；rev 1 误用了 sigma_r"
+    },
+    "response": {
+      "model": "difference of two observations scaled by ln(1.05)/ln(u_hi/u_lo)",
+      "sigma": "sigma_r = ln(1.05)*sqrt(2)*sigma_y/ln(u_hi/u_lo)"
+    },
+    "two_observation_composition_contrast": {
+      "status": "not_used",
+      "note": "若日后比较两个含噪观测的组成差，须另给差值误差与协方差，不得复用响应式"
+    }
+  },
+  "candidate": {
+    "family": "alpha_wgs",
+    "absolute_grid": [
+      0.02,
+      0.06,
+      0.15,
+      0.32,
+      0.68,
+      2.0
+    ],
+    "relative_to_C0": [
+      0.1,
+      0.3,
+      0.75,
+      1.6,
+      3.4,
+      10.0
+    ],
+    "basis": "06 独立登记，不继承 01 网格"
+  },
+  "response": {
+    "definition": "r = ln(1.05) * (y_hi - y_lo) / ln(u_hi/u_lo)",
+    "u": "o_c_ratio（含载气 CO2 的 O 与 C）",
+    "y": "干基 CO 体积分数",
+    "pair_construction": "同一窗口 O2 流量 x0.975 / x1.025，rel_u 见 response_leverage.csv",
+    "unit": "百分点 / 输入相对变化 5%"
+  },
+  "thresholds": {
+    "basis_statement": "由本轮杠杆与预设测量分辨率独立导出，不继承 01 的 0.25 / R_abs_dev / 网格 / 工程组成上限",
+    "sigma_y_preset_pp": {
+      "optimistic": 0.1,
+      "moderate": 0.25,
+      "conservative": 0.5
+    },
+    "primary_preset": "optimistic",
+    "preset_status": "DESIGN_ASSUMPTION_NOT_CALIBRATED",
+    "preset_basis": "工业在线合成气分析仪（NDIR CO/CO2、TCD H2）的典型重复性量级；厂家常按量程百分比给出，不能直接等同绝对 pp，也不能当作本任务的一倍标准差",
+    "separation_multiplier_k": 2.0
+  },
+  "separation_findings": {
+    "composition_level_span_pp": {
+      "P1": 0.008914,
+      "P3": 0.00349,
+      "P4": 0.164924
+    },
+    "saturation_gain_2.0_to_10.0_pp": {
+      "P1": 0.000386,
+      "P3": 0.000447,
+      "P4": 0.00265
+    },
+    "response_span_pp_per_5pct": {
+      "P1": 0.002068216,
+      "P3": 0.003168778,
+      "P4": 0.200835589
+    },
+    "separable": {
+      "P1": {
+        "composition": false,
+        "response": false
+      },
+      "P3": {
+        "composition": false,
+        "response": false
+      },
+      "P4": {
+        "composition": false,
+        "response": false
+      }
+    },
+    "by_preset": {
+      "optimistic": {
+        "P1": {
+          "composition": false,
+          "response": false
+        },
+        "P3": {
+          "composition": false,
+          "response": false
+        },
+        "P4": {
+          "composition": false,
+          "response": false
+        }
+      },
+      "moderate": {
+        "P1": {
+          "composition": false,
+          "response": false
+        },
+        "P3": {
+          "composition": false,
+          "response": false
+        },
+        "P4": {
+          "composition": false,
+          "response": false
+        }
+      },
+      "conservative": {
+        "P1": {
+          "composition": false,
+          "response": false
+        },
+        "P3": {
+          "composition": false,
+          "response": false
+        },
+        "P4": {
+          "composition": false,
+          "response": false
+        }
+      }
+    }
+  },
+  "s1_ablation": {
+    "scope": "仅限本实现校验：真值取网格内 theta=2.0、无噪声、同一求解器；该配置下候选可精确复现真值",
+    "per_phase": {
+      "P3": {
+        "c_argmin_theta": 2.0,
+        "r_argmin_theta": 2.0,
+        "same_argmin": true,
+        "r_dev_monotone_in_grid": false,
+        "all_pass_gate": true,
+        "c_dev_spread": 0.022008878,
+        "r_dev_spread": 0.003168777
+      },
+      "P4": {
+        "c_argmin_theta": 2.0,
+        "r_argmin_theta": 2.0,
+        "same_argmin": true,
+        "r_dev_monotone_in_grid": true,
+        "all_pass_gate": true,
+        "c_dev_spread": 0.086197863,
+        "r_dev_spread": 0.200835589
+      }
+    },
+    "finding": "在本 S1、该网格与预设门槛下，C 与 R 的 argmin 相同，关闭响应门槛未改变动作。",
+    "not_claimed": [
+      "单标量族必然排序退化",
+      "任何门槛都不可能改变选择动作",
+      "因此必须改用多参数或工况乘子"
+    ],
+    "counter_evidence": "R_dev 在本网格内并非单调（见 ablation_trace.csv），因此不能由有限点推断普遍的单调性或退化"
+  },
+  "s2_boundary_deviation": {
+    "injection": "载气流量 x(1+0.03)，反应族仍为 C0",
+    "per_phase_summary": {
+      "P3": {
+        "phase": "P3",
+        "window_id": "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001",
+        "carrier_bias_rel": 0.03,
+        "theta_cand_abs": "SUMMARY",
+        "r_deviation_injected": 0.18203196,
+        "r_candidate": 0.178070235,
+        "response_gap": 0.003961724,
+        "C_match_to_deviation": 0.097453862,
+        "composition_match_tolerance_pp": 0.2,
+        "composition_matches": true,
+        "response_separable": false
+      },
+      "P4": {
+        "phase": "P4",
+        "window_id": "R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001",
+        "carrier_bias_rel": 0.03,
+        "theta_cand_abs": "SUMMARY",
+        "r_deviation_injected": 0.974657391,
+        "r_candidate": 0.945576589,
+        "response_gap": 0.029080801,
+        "C_match_to_deviation": 0.085024258,
+        "composition_match_tolerance_pp": 0.2,
+        "composition_matches": true,
+        "response_separable": false
+      }
+    },
+    "verdict": {
+      "P3": "NOT_SEPARABLE_mimicry_indistinguishable",
+      "P4": "NOT_SEPARABLE_mimicry_indistinguishable"
+    }
+  },
+  "verdict": {
+    "exit": "STOP_TO_07",
+    "basis": "在已复现的历史 C0 底座与所列预设分辨率下，组成与响应信号均低于 2σ 判据；S2 的边界偏差与物理候选的响应差也未超过 2σ_r",
+    "retracted_from_rev1": [
+      "single_scalar_family_degeneracy（作为普遍结论）",
+      "any_threshold_cannot_change_action",
+      "WGS_near_equilibrium（缺状态/反应商依据）",
+      "S2_already_negated（rev 1 未真正注入偏差）"
+    ],
+    "carry_to_07": [
+      "P2.2-A 底座的历史 C0 可逐位复现",
+      "两个**未匹配配置**的调用不等价：alt 入口按其自身缺省路径求解，未传 WSR+PFR / 整炉热损 1% / 显式干煤口径，故与正确 C0 路径的差异混合了配置差异与入口差异，原因未分离。**不得据此归因于求解入口本身，也不得声称已控制其余配置。**",
+      "在所列预设分辨率下组成与响应信号的上界",
+      "S2 的实测结论（见 s2_boundary_deviation.verdict）"
+    ],
+    "explicitly_not_carried": [
+      "控制其余配置后的求解入口差异（需另做匹配配置对照，非本轮必需）",
+      "任何把 alt 入口差异归因于入口实现的解释"
+    ]
+  },
+  "isolation": {
+    "generation_side": "名义入炉工况 + 注入机制；真值由生成端保存并哈希",
+    "fitting_side": "只读授权输入与开发观测",
+    "scoring_side": "预测锁定后才读评估真值",
+    "scenario_selection_neutrality": "场景不按 C/G 评估成绩挑选"
+  },
+  "seeds": {
+    "solver": "deterministic",
+    "noise_model": "not_applied_in_06A"
+  }
+}

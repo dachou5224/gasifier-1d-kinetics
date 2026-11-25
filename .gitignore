@@ -157,6 +157,10 @@ results/
 !outputs/diagnostics/round-*/
 !outputs/diagnostics/round-*/*.csv
 !outputs/diagnostics/round-*/**/*.csv
+# 工况响应对照（operating-response-comparison）：CSV 明细须入库，
+# 否则同目录的 sha256.txt 无法在仓库内复核，评审也无法按配对/杠杆表复算。
+!outputs/diagnostics/operating-response-comparison/
+!outputs/diagnostics/operating-response-comparison/**/*.csv
 # P1.15-A 求解缓存与运行日志不入库
 outputs/diagnostics/round-p1.15a-20261108/cache/
 outputs/diagnostics/round-p1.15a-20261108/run.log

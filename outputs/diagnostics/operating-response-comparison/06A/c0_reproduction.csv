@@ -1,0 +1,7 @@
+phase,window_id,mesh_family,n_cells,coal_flow_dry_kg_s,carrier_nm3_h,theta_abs_written,CO_model,CO_baseline,dCO,dH2,dCO2,dT_K,max_residual_cost,poor_convergence_count,fallback_count,status
+P1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_007__W001,wsr_plus_pfr,182,17.913,9420.531,unset (gasifier_system fallback),73.474746795,73.474746795,0.0,0.0,0.0,0.0,3.697068583410747e-12,0,0,completed
+P1,R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_007__W002,wsr_plus_pfr,182,17.6201,9463.256,unset (gasifier_system fallback),73.477806631,73.477806631,0.0,0.0,0.0,0.0,1.4760952554654574e-12,0,0,completed
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001,wsr_plus_pfr,182,19.1412,10685.791,unset (gasifier_system fallback),73.652310893,73.652310893,0.0,0.0,0.0,0.0,1.3013605086439706e-11,0,0,completed
+P3,R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W002,wsr_plus_pfr,182,20.1999,10462.183,unset (gasifier_system fallback),73.603498672,73.603498672,0.0,0.0,0.0,0.0,1.3622518588706938e-12,0,0,completed
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W001,wsr_plus_pfr,182,20.0023,10185.825,unset (gasifier_system fallback),72.263147859,72.263147859,0.0,0.0,0.0,0.0,2.3690323983101223e-12,0,0,completed
+P4,R52-C-75__P4__huayi_sy3sy2_phase4_wgs1__plateau_2022-10-10N_005__W002,wsr_plus_pfr,182,20.1596,10526.661,unset (gasifier_system fallback),72.015432902,72.015432902,0.0,0.0,0.0,0.0,2.1372468829751324e-12,0,0,completed
