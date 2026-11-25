@@ -4,7 +4,7 @@
   "card": "06A",
   "revision": 2,
   "status": "DRAFT_PENDING_REVIEW",
-  "generated_at": "2026-11-24T17:19:30",
+  "generated_at": "2026-11-25T10:16:11",
   "reference_point": {
     "repo": "gasifier-1d-kinetic",
     "baseline_head": "c7cde49",
@@ -35,7 +35,7 @@
     },
     "historical_c0_theta_abs": 0.2,
     "historical_c0_theta_basis": "run_case 不写 WGS_CatalyticFactor 时 gasifier_system.py 取 op_conds.get(...,0.2)；unset 与显式 0.2 逐位相同（见 baseline_equivalence.csv）",
-    "alt_entry_status": "revision_evidence_common.solve_model_case 不接受与 P2.2-A 等价的 op 覆盖；在 alpha_wgs=1.0 下与 run_case(1.0) 差异显著（见 baseline_equivalence.csv），仍需核对，**不得直接替代** run_case 验证历史 C0",
+    "alt_entry_status": "revision_evidence_common.solve_model_case 按其自身缺省路径求解，**未传** WSR+PFR / 整炉热损 1% / 显式干煤口径。因此 baseline_equivalence.csv 中 alt 行与正确 C0 路径的差异是「配置差异 + 入口差异」的混合，原因未分离。可主张：两个未匹配配置的调用不等价，不能直接互相替代。不可主张：差异来自求解入口本身，或「控制其余配置后仍不等价」。若日后需要后者，须另做匹配配置对照（非本轮 06A 的必需计算）。",
     "scale_conversion": {
       "absolute": "op_conds['WGS_CatalyticFactor']，历史 C0 = 0.2",
       "relative_to_C0": "absolute / 0.2",
@@ -247,9 +247,13 @@
     ],
     "carry_to_07": [
       "P2.2-A 底座的历史 C0 可逐位复现",
-      "双入口在匹配其余配置后的差异",
+      "两个**未匹配配置**的调用不等价：alt 入口按其自身缺省路径求解，未传 WSR+PFR / 整炉热损 1% / 显式干煤口径，故与正确 C0 路径的差异混合了配置差异与入口差异，原因未分离。**不得据此归因于求解入口本身，也不得声称已控制其余配置。**",
       "在所列预设分辨率下组成与响应信号的上界",
       "S2 的实测结论（见 s2_boundary_deviation.verdict）"
+    ],
+    "explicitly_not_carried": [
+      "控制其余配置后的求解入口差异（需另做匹配配置对照，非本轮必需）",
+      "任何把 alt 入口差异归因于入口实现的解释"
     ]
   },
   "isolation": {

@@ -556,9 +556,13 @@ def main() -> None:
                 "unset 与显式 0.2 逐位相同（见 baseline_equivalence.csv）"
             ),
             "alt_entry_status": (
-                "revision_evidence_common.solve_model_case 不接受与 P2.2-A 等价的 op 覆盖；"
-                "在 alpha_wgs=1.0 下与 run_case(1.0) 差异显著（见 baseline_equivalence.csv），"
-                "仍需核对，**不得直接替代** run_case 验证历史 C0"
+                "revision_evidence_common.solve_model_case 按其自身缺省路径求解，"
+                "**未传** WSR+PFR / 整炉热损 1% / 显式干煤口径。因此 "
+                "baseline_equivalence.csv 中 alt 行与正确 C0 路径的差异是"
+                "「配置差异 + 入口差异」的混合，原因未分离。"
+                "可主张：两个未匹配配置的调用不等价，不能直接互相替代。"
+                "不可主张：差异来自求解入口本身，或「控制其余配置后仍不等价」。"
+                "若日后需要后者，须另做匹配配置对照（非本轮 06A 的必需计算）。"
             ),
             "scale_conversion": {
                 "absolute": "op_conds['WGS_CatalyticFactor']，历史 C0 = 0.2",
@@ -668,9 +672,18 @@ def main() -> None:
             ],
             "carry_to_07": [
                 "P2.2-A 底座的历史 C0 可逐位复现",
-                "双入口在匹配其余配置后的差异",
+                (
+                    "两个**未匹配配置**的调用不等价：alt 入口按其自身缺省路径求解，"
+                    "未传 WSR+PFR / 整炉热损 1% / 显式干煤口径，故与正确 C0 路径的差异"
+                    "混合了配置差异与入口差异，原因未分离。"
+                    "**不得据此归因于求解入口本身，也不得声称已控制其余配置。**"
+                ),
                 "在所列预设分辨率下组成与响应信号的上界",
                 "S2 的实测结论（见 s2_boundary_deviation.verdict）",
+            ],
+            "explicitly_not_carried": [
+                "控制其余配置后的求解入口差异（需另做匹配配置对照，非本轮必需）",
+                "任何把 alt 入口差异归因于入口实现的解释",
             ],
         },
         "isolation": {
@@ -712,8 +725,23 @@ def main() -> None:
 
 1. P2.2-A 的冻结配置（WSR+PFR 等）在采样窗口上**逐位复现** `baseline_142.csv`。
 2. 历史 C0 路径不写 `WGS_CatalyticFactor` 时与显式 0.2 逐位相同；显式 1.0 不等价（5× C0）。
-3. 另一求解入口 `solve_model_case` 在匹配其余配置后仍需核对，不得直接替代 `run_case`。
-4. 在所声明网格与三档预设下，组成与响应的信号上界（见 `separation_check.csv`）。
+3. 在所列网格与三档预设下，组成与响应的信号上界（见 `separation_check.csv`）。
+4. **两个未匹配配置的调用不等价**：`solve_model_case` 按其自身缺省路径求解，
+   未传 WSR+PFR / 整炉热损 1% / 显式干煤口径，故其与正确 C0 路径的差异是
+   「配置差异 + 入口差异」的混合。
+
+## 关于双入口比较的范围限制
+
+`baseline_equivalence.csv` 中 `alt_entry_solve_model_case_vs_run_case_at_1.0` 一行
+**不能**用于支撑「控制其余配置后的入口差异」：
+
+- alt 侧未匹配 P2.2-A 的 MeshFamily / WSRLength / PFRCellLength / 热损 / 干煤口径；
+- 因此该行的 dCO / dT 混合了配置差异与入口差异，原因**未分离**；
+- 可说的只有「两者在当前各自配置下不等价，不能直接互相替代」；
+- **不可说**「差异来自求解入口本身」或「其余条件相同下仍不等价」。
+
+若日后需要后一类结论，须另做一次匹配配置的对照求解。那不是本轮 06A 的必需计算，
+也不影响本轮 `STOP_TO_07` 的数值依据。
 """
     (OUT / "limitations.md").write_text(lim, encoding="utf-8")
 
@@ -774,7 +802,7 @@ def main() -> None:
 
 ## 给 07 的边界
 
-可写：历史 C0 可逐位复现；双入口差异；所列预设下的信号上界（条件性）。
+可写：历史 C0 可逐位复现；两个未匹配配置的调用不等价（差异原因未分离）；所列预设下的信号上界（条件性）。
 不可写：响应判据有效/无效；工业响应已识别；WGS 已近平衡；任何通用精度的分析仪结论。
 详细清单见 `limitations.md`。
 """

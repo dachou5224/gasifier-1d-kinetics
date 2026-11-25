@@ -140,8 +140,46 @@ def test_alt_entry_documented_as_not_substitutable(proto: dict) -> None:
     ]
     assert rows
     assert all(abs(float(r["dCO"])) > 1e-6 for r in rows)
-    text = json.dumps(proto, ensure_ascii=False)
-    assert "不得直接替代" in text or "not_substitutable" in text or "仍需核对" in text
+
+
+def test_alt_entry_config_not_matched_in_carry_to_07(proto: dict) -> None:
+    """复审 P2：交接项不得声称「已匹配其余配置」。
+
+    `solve_p22a_alt` 按其自身缺省路径求解，未传 WSR+PFR / 热损 / 干煤口径，
+    因此 alt 行与正确 C0 路径的差异混合了配置差异与入口差异。
+    """
+    carry = " ".join(proto["verdict"]["carry_to_07"])
+    # 必须出现「未匹配」限定
+    assert "未匹配配置" in carry, "交接项须显式标注未匹配配置"
+    # 不得出现「已匹配其余配置」的完成式表述
+    assert "在匹配其余配置后" not in carry
+    assert "匹配其余配置后的差异" not in carry
+    # 必须显式禁止归因于入口本身
+    assert "不得据此归因于求解入口本身" in carry
+
+
+def test_alt_entry_status_states_scope_limit(proto: dict) -> None:
+    status = proto["reference_point"]["alt_entry_status"]
+    assert "未传" in status
+    assert "未分离" in status
+    assert "不可主张" in status
+
+
+def test_not_carried_list_exists(proto: dict) -> None:
+    """须显式列出不带入 07 的项，避免静默扩大主张。"""
+    not_carried = proto["verdict"]["explicitly_not_carried"]
+    assert not_carried
+    joined = " ".join(not_carried)
+    assert "匹配配置" in joined
+    assert "归因" in joined
+
+
+def test_limitations_scopes_alt_entry() -> None:
+    text = (OUT / "limitations.md").read_text(encoding="utf-8")
+    assert "关于双入口比较的范围限制" in text
+    assert "未分离" in text
+    assert "不能**用于支撑" in text or "不能" in text
+    assert "另做一次匹配配置的对照求解" in text
 
 
 # ---------------- P2：误差传播分开 ----------------
