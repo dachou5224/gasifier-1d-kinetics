@@ -4,7 +4,7 @@
   "card": "06A",
   "revision": 2,
   "status": "DRAFT_PENDING_REVIEW",
-  "generated_at": "2026-11-25T10:16:11",
+  "generated_at": "2026-11-25T10:54:33",
   "reference_point": {
     "repo": "gasifier-1d-kinetic",
     "baseline_head": "c7cde49",
@@ -99,21 +99,28 @@
   "separation_findings": {
     "composition_level_span_pp": {
       "P1": 0.008914,
+      "P2": 0.004027,
       "P3": 0.00349,
       "P4": 0.164924
     },
     "saturation_gain_2.0_to_10.0_pp": {
       "P1": 0.000386,
+      "P2": 0.000238,
       "P3": 0.000447,
       "P4": 0.00265
     },
     "response_span_pp_per_5pct": {
       "P1": 0.002068216,
+      "P2": 0.004149788,
       "P3": 0.003168778,
       "P4": 0.200835589
     },
     "separable": {
       "P1": {
+        "composition": false,
+        "response": false
+      },
+      "P2": {
         "composition": false,
         "response": false
       },
@@ -132,6 +139,10 @@
           "composition": false,
           "response": false
         },
+        "P2": {
+          "composition": false,
+          "response": false
+        },
         "P3": {
           "composition": false,
           "response": false
@@ -143,6 +154,10 @@
       },
       "moderate": {
         "P1": {
+          "composition": false,
+          "response": false
+        },
+        "P2": {
           "composition": false,
           "response": false
         },
@@ -160,6 +175,10 @@
           "composition": false,
           "response": false
         },
+        "P2": {
+          "composition": false,
+          "response": false
+        },
         "P3": {
           "composition": false,
           "response": false
@@ -174,6 +193,24 @@
   "s1_ablation": {
     "scope": "仅限本实现校验：真值取网格内 theta=2.0、无噪声、同一求解器；该配置下候选可精确复现真值",
     "per_phase": {
+      "P1": {
+        "c_argmin_theta": 2.0,
+        "r_argmin_theta": 2.0,
+        "same_argmin": true,
+        "r_dev_monotone_in_grid": false,
+        "all_pass_gate": true,
+        "c_dev_spread": 0.024913147,
+        "r_dev_spread": 0.001671863
+      },
+      "P2": {
+        "c_argmin_theta": 2.0,
+        "r_argmin_theta": 2.0,
+        "same_argmin": true,
+        "r_dev_monotone_in_grid": false,
+        "all_pass_gate": true,
+        "c_dev_spread": 0.029166018,
+        "r_dev_spread": 0.004149788
+      },
       "P3": {
         "c_argmin_theta": 2.0,
         "r_argmin_theta": 2.0,
@@ -204,6 +241,32 @@
   "s2_boundary_deviation": {
     "injection": "载气流量 x(1+0.03)，反应族仍为 C0",
     "per_phase_summary": {
+      "P1": {
+        "phase": "P1",
+        "window_id": "R52-C-75__P1__huayi_sy3_phase1_wgs1__plateau_2022-09-28D_007__W001",
+        "carrier_bias_rel": 0.03,
+        "theta_cand_abs": "SUMMARY",
+        "r_deviation_injected": -0.017065943,
+        "r_candidate": -0.027241066,
+        "response_gap": 0.010175123,
+        "C_match_to_deviation": 0.088462078,
+        "composition_match_tolerance_pp": 0.2,
+        "composition_matches": true,
+        "response_separable": false
+      },
+      "P2": {
+        "phase": "P2",
+        "window_id": "R52-C-75__P2__huayi_sy3sy2_phase2_wgs1__plateau_2022-10-02D_007__W001",
+        "carrier_bias_rel": 0.03,
+        "theta_cand_abs": "SUMMARY",
+        "r_deviation_injected": 0.119036448,
+        "r_candidate": 0.11043146,
+        "response_gap": 0.008604988,
+        "C_match_to_deviation": 0.08928318,
+        "composition_match_tolerance_pp": 0.2,
+        "composition_matches": true,
+        "response_separable": false
+      },
       "P3": {
         "phase": "P3",
         "window_id": "R52-C-75__P3__huayi_sy3sy2_phase3_wgs1__plateau_2022-10-06D_007__W001",
@@ -232,6 +295,8 @@
       }
     },
     "verdict": {
+      "P1": "NOT_SEPARABLE_mimicry_indistinguishable",
+      "P2": "NOT_SEPARABLE_mimicry_indistinguishable",
       "P3": "NOT_SEPARABLE_mimicry_indistinguishable",
       "P4": "NOT_SEPARABLE_mimicry_indistinguishable"
     }

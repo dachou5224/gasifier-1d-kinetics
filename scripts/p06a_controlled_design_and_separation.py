@@ -73,8 +73,8 @@ PRODUCTS = (
     "limitations.md",
 )
 
-EQUIV_PHASES = ("P1", "P3", "P4")
-RUN_PHASES = ("P1", "P3", "P4")
+EQUIV_PHASES = ("P1", "P2", "P3", "P4")
+RUN_PHASES = ("P1", "P2", "P3", "P4")
 
 
 def sha256_of(p: Path) -> str:
@@ -369,7 +369,7 @@ def main() -> None:
 
     # ---------------- 6. S1 消融（G 关闭响应门槛） ----------------
     abl_rows: list[dict[str, Any]] = []
-    for phase in ("P3", "P4"):
+    for phase in RUN_PHASES:
         wid = pick(phase, 1)[0]
         lnu = pair_info[phase]["lnu"]
         theta_gen = 2.0
@@ -409,7 +409,7 @@ def main() -> None:
     _write_csv("ablation_trace.csv", abl_rows)
 
     s1 = {}
-    for phase in ("P3", "P4"):
+    for phase in RUN_PHASES:
         sub = [x for x in abl_rows if x["phase"] == phase]
         best_c = min(sub, key=lambda x: x["C_dev_pp"])
         best_r = min(sub, key=lambda x: x["R_dev"])
@@ -429,7 +429,7 @@ def main() -> None:
 
     # ---------------- 7. S2：真实注入边界偏差 ----------------
     s2_rows: list[dict[str, Any]] = []
-    for phase in ("P3", "P4"):
+    for phase in RUN_PHASES:
         wid = pick(phase, 1)[0]
         lnu = pair_info[phase]["lnu"]
         sig_r = (math.log(1.05) * math.sqrt(2.0)
@@ -488,11 +488,11 @@ def main() -> None:
 
     s2_summary = {
         p: next(r for r in s2_rows if r["phase"] == p and r["theta_cand_abs"] == "SUMMARY")
-        for p in ("P3", "P4")
+        for p in RUN_PHASES
     }
     # 每个阶段「最接近候选」的 θ，用于文档渲染（SUMMARY 行不带 θ）
     s2_best_theta: dict[str, Any] = {}
-    for p in ("P3", "P4"):
+    for p in RUN_PHASES:
         sub = [r for r in s2_rows if r["phase"] == p and r["theta_cand_abs"] != "SUMMARY"]
         s2_best_theta[p] = min(sub, key=lambda r: float(r["C_match_to_deviation"]))["theta_cand_abs"]
     s2_verdict = {}
